@@ -2,14 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <!-- تم تعديل الفيو بورت لمنع التقريب (Zoom) المزعج في الايفون عند الكتابة -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gold Land - نظام إدارة الطلبات</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        /* إصلاح مشاكل القياسات الافتراضية لجميع المتصفحات */
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
@@ -23,7 +21,6 @@
             --glass-border: rgba(255, 215, 0, 0.2);
         }
 
-        /* منع ظهور الخلفية البيضاء في الايفون نهائيا وتمديد الارتفاع */
         html {
             background-color: #090a0f;
             min-height: 100vh;
@@ -33,12 +30,12 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0; 
-            padding: 0; /* تم نقل البادينج إلى الـ container لمنع انكماش الشاشة بالايفون */
+            padding: 0; 
             display: flex; 
             justify-content: center; 
             align-items: flex-start;
             min-height: 100vh; 
-            min-height: -webkit-fill-available; /* حل مشكلة شريط سفاري السفلي */
+            min-height: -webkit-fill-available;
             width: 100%;
             color: #fff; 
             overflow-x: hidden;
@@ -76,12 +73,11 @@
         .logo-2 { bottom: 10%; right: 5%; animation-direction: reverse, alternate; width: 180px; height: 180px; }
         .logo-2 .logo-inner { font-size: 70px; }
 
-        /* الحاوية الرئيسية للتطبيق */
         .container { 
             width: 100%; 
             max-width: 1200px; 
             margin: 0 auto; 
-            padding: 20px; /* البادينج هنا يمنع مشاكل التصميم بالايفون */
+            padding: 20px; 
             transition: all 0.5s ease; 
         }
         
@@ -98,7 +94,6 @@
         .form-group { margin-bottom: 20px; display: flex; flex-direction: column; }
         label { margin-bottom: 8px; color: #f1c40f; text-shadow: 0 0 5px rgba(241, 196, 15, 0.5); font-weight: bold; }
         
-        /* ضبط الحقول ومنع ستايل سفاري الافتراضي */
         input[type="text"], input[type="password"], input[type="number"], input[type="date"], textarea {
             -webkit-appearance: none;
             appearance: none;
@@ -114,7 +109,6 @@
         .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; }
         .button-group { display: flex; gap: 15px; margin-top: 20px; justify-content: center; flex-wrap: wrap; }
 
-        /* منع ستايل سفاري الازرار الافتراضي */
         button {
             -webkit-appearance: none;
             appearance: none;
@@ -145,7 +139,6 @@
 
         #dashboard-section { display: none; }
 
-        /* النافذة الجانبية (تيليجرام) */
         .telegram-sidebar {
             position: fixed; top: 0; right: -350px; width: 320px; height: 100vh; background: rgba(15, 15, 20, 0.95);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-left: 2px solid var(--neon-gold);
@@ -164,7 +157,6 @@
             box-shadow: 0 5px 20px rgba(255, 215, 0, 0.5); background: linear-gradient(90deg, #b8860b, #ffd700); border: 2px solid #fff;
         }
 
-        /* النوافذ المنبثقة والإعدادات */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
             backdrop-filter: blur(5px); z-index: 10000; display: none; justify-content: center; align-items: center;
@@ -176,7 +168,6 @@
         }
         .close-modal { position: absolute; top: 15px; left: 20px; font-size: 24px; color: var(--neon-gold); cursor: pointer; }
 
-        /* التبويبات */
         .settings-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--neon-dark-gold); padding-bottom: 15px; }
         .tab-btn { flex: 1; padding: 12px 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--neon-dark-gold); color: white; border-radius: 8px; cursor: pointer; transition: 0.3s; font-size: 15px; font-weight: bold; }
         .tab-btn:hover { background: rgba(255, 215, 0, 0.1); }
@@ -225,7 +216,6 @@
                 </div>
 
                 <div class="tab-content">
-                    <!-- تبويب أكواد الطلبات -->
                     <div id="typesTab" class="tab-pane active">
                         <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">الطلبات المضافة هنا ستظهر لجميع المناديب في قائمة الاختيار.</p>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -237,7 +227,6 @@
                         <ul class="user-list" id="orderTypesListDisplay" style="max-height: 250px; overflow-y: auto;"></ul>
                     </div>
 
-                    <!-- تبويب المستخدمين -->
                     <div id="usersTab" class="tab-pane">
                         <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">إنشاء الحسابات هنا سيسمح للمناديب بالدخول، ويمكنك منحهم صلاحية حذف الطلبات.</p>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -259,7 +248,6 @@
         </div>
     </div>
 
-    <!-- نافذة التأكيد (مرفوعة لتظهر فوق الجميع دائمًا) -->
     <div class="modal-overlay" id="confirmModal" style="z-index: 10500;">
         <div class="modal-content" style="max-width: 400px; padding-top: 40px;">
             <div style="font-size: 50px; margin-bottom: 15px;">⚠️</div>
@@ -272,7 +260,6 @@
         </div>
     </div>
 
-    <!-- تعليمات التثبيت -->
     <div class="modal-overlay" id="installModal">
         <div class="modal-content" style="max-width: 400px;">
             <span class="close-modal" onclick="closeInstallModal()">&times;</span>
@@ -282,7 +269,6 @@
         </div>
     </div>
 
-    <!-- الأرشيف السحابي -->
     <div class="modal-overlay" id="cloudOrdersModal">
         <div class="modal-content" style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; padding: 20px;">
             <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
@@ -324,11 +310,10 @@
     </div>
     <button class="toggle-tg-btn" id="floatingTgBtn" onclick="toggleSidebar()" title="فتح تيليجرام">💬</button>
 
-    <!-- تسجيل الدخول -->
     <div class="container" id="login-section">
         <div class="login-box">
             <div class="css-logo main-logo"><div class="logo-inner">GL</div></div>
-            <h2>Gold Land </h2>
+            <h2>Gold Land Portal</h2>
             <div class="form-group"><label>اسم المستخدم</label><input type="text" id="username" placeholder="أدخل اسم المستخدم"></div>
             <div class="form-group"><label>الرقم السري</label><input type="password" id="password" placeholder="أدخل كلمة المرور" onkeypress="handleEnter(event)"></div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
@@ -344,7 +329,6 @@
         </div>
     </div>
 
-    <!-- لوحة التحكم -->
     <div class="container" id="dashboard-section">
         <div class="header-dash">
             <div style="display: flex; align-items: center; gap: 15px;">
@@ -434,7 +418,6 @@
         </div>
     </div>
 
-    <!-- إعدادات Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -452,7 +435,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // وظائف الأرشيف
         window.saveDataToFirebase = async function(orderData) {
             try {
                 orderData.timestamp = serverTimestamp();
@@ -469,7 +451,6 @@
         
         window.deleteOrderFromFirebase = async function(docId) { await deleteDoc(doc(db, "orders", docId)); };
 
-        // وظائف إدارة المستخدمين
         window.loadSystemDataFromFirebase = async function() {
             try {
                 const usersSnap = await getDocs(collection(db, "system_users"));
@@ -490,7 +471,6 @@
         window.deleteOrderTypeFromFirebase = async function(docId) { await deleteDoc(doc(db, "order_types", docId)); };
     </script>
 
-    <!-- الأكواد البرمجية (JavaScript) -->
     <script>
         const ADMIN_USER = "Zain";
         const ADMIN_PASS = "327798";
@@ -523,7 +503,6 @@
             toggleSidebar();
         }
 
-        // ================= الأرشيف السحابي =================
         async function openCloudOrders() {
             document.getElementById('cloudOrdersModal').style.display = 'flex';
             const tbody = document.getElementById('cloudOrdersTbody');
@@ -590,7 +569,7 @@
 
             filteredCloudOrders = allCloudOrders.filter(o => {
                 const textMatch = (o.name || "").toLowerCase().includes(queryText) || (o.phone1 || "").includes(queryText) || 
-                                  (o.phone2 || "").includes(queryText) || (o.gov || "").includes(queryText) || (o.addedBy || "").includes(queryText) || queryText === '';
+                              (o.phone2 || "").includes(queryText) || (o.gov || "").includes(queryText) || (o.addedBy || "").includes(queryText) || queryText === '';
                 let dateMatch = true;
                 if(fromDate || toDate) {
                     if(o.timestamp?.seconds) {
@@ -622,7 +601,6 @@
             const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(exportData), "الأرشيف السحابي"); XLSX.writeFile(workbook, "أرشيف_Gold_Land.xlsx");
         }
 
-        // ================= الإعدادات (السحابية) =================
         function openSettings() {
             document.getElementById('settingsModal').style.display = 'flex'; document.getElementById('settingsAuthSection').style.display = 'block';
             document.getElementById('settingsManagerSection').style.display = 'none'; document.getElementById('settingsPass').value = ''; document.getElementById('settings-error').style.display = 'none';
@@ -671,7 +649,7 @@
             if (configuredOrderTypes.length === 0) { list.innerHTML = "<li style='justify-content:center; color:#aaa; border:none; background:transparent;'>لا توجد طلبات محفوظة حالياً</li>"; return; }
             configuredOrderTypes.forEach((type, index) => {
                 const li = document.createElement("li");
-                li.innerHTML = `<span>📦 ${type.name} <span style="color:var(--neon-gold); font-size:12px;">(الرمز: ${type.code})</span></span>
+                li.innerHTML = `📦 ${type.name} <span style="color:var(--neon-gold); font-size:12px;">(الرمز: ${type.code})</span>
                                 <button class="btn-danger" style="padding:5px 10px;" onclick="deleteOrderType(${index})">حذف ❌</button>`;
                 list.appendChild(li);
             });
@@ -734,7 +712,7 @@
                 
                 li.innerHTML = `
                     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        <span>👤 ${user.username} (المرور: ${user.password})</span>
+                        👤 ${user.username} (المرور: ${user.password})
                         ${deleteBadge}
                         <button class="btn-outline" style="padding: 3px 8px; font-size: 11px; border-radius: 5px; border-color: #3498db; color: #3498db;" onclick="toggleUserPermission(${index})">تغيير الصلاحية 🔄</button>
                     </div>
@@ -744,7 +722,6 @@
             });
         }
 
-        // ================= الدخول وواجهة التطبيق =================
         async function login() {
             const user = document.getElementById("username").value.trim(), pass = document.getElementById("password").value.trim();
             const errorMsg = document.getElementById("login-error"), btn = document.getElementById("loginBtn");
@@ -772,10 +749,13 @@
         }
 
         function showDashboard() {
-            if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(e=>console.log(e));
-            document.getElementById("login-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "block";
-            document.getElementById("floatingTgBtn").style.display = "flex"; setTimeout(() => { toggleSidebar(); }, 500); 
-            document.getElementById("username").value = ""; document.getElementById("password").value = "";
+            // تم إزالة أمر requestFullscreen لكي لا يتسبب بمشاكل وتجميد في متصفح وسفاري الأيفون
+            document.getElementById("login-section").style.display = "none"; 
+            document.getElementById("dashboard-section").style.display = "block";
+            document.getElementById("floatingTgBtn").style.display = "flex"; 
+            setTimeout(() => { toggleSidebar(); }, 500); 
+            document.getElementById("username").value = ""; 
+            document.getElementById("password").value = "";
         }
 
         function logout() {
@@ -785,11 +765,9 @@
                 document.getElementById("floatingTgBtn").style.display = "none"; document.getElementById('telegramSidebar').classList.remove('active');
                 document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = '';
                 clearForm(); document.getElementById('tableBody').innerHTML = ""; updateOrdersCounter();
-                if (document.fullscreenElement) document.exitFullscreen();
             });
         }
 
-        // ================= استخراج النصوص وعمليات الجدول =================
         function showInstallInstructions(os) { 
             const title = document.getElementById('installTitle');
             const instructions = document.getElementById('installInstructions');
