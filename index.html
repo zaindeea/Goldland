@@ -3,8 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gold Land - نظام إدارة الطلبات</title>
+    <title>Gold Land</title>
     
+    <!-- إعدادات تطبيق الويب للشاشة الرئيسية (PWA) -->
+    <link rel="manifest" href="data:application/manifest+json;base64,ewog "name": "Gold Land",\n "short_name": "Gold Land",\n "start_url": "./",\n "display": "standalone",\n "background_color": "#090a0f",\n "theme_color": "#ffd700",\n "icons": [\n  {\n   "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0jMDkwYTBmIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgc2VyaWYiIGZvbnQtc2l6ZT0iMjQwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0idXJsKCNncmFkKSI+R0w8L3RleHQ+PGRlZnM+PGxpbmVhcmdyYWRpZW50IGlkPSJncmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjZmZkNzAwIi8+PHN0b3Agb2Zmc2ldPSIxMDAlIiBzdG9wLWNvbG9yPSIjYjg4NjBiIi8+PC9saW5lYXJncmFkaWVudD48L2RlZnM+PC9zdmc+",\n   "sizes": "512x512",\n   "type": "image/svg+xml"\n  }\n ]\n}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gold Land">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
@@ -17,8 +23,8 @@
             --neon-gold: #ffd700;
             --neon-dark-gold: #daa520;
             --neon-purple: #4b0082;
-            --glass-bg: rgba(15, 15, 20, 0.7);
-            --glass-border: rgba(255, 215, 0, 0.2);
+            --glass-bg: rgba(15, 15, 20, 0.75);
+            --glass-border: rgba(255, 215, 0, 0.25);
         }
 
         html {
@@ -94,14 +100,15 @@
         .form-group { margin-bottom: 20px; display: flex; flex-direction: column; }
         label { margin-bottom: 8px; color: #f1c40f; text-shadow: 0 0 5px rgba(241, 196, 15, 0.5); font-weight: bold; }
         
-        input[type="text"], input[type="password"], input[type="number"], input[type="date"], textarea {
+        input[type="text"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
             -webkit-appearance: none;
             appearance: none;
             width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--neon-dark-gold); border-radius: 10px;
             color: #fff; font-size: 16px; outline: none; transition: 0.3s; box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.1); font-family: inherit;
         }
+        select option { background: #151515; color: #fff; }
         textarea { height: 150px; resize: vertical; border: 2px dashed var(--neon-dark-gold); }
-        input:focus, textarea:focus { border-color: var(--neon-gold); box-shadow: 0 0 15px var(--neon-gold), inset 0 0 10px var(--neon-gold); background: rgba(0, 0, 0, 0.6); }
+        input:focus, select:focus, textarea:focus { border-color: var(--neon-gold); box-shadow: 0 0 15px var(--neon-gold), inset 0 0 10px var(--neon-gold); background: rgba(0, 0, 0, 0.6); }
         input[type="checkbox"] { width: auto; transform: scale(1.3); margin-left: 10px; accent-color: var(--neon-gold); }
         
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
@@ -139,24 +146,6 @@
 
         #dashboard-section { display: none; }
 
-        .telegram-sidebar {
-            position: fixed; top: 0; right: -350px; width: 320px; height: 100vh; background: rgba(15, 15, 20, 0.95);
-            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-left: 2px solid var(--neon-gold);
-            box-shadow: -5px 0 30px rgba(0,0,0,0.8); transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9999; display: flex; flex-direction: column;
-        }
-        .telegram-sidebar.active { right: 0; }
-        .sidebar-header { padding: 15px 20px; border-bottom: 1px solid var(--neon-dark-gold); display: flex; justify-content: space-between; align-items: center; background: #111; }
-        .sidebar-header h3 { margin: 0; font-size: 16px; text-shadow: none; display: flex; align-items: center; gap: 10px; }
-        .close-sidebar-btn { background: transparent; border: none; color: var(--neon-gold); font-size: 28px; cursor: pointer; padding: 0; line-height: 1; box-shadow: none;}
-        .close-sidebar-btn:hover { background: transparent; transform: scale(1.2); color: #fff; }
-        .sidebar-content { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; text-align: center; }
-
-        .toggle-tg-btn {
-            position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%;
-            font-size: 28px; display: none; justify-content: center; align-items: center; z-index: 9998; padding: 0;
-            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.5); background: linear-gradient(90deg, #b8860b, #ffd700); border: 2px solid #fff;
-        }
-
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
             backdrop-filter: blur(5px); z-index: 10000; display: none; justify-content: center; align-items: center;
@@ -168,8 +157,8 @@
         }
         .close-modal { position: absolute; top: 15px; left: 20px; font-size: 24px; color: var(--neon-gold); cursor: pointer; }
 
-        .settings-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--neon-dark-gold); padding-bottom: 15px; }
-        .tab-btn { flex: 1; padding: 12px 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--neon-dark-gold); color: white; border-radius: 8px; cursor: pointer; transition: 0.3s; font-size: 15px; font-weight: bold; }
+        .settings-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--neon-dark-gold); padding-bottom: 15px; flex-wrap: wrap; }
+        .tab-btn { flex: 1; min-width: 120px; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--neon-dark-gold); color: white; border-radius: 8px; cursor: pointer; transition: 0.3s; font-size: 14px; font-weight: bold; }
         .tab-btn:hover { background: rgba(255, 215, 0, 0.1); }
         .tab-btn.active { background: var(--neon-gold); color: #000; box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); border-color: var(--neon-gold); }
         .tab-pane { display: none; text-align: right; animation: fadeIn 0.4s ease-in-out; }
@@ -211,12 +200,25 @@
             <div id="settingsManagerSection" style="display: none;">
                 <h3 style="margin-bottom: 20px;">⚙️ إعدادات النظام</h3>
                 <div class="settings-tabs">
-                    <button class="tab-btn active" onclick="switchTab('typesTab', this)">📦 أنواع وأكواد الطلبات</button>
-                    <button class="tab-btn" onclick="switchTab('usersTab', this)">👥 إدارة المستخدمين</button>
+                    <button class="tab-btn active" onclick="switchTab('pagesTab', this)">🏷️ إدارة البيجات</button>
+                    <button class="tab-btn" onclick="switchTab('typesTab', this)">📦 أنواع الطلبات</button>
+                    <button class="tab-btn" onclick="switchTab('usersTab', this)">👥 المستخدمين</button>
                 </div>
 
                 <div class="tab-content">
-                    <div id="typesTab" class="tab-pane active">
+                    <!-- تبويب إدارة البيجات -->
+                    <div id="pagesTab" class="tab-pane active">
+                        <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">أضف أسماء البيجات المتاحة ليتم اختيارها إلزامياً عند إدخال الطلبات.</p>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <input type="text" id="newPageName" placeholder="اسم البيج (مثال: Gold Land VIP)" style="flex:1;">
+                        </div>
+                        <button id="addPageBtn" onclick="addPageType()" style="width: 100%; margin-bottom: 20px;">إضافة بيج للسحابة ☁️</button>
+                        <div class="error-msg" id="page-error">يجب إدخال اسم البيج.</div>
+                        <ul class="user-list" id="pagesListDisplay" style="max-height: 250px; overflow-y: auto;"></ul>
+                    </div>
+
+                    <!-- تبويب أكواد الطلبات -->
+                    <div id="typesTab" class="tab-pane">
                         <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">الطلبات المضافة هنا ستظهر لجميع المناديب في قائمة الاختيار.</p>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
                             <input type="text" id="newOrderName" placeholder="اسم الطلب (مثال: خشب 2ملم)" style="flex:2; min-width: 150px;">
@@ -227,6 +229,7 @@
                         <ul class="user-list" id="orderTypesListDisplay" style="max-height: 250px; overflow-y: auto;"></ul>
                     </div>
 
+                    <!-- تبويب المستخدمين -->
                     <div id="usersTab" class="tab-pane">
                         <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">إنشاء الحسابات هنا سيسمح للمناديب بالدخول، ويمكنك منحهم صلاحية حذف الطلبات.</p>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -248,6 +251,7 @@
         </div>
     </div>
 
+    <!-- نافذة التأكيد -->
     <div class="modal-overlay" id="confirmModal" style="z-index: 10500;">
         <div class="modal-content" style="max-width: 400px; padding-top: 40px;">
             <div style="font-size: 50px; margin-bottom: 15px;">⚠️</div>
@@ -260,6 +264,7 @@
         </div>
     </div>
 
+    <!-- تعليمات التثبيت -->
     <div class="modal-overlay" id="installModal">
         <div class="modal-content" style="max-width: 400px;">
             <span class="close-modal" onclick="closeInstallModal()">&times;</span>
@@ -269,12 +274,13 @@
         </div>
     </div>
 
+    <!-- الأرشيف السحابي -->
     <div class="modal-overlay" id="cloudOrdersModal">
         <div class="modal-content" style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; padding: 20px;">
             <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
             <h3 style="margin-bottom: 20px;">☁️ الأرشيف السحابي (Firestore)</h3>
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
-                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، المحافظة، المندوب..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 200px;">
+                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، المحافظة، المندوب، البيج..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 200px;">
                 <input type="date" id="cloudDateFrom" onchange="filterCloudOrders()" style="flex: 1; min-width: 130px;" title="من تاريخ">
                 <input type="date" id="cloudDateTo" onchange="filterCloudOrders()" style="flex: 1; min-width: 130px;" title="إلى تاريخ">
                 <button class="btn-parse" onclick="openCloudOrders()" style="width: auto;">تحديث 🔄</button>
@@ -284,7 +290,7 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>التسلسل</th> <th>اسم الزبون</th> <th>الهاتف الأول</th> <th>الهاتف الثاني</th>
+                            <th>التسلسل</th> <th>اسم البيج</th> <th>اسم الزبون</th> <th>الهاتف الأول</th> <th>الهاتف الثاني</th>
                             <th>المحافظة</th> <th>المنطقة</th> <th style="color:var(--neon-gold);">الطلب</th>
                             <th style="color:var(--neon-gold);">العدد</th> <th>المبلغ</th> <th>التاريخ</th>
                             <th>المندوب</th> <th>الحالة</th> <th style="color:#ff4757;">إجراء</th>
@@ -296,24 +302,11 @@
         </div>
     </div>
 
-    <div class="telegram-sidebar" id="telegramSidebar">
-        <div class="sidebar-header">
-            <h3>💬 Gold Land Telegram</h3>
-            <button class="close-sidebar-btn" onclick="toggleSidebar()">&times;</button>
-        </div>
-        <div class="sidebar-content">
-            <div style="font-size: 70px; margin-bottom: 20px; filter: drop-shadow(0 0 10px #2AABEE);">✈️</div>
-            <h3 style="color: #fff; margin-bottom: 10px; font-size: 20px;">المنصة الآمنة</h3>
-            <p style="color: #bbb; font-size: 14px; margin-bottom: 30px; line-height: 1.6;">اضغط على الزر أدناه لفتح تيليجرام في نافذة مصغرة.</p>
-            <button onclick="openTelegramPopup()" style="background: linear-gradient(90deg, #2AABEE, #229ED9); color: white; width: 100%;">فتح تيليجرام المصغر 🚀</button>
-        </div>
-    </div>
-    <button class="toggle-tg-btn" id="floatingTgBtn" onclick="toggleSidebar()" title="فتح تيليجرام">💬</button>
-
+    <!-- تسجيل الدخول -->
     <div class="container" id="login-section">
         <div class="login-box">
             <div class="css-logo main-logo"><div class="logo-inner">GL</div></div>
-            <h2>Gold Land Portal</h2>
+            <h2>Gold Land</h2>
             <div class="form-group"><label>اسم المستخدم</label><input type="text" id="username" placeholder="أدخل اسم المستخدم"></div>
             <div class="form-group"><label>الرقم السري</label><input type="password" id="password" placeholder="أدخل كلمة المرور" onkeypress="handleEnter(event)"></div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
@@ -329,6 +322,7 @@
         </div>
     </div>
 
+    <!-- لوحة التحكم -->
     <div class="container" id="dashboard-section">
         <div class="header-dash">
             <div style="display: flex; align-items: center; gap: 15px;">
@@ -354,9 +348,12 @@
         <div class="card">
             <h3 style="text-align: right;">تفاصيل الطلب (يمكنك التعديل عليها):</h3>
             <div class="form-grid">
+                <!-- اختيار البيج الإلزامي -->
                 <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 5px;">
-                    <label style="color: var(--neon-gold); font-size: 18px;">📌 حقل ثابت (يُكتب مرة واحدة ويُضاف تلقائياً مع كل طلب)</label>
-                    <input type="text" id="constantField" placeholder="مثال: اسم الصفحة، تاريخ اليوم، اسم المندوب..." style="border: 2px solid var(--neon-gold); background: rgba(255, 215, 0, 0.05);">
+                    <label style="color: var(--neon-gold); font-size: 16px;">📌 اختر البيج (إلزامي):</label>
+                    <select id="constantField" style="border: 2px solid var(--neon-gold); background: rgba(255, 215, 0, 0.05); font-weight: bold;">
+                        <option value="">-- اختر البيج التابع له الطلب --</option>
+                    </select>
                 </div>
 
                 <div class="form-group"><label>تسلسل الزبون</label><input type="text" id="custId"></div>
@@ -406,10 +403,10 @@
                 <table id="dataTable">
                     <thead>
                         <tr>
-                            <th>التسلسل</th> <th>اسم الزبون</th> <th>الهاتف الأول</th> <th>الهاتف الثاني</th>
+                            <th>التسلسل</th> <th>اسم البيج</th> <th>اسم الزبون</th> <th>الهاتف الأول</th> <th>الهاتف الثاني</th>
                             <th>المحافظة</th> <th>المنطقة</th> <th style="color:var(--neon-gold);">رمز الطلب</th>
                             <th style="color:var(--neon-gold); text-align: center;">مجموع العدد</th> <th>المبلغ</th>
-                            <th>معلومة ثابتة</th> <th>الملاحظات</th> <th style="text-align: center; color: #ff4757;">حذف</th>
+                            <th>الملاحظات</th> <th style="text-align: center; color: #ff4757;">حذف</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
@@ -418,6 +415,7 @@
         </div>
     </div>
 
+    <!-- إعدادات Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -459,8 +457,11 @@
                 const typesSnap = await getDocs(collection(db, "order_types"));
                 let types = []; typesSnap.forEach(doc => types.push({ id: doc.id, ...doc.data() }));
 
-                return { users, types };
-            } catch (error) { console.error("Error loading data:", error); return { users: [], types: [] }; }
+                const pagesSnap = await getDocs(collection(db, "system_pages"));
+                let pages = []; pagesSnap.forEach(doc => pages.push({ id: doc.id, ...doc.data() }));
+
+                return { users, types, pages };
+            } catch (error) { console.error("Error loading data:", error); return { users: [], types: [], pages: [] }; }
         };
 
         window.addSystemUserToFirebase = async function(userData) { return await addDoc(collection(db, "system_users"), userData); };
@@ -469,14 +470,19 @@
         
         window.addOrderTypeToFirebase = async function(typeData) { return await addDoc(collection(db, "order_types"), typeData); };
         window.deleteOrderTypeFromFirebase = async function(docId) { await deleteDoc(doc(db, "order_types", docId)); };
+
+        window.addSystemPageToFirebase = async function(pageData) { return await addDoc(collection(db, "system_pages"), pageData); };
+        window.deleteSystemPageFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_pages", docId)); };
     </script>
 
+    <!-- الأكواد البرمجية (JavaScript) -->
     <script>
         const ADMIN_USER = "Zain";
         const ADMIN_PASS = "327798";
         
         let additionalUsers = [];
         let configuredOrderTypes = [];
+        let configuredPages = [];
         let loggedInUser = "";
         let loggedInUserCanDelete = false; 
 
@@ -496,17 +502,11 @@
         function closeConfirmModal() { document.getElementById('confirmModal').style.display = 'none'; currentConfirmAction = null; }
         function exitApp() { showConfirmDialog("هل أنت متأكد أنك تريد الخروج وإغلاق النظام؟", function() { window.close(); }); }
         function handleEnter(event) { if (event.key === "Enter") login(); }
-        function toggleSidebar() { document.getElementById('telegramSidebar').classList.toggle('active'); }
-        function openTelegramPopup() {
-            const width = 400, height = 700; const left = (window.screen.width / 2) - (width / 2), top = (window.screen.height / 2) - (height / 2);
-            window.open('https://web.telegram.org/k/', 'TelegramPopup', `width=${width},height=${height},left=${left},top=${top}`);
-            toggleSidebar();
-        }
 
         async function openCloudOrders() {
             document.getElementById('cloudOrdersModal').style.display = 'flex';
             const tbody = document.getElementById('cloudOrdersTbody');
-            tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; padding: 20px;">جاري جلب البيانات من السحابة... ⏳</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding: 20px;">جاري جلب البيانات من السحابة... ⏳</td></tr>';
             
             if(window.getCloudOrdersFromFirebase) {
                 allCloudOrders = await window.getCloudOrdersFromFirebase();
@@ -519,7 +519,7 @@
         
         function renderCloudOrdersTable(orders) {
             const tbody = document.getElementById('cloudOrdersTbody'); tbody.innerHTML = '';
-            if(orders.length === 0) { tbody.innerHTML = '<tr><td colspan="13" style="text-align:center; padding: 20px;">لا توجد طلبات محفوظة أو مطابقة للبحث</td></tr>'; return; }
+            if(orders.length === 0) { tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding: 20px;">لا توجد طلبات محفوظة أو مطابقة للبحث</td></tr>'; return; }
             orders.forEach(order => {
                 const tr = document.createElement('tr');
                 let dateStr = "غير معروف";
@@ -535,7 +535,9 @@
                 }
 
                 tr.innerHTML = `
-                    <td>${order.id || '-'}</td><td>${order.name || '-'}</td>
+                    <td>${order.id || '-'}</td>
+                    <td style="color:var(--neon-gold); font-weight:bold;">${order.constant || '-'}</td>
+                    <td>${order.name || '-'}</td>
                     <td dir="ltr">${order.phone1 || '-'}</td><td dir="ltr">${order.phone2 || '-'}</td>
                     <td>${order.gov || '-'}</td><td>${order.area || '-'}</td>
                     <td style="color:var(--neon-gold); font-weight:bold;">${order.type || '-'}</td>
@@ -569,7 +571,7 @@
 
             filteredCloudOrders = allCloudOrders.filter(o => {
                 const textMatch = (o.name || "").toLowerCase().includes(queryText) || (o.phone1 || "").includes(queryText) || 
-                              (o.phone2 || "").includes(queryText) || (o.gov || "").includes(queryText) || (o.addedBy || "").includes(queryText) || queryText === '';
+                              (o.phone2 || "").includes(queryText) || (o.gov || "").includes(queryText) || (o.addedBy || "").includes(queryText) || (o.constant || "").toLowerCase().includes(queryText) || queryText === '';
                 let dateMatch = true;
                 if(fromDate || toDate) {
                     if(o.timestamp?.seconds) {
@@ -610,7 +612,7 @@
         function verifySettingsPass() {
             if (document.getElementById('settingsPass').value === ADMIN_PASS) {
                 document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block';
-                renderOrderTypesSettings(); renderUsers();
+                renderPagesSettings(); renderOrderTypesSettings(); renderUsers();
             } else { document.getElementById('settings-error').style.display = 'block'; }
         }
 
@@ -619,6 +621,56 @@
             btn.classList.add('active'); document.getElementById(tabId).classList.add('active');
         }
 
+        // ================= إدارة البيجات =================
+        async function addPageType() {
+            const pageName = document.getElementById('newPageName').value.trim();
+            const err = document.getElementById('page-error'), btn = document.getElementById('addPageBtn');
+            if (pageName === "") { err.style.display = "block"; return; }
+            
+            btn.innerText = "جاري الحفظ سحابياً... ⏳"; btn.disabled = true;
+            if(window.addSystemPageToFirebase) {
+                const docRef = await window.addSystemPageToFirebase({ name: pageName });
+                if(docRef) {
+                    configuredPages.push({ id: docRef.id, name: pageName });
+                    document.getElementById('newPageName').value = ""; err.style.display = "none";
+                    renderPagesSettings(); updatePagesDropdown();
+                }
+            }
+            btn.innerText = "إضافة بيج للسحابة ☁️"; btn.disabled = false;
+        }
+
+        function deletePageType(index) {
+            showConfirmDialog("هل أنت متأكد من حذف هذا البيج نهائياً من النظام؟", async function() {
+                const page = configuredPages[index];
+                if(window.deleteSystemPageFromFirebase && page.id) { await window.deleteSystemPageFromFirebase(page.id); }
+                configuredPages.splice(index, 1); renderPagesSettings(); updatePagesDropdown();
+            });
+        }
+
+        function renderPagesSettings() {
+            const list = document.getElementById("pagesListDisplay"); list.innerHTML = "";
+            if (configuredPages.length === 0) { list.innerHTML = "<li style='justify-content:center; color:#aaa; border:none; background:transparent;'>لا توجد بيجات محفوظة حالياً</li>"; return; }
+            configuredPages.forEach((page, index) => {
+                const li = document.createElement("li");
+                li.innerHTML = `🏷️ ${page.name} <button class="btn-danger" style="padding:5px 10px;" onclick="deletePageType(${index})">حذف ❌</button>`;
+                list.appendChild(li);
+            });
+        }
+
+        function updatePagesDropdown() {
+            const select = document.getElementById('constantField');
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- اختر البيج التابع له الطلب --</option>';
+            configuredPages.forEach(page => {
+                const opt = document.createElement('option');
+                opt.value = page.name;
+                opt.textContent = page.name;
+                select.appendChild(opt);
+            });
+            select.value = currentVal;
+        }
+
+        // ================= إدارة أنواع الطلبات =================
         async function addOrderType() {
             const name = document.getElementById('newOrderName').value.trim(), code = document.getElementById('newOrderCode').value.trim();
             const err = document.getElementById('type-error'), btn = document.getElementById('addTypeBtn');
@@ -659,6 +711,7 @@
             configuredOrderTypes.forEach(type => { const option = document.createElement('option'); option.value = type.name; datalist.appendChild(option); });
         }
 
+        // ================= إدارة المستخدمين =================
         async function addUser() {
             const newUser = document.getElementById("new-user-name").value.trim(), newPass = document.getElementById("new-user-pass").value.trim();
             const canDelete = document.getElementById("new-user-can-delete").checked; 
@@ -732,7 +785,9 @@
                 const cloudData = await window.loadSystemDataFromFirebase();
                 additionalUsers = cloudData.users;
                 configuredOrderTypes = cloudData.types;
+                configuredPages = cloudData.pages;
                 updateDatalist(); 
+                updatePagesDropdown();
             }
             btn.innerText = "دخول للنظام"; btn.disabled = false;
 
@@ -749,11 +804,8 @@
         }
 
         function showDashboard() {
-            // تم إلغاء طلب وضع ملء الشاشة تماماً لضمان عدم توقف الواجهة في الآيفون
             document.getElementById("login-section").style.display = "none"; 
             document.getElementById("dashboard-section").style.display = "block";
-            document.getElementById("floatingTgBtn").style.display = "flex"; 
-            setTimeout(() => { toggleSidebar(); }, 500); 
             document.getElementById("username").value = ""; 
             document.getElementById("password").value = "";
         }
@@ -762,7 +814,6 @@
             showConfirmDialog("هل أنت متأكد من تسجيل الخروج؟ سيتم مسح البيانات الحالية من الجدول.", function() {
                 loggedInUser = ""; loggedInUserCanDelete = false;
                 document.getElementById("dashboard-section").style.display = "none"; document.getElementById("login-section").style.display = "flex";
-                document.getElementById("floatingTgBtn").style.display = "none"; document.getElementById('telegramSidebar').classList.remove('active');
                 document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = '';
                 clearForm(); document.getElementById('tableBody').innerHTML = ""; updateOrdersCounter();
             });
@@ -774,10 +825,10 @@
             
             if (os === 'ios') {
                 title.innerHTML = '🍏 تثبيت على آيفون (iOS)'; title.style.color = '#3498db'; title.style.textShadow = '0 0 10px #3498db';
-                instructions.innerHTML = `<b>لإضافة النظام كبرنامج في الآيفون:</b><br><br>1️⃣ من متصفح Safari، اضغط على زر المشاركة (المربع الذي يخرج منه سهم للأعلى) في أسفل الشاشة.<br><br>2️⃣ اسحب القائمة للأسفل واختر <b>"إضافة إلى الصفحة الرئيسية"</b> (Add to Home Screen) ➕.<br><br>3️⃣ اضغط على "إضافة" (Add) في أعلى اليسار.`;
+                instructions.innerHTML = `<b>لإضافة النظام كبرنامج في الآيفون باسم Gold Land:</b><br><br>1️⃣ من متصفح Safari، اضغط على زر المشاركة (المربع الذي يخرج منه سهم للأعلى) في أسفل الشاشة.<br><br>2️⃣ اسحب القائمة للأسفل واختر <b>"إضافة إلى الصفحة الرئيسية"</b> (Add to Home Screen) ➕.<br><br>3️⃣ اضغط على "إضافة" (Add) في أعلى اليسار.`;
             } else {
                 title.innerHTML = '📱 تثبيت على أندرويد'; title.style.color = '#2ecc71'; title.style.textShadow = '0 0 10px #2ecc71';
-                instructions.innerHTML = `<b>لإضافة النظام كبرنامج في الأندرويد:</b><br><br>1️⃣ من متصفح Chrome، اضغط على النقاط الثلاث (⋮) في أعلى يسار أو يمين الشاشة.<br><br>2️⃣ اختر من القائمة <b>"الإضافة إلى الشاشة الرئيسية"</b> (Add to Home screen) 📱.<br><br>3️⃣ اضغط على "إضافة" (Add) للتأكيد.`;
+                instructions.innerHTML = `<b>لإضافة النظام كبرنامج في الأندرويد باسم Gold Land:</b><br><br>1️⃣ من متصفح Chrome، اضغط على النقاط الثلاث (⋮) في أعلى يسار أو يمين الشاشة.<br><br>2️⃣ اختر من القائمة <b>"الإضافة إلى الشاشة الرئيسية"</b> (Add to Home screen) 📱.<br><br>3️⃣ اضغط على "إضافة" (Add) للتأكيد.`;
             }
             document.getElementById('installModal').style.display = 'flex';
         }
@@ -837,6 +888,9 @@
         }
 
         async function addToTable() {
+            const selectedPage = document.getElementById('constantField').value;
+            if (!selectedPage) { alert("⚠️ يجب اختيار البيج (الحقل الثابت) بصورة إلزامية قبل إضافة الطلب!"); return; }
+
             let combinedOrderEntries = []; let totalQuantity = 0; const itemRows = document.querySelectorAll('.order-item-row');
             itemRows.forEach(row => {
                 const typeVal = row.querySelector('.orderTypeInput').value.trim(); const qtyVal = parseInt(row.querySelector('.orderQtyInput').value) || 1;
@@ -851,7 +905,7 @@
                 phone1: document.getElementById('phone1').value, phone2: document.getElementById('phone2').value,
                 gov: document.getElementById('gov').value, area: document.getElementById('area').value,
                 type: combinedOrderEntries.join(' + '), qty: totalQuantity, amount: document.getElementById('amount').value,
-                constant: document.getElementById('constantField').value, note: document.getElementById('note').value,
+                constant: selectedPage, note: document.getElementById('note').value,
                 addedBy: loggedInUser || 'مجهول', status: 'جديد'
             };
 
@@ -867,12 +921,14 @@
 
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${data.id}</td><td>${data.name}</td>
+                <td>${data.id}</td>
+                <td style="color:var(--neon-gold); font-weight:bold;">${data.constant}</td>
+                <td>${data.name}</td>
                 <td dir="ltr">${data.phone1}</td><td dir="ltr">${data.phone2}</td>
                 <td>${data.gov}</td><td>${data.area}</td>
                 <td style="color:var(--neon-gold); font-weight:bold;">${data.type}</td>
                 <td style="color:var(--neon-gold); font-weight:bold; text-align:center;">${data.qty}</td>
-                <td>${data.amount}</td><td style="color: #aaa;">${data.constant}</td><td>${data.note}</td>
+                <td>${data.amount}</td><td>${data.note}</td>
                 <td style="text-align: center;"><button class="btn-danger" style="padding: 5px 10px; font-size: 13px;" onclick="deleteTableRow(this)">حذف ❌</button></td>
             `; document.getElementById('tableBody').appendChild(row);
             updateOrdersCounter(); clearForm(); document.getElementById('pasteArea').value = '';
@@ -880,7 +936,7 @@
 
         function deleteTableRow(button) { showConfirmDialog("هل أنت متأكد من حذف هذا الطلب من الجدول؟", function() { button.closest("tr").remove(); updateOrdersCounter(); }); }
         function clearForm() { ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => document.getElementById(id).value = ''); resetItemsContainer(); }
-        function clearAll() { showConfirmDialog("هل أنت متأكد من مسح كافة بيانات الحقول (بما فيها الحقل الثابت)؟", function() { document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = ''; clearForm(); }); }
+        function clearAll() { showConfirmDialog("هل أنت متأكد من مسح كافة بيانات الحقول؟", function() { document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = ''; clearForm(); }); }
 
         function exportToExcel() {
             const table = document.getElementById("dataTable"); if(table.rows.length <= 1) { alert("الجدول فارغ!"); return; }
@@ -888,14 +944,14 @@
             const dateStr = today.getFullYear() + "/" + (today.getMonth() + 1).toString().padStart(2, '0') + "/" + today.getDate().toString().padStart(2, '0');
             let exportData = [];
             for (let i = 0; i < uiRows.length; i++) {
-                const uiRow = uiRows[i], totalAmount = parseFloat(uiRow.cells[8].innerText.trim().replace(/[^0-9.-]+/g,"")) || 0;
-                const gov = uiRow.cells[4].innerText.trim(), delivery = gov.includes("بغداد") ? 5000 : 8000;
-                const notes = uiRow.cells[10].innerText.trim(), orderCode = uiRow.cells[6].innerText.trim();
+                const uiRow = uiRows[i], totalAmount = parseFloat(uiRow.cells[9].innerText.trim().replace(/[^0-9.-]+/g,"")) || 0;
+                const gov = uiRow.cells[5].innerText.trim(), delivery = gov.includes("بغداد") ? 5000 : 8000;
+                const notes = uiRow.cells[10].innerText.trim(), orderCode = uiRow.cells[7].innerText.trim();
                 exportData.push({
-                    "ت": i + 1, "البيج": uiRow.cells[9].innerText.trim(), "رقم الوصل": i + 1, "تاريخ": dateStr,
-                    "اسم الزبون": uiRow.cells[1].innerText.trim(), "رقم الهاتف": uiRow.cells[3].innerText.trim() ? `${uiRow.cells[2].innerText.trim()} - ${uiRow.cells[3].innerText.trim()}` : uiRow.cells[2].innerText.trim(),
-                    "العنوان": gov, "العنوان منطقة": uiRow.cells[5].innerText.trim(),
-                    "العدد": parseInt(uiRow.cells[7].innerText.trim()) || 1, "المبلغ الكلي": totalAmount, "مبلغ التوصيل": delivery,
+                    "ت": i + 1, "البيج": uiRow.cells[1].innerText.trim(), "رقم الوصل": i + 1, "تاريخ": dateStr,
+                    "اسم الزبون": uiRow.cells[2].innerText.trim(), "رقم الهاتف": uiRow.cells[4].innerText.trim() ? `${uiRow.cells[3].innerText.trim()} - ${uiRow.cells[4].innerText.trim()}` : uiRow.cells[3].innerText.trim(),
+                    "العنوان": gov, "العنوان منطقة": uiRow.cells[6].innerText.trim(),
+                    "العدد": parseInt(uiRow.cells[8].innerText.trim()) || 1, "المبلغ الكلي": totalAmount, "مبلغ التوصيل": delivery,
                     "المبلغ الصافي": totalAmount - delivery, "ملاحظات": notes ? `الطلب: ${orderCode} | ملاحظات: ${notes}` : `الطلب: ${orderCode}`
                 });
             }
