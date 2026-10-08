@@ -2,12 +2,19 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- تم تعديل الفيو بورت لمنع التقريب (Zoom) المزعج في الايفون عند الكتابة -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gold Land - نظام إدارة الطلبات</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
+        /* إصلاح مشاكل القياسات الافتراضية لجميع المتصفحات */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         :root {
             --neon-gold: #ffd700;
             --neon-dark-gold: #daa520;
@@ -16,12 +23,28 @@
             --glass-border: rgba(255, 215, 0, 0.2);
         }
 
+        /* منع ظهور الخلفية البيضاء في الايفون نهائيا وتمديد الارتفاع */
+        html {
+            background-color: #090a0f;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start;
-            min-height: 100vh; color: #fff; overflow-x: hidden;
+            margin: 0; 
+            padding: 0; /* تم نقل البادينج إلى الـ container لمنع انكماش الشاشة بالايفون */
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start;
+            min-height: 100vh; 
+            min-height: -webkit-fill-available; /* حل مشكلة شريط سفاري السفلي */
+            width: 100%;
+            color: #fff; 
+            overflow-x: hidden;
             background: linear-gradient(45deg, #090a0f, #1a1814, #2d1b2e, #4a3b1c, #1f1c2c);
-            background-size: 400% 400%; animation: gradientBG 15s ease infinite;
+            background-size: 400% 400%; 
+            animation: gradientBG 15s ease infinite;
         }
 
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
@@ -47,16 +70,24 @@
         .dash-logo { width: 50px; height: 50px; border: 2px solid var(--neon-gold); }
         .dash-logo .logo-inner { font-size: 20px; letter-spacing: -1px; }
 
-        .animated-logo-bg { position: fixed; animation: spin3D 8s linear infinite, floatBg 5s ease-in-out infinite alternate; opacity: 0.3; z-index: -1; }
+        .animated-logo-bg { position: fixed; animation: spin3D 8s linear infinite, floatBg 5s ease-in-out infinite alternate; opacity: 0.3; z-index: -1; pointer-events: none;}
         .logo-1 { top: 10%; left: 5%; width: 120px; height: 120px; }
         .logo-1 .logo-inner { font-size: 45px; }
         .logo-2 { bottom: 10%; right: 5%; animation-direction: reverse, alternate; width: 180px; height: 180px; }
         .logo-2 .logo-inner { font-size: 70px; }
 
-        .container { width: 100%; max-width: 1200px; margin: 0 auto; transition: all 0.5s ease; }
+        /* الحاوية الرئيسية للتطبيق */
+        .container { 
+            width: 100%; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px; /* البادينج هنا يمنع مشاكل التصميم بالايفون */
+            transition: all 0.5s ease; 
+        }
+        
         .login-box {
             background: var(--glass-bg); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--glass-border);
-            padding: 40px; border-radius: 20px; width: 100%; max-width: 450px; margin: 10vh auto; box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 20px rgba(255, 215, 0, 0.1);
+            padding: 40px; border-radius: 20px; width: 100%; max-width: 450px; margin: 5vh auto; box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 20px rgba(255, 215, 0, 0.1);
         }
         .card {
             background: var(--glass-bg); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--glass-border);
@@ -67,9 +98,12 @@
         .form-group { margin-bottom: 20px; display: flex; flex-direction: column; }
         label { margin-bottom: 8px; color: #f1c40f; text-shadow: 0 0 5px rgba(241, 196, 15, 0.5); font-weight: bold; }
         
+        /* ضبط الحقول ومنع ستايل سفاري الافتراضي */
         input[type="text"], input[type="password"], input[type="number"], input[type="date"], textarea {
+            -webkit-appearance: none;
+            appearance: none;
             width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--neon-dark-gold); border-radius: 10px;
-            box-sizing: border-box; color: #fff; font-size: 16px; outline: none; transition: 0.3s; box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.1); font-family: inherit;
+            color: #fff; font-size: 16px; outline: none; transition: 0.3s; box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.1); font-family: inherit;
         }
         textarea { height: 150px; resize: vertical; border: 2px dashed var(--neon-dark-gold); }
         input:focus, textarea:focus { border-color: var(--neon-gold); box-shadow: 0 0 15px var(--neon-gold), inset 0 0 10px var(--neon-gold); background: rgba(0, 0, 0, 0.6); }
@@ -80,7 +114,10 @@
         .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; }
         .button-group { display: flex; gap: 15px; margin-top: 20px; justify-content: center; flex-wrap: wrap; }
 
+        /* منع ستايل سفاري الازرار الافتراضي */
         button {
+            -webkit-appearance: none;
+            appearance: none;
             padding: 12px 25px; background: linear-gradient(90deg, #b8860b, #ffd700, #b8860b); background-size: 200% auto;
             color: #111; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.5s; box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3); text-align: center;
         }
@@ -222,7 +259,7 @@
         </div>
     </div>
 
-    <!-- نافذة التأكيد (تم تعديل الـ z-index لتظهر دائماً في الأمام) -->
+    <!-- نافذة التأكيد (مرفوعة لتظهر فوق الجميع دائمًا) -->
     <div class="modal-overlay" id="confirmModal" style="z-index: 10500;">
         <div class="modal-content" style="max-width: 400px; padding-top: 40px;">
             <div style="font-size: 50px; margin-bottom: 15px;">⚠️</div>
@@ -291,7 +328,7 @@
     <div class="container" id="login-section">
         <div class="login-box">
             <div class="css-logo main-logo"><div class="logo-inner">GL</div></div>
-            <h2>Gold Land Portal</h2>
+            <h2>Gold Land </h2>
             <div class="form-group"><label>اسم المستخدم</label><input type="text" id="username" placeholder="أدخل اسم المستخدم"></div>
             <div class="form-group"><label>الرقم السري</label><input type="password" id="password" placeholder="أدخل كلمة المرور" onkeypress="handleEnter(event)"></div>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
@@ -415,7 +452,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // وظائف جلب، حفظ، وحذف طلبات الأرشيف
+        // وظائف الأرشيف
         window.saveDataToFirebase = async function(orderData) {
             try {
                 orderData.timestamp = serverTimestamp();
@@ -430,12 +467,9 @@
             } catch (error) { console.error("Error:", error); return []; }
         };
         
-        // دالة جديدة لحذف الطلب من الأرشيف
-        window.deleteOrderFromFirebase = async function(docId) {
-            await deleteDoc(doc(db, "orders", docId));
-        };
+        window.deleteOrderFromFirebase = async function(docId) { await deleteDoc(doc(db, "orders", docId)); };
 
-        // وظائف نظام إدارة المستخدمين وأكواد الطلبات
+        // وظائف إدارة المستخدمين
         window.loadSystemDataFromFirebase = async function() {
             try {
                 const usersSnap = await getDocs(collection(db, "system_users"));
@@ -445,13 +479,11 @@
                 let types = []; typesSnap.forEach(doc => types.push({ id: doc.id, ...doc.data() }));
 
                 return { users, types };
-            } catch (error) { console.error("Error loading system data:", error); return { users: [], types: [] }; }
+            } catch (error) { console.error("Error loading data:", error); return { users: [], types: [] }; }
         };
 
         window.addSystemUserToFirebase = async function(userData) { return await addDoc(collection(db, "system_users"), userData); };
         window.deleteSystemUserFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_users", docId)); };
-        
-        // تحديث الصلاحيات للمستخدم (تعديل السحابة)
         window.updateSystemUserInFirebase = async function(docId, data) { await updateDoc(doc(db, "system_users", docId), data); };
         
         window.addOrderTypeToFirebase = async function(typeData) { return await addDoc(collection(db, "order_types"), typeData); };
@@ -466,7 +498,7 @@
         let additionalUsers = [];
         let configuredOrderTypes = [];
         let loggedInUser = "";
-        let loggedInUserCanDelete = false; // متغير لتخزين صلاحية الحذف للمستخدم الحالي
+        let loggedInUserCanDelete = false; 
 
         let allCloudOrders = [];
         let filteredCloudOrders = []; 
@@ -518,7 +550,6 @@
                 }
                 let statusColor = order.status === 'جديد' ? '#27ae60' : '#f39c12';
                 
-                // زر الحذف في الأرشيف السحابي يظهر فقط إذا كان المستخدم يملك الصلاحية
                 let deleteActionHtml = '-';
                 if(loggedInUserCanDelete) {
                     deleteActionHtml = `<button class="btn-danger" style="padding: 5px; font-size: 12px; width: 35px; border-radius: 5px;" onclick="deleteCloudOrder('${order.id_doc}')" title="حذف الطلب">🗑️</button>`;
@@ -543,13 +574,10 @@
                 if(window.deleteOrderFromFirebase) {
                     try {
                         await window.deleteOrderFromFirebase(docId);
-                        // مسح الطلب من المصفوفات المحلية وتحديث الجدول فوراً
                         allCloudOrders = allCloudOrders.filter(o => o.id_doc !== docId);
                         filteredCloudOrders = filteredCloudOrders.filter(o => o.id_doc !== docId);
                         renderCloudOrdersTable(filteredCloudOrders);
-                    } catch(e) {
-                        alert("حدث خطأ أثناء الحذف!");
-                    }
+                    } catch(e) { alert("حدث خطأ أثناء الحذف!"); }
                 }
             });
         }
@@ -655,7 +683,7 @@
 
         async function addUser() {
             const newUser = document.getElementById("new-user-name").value.trim(), newPass = document.getElementById("new-user-pass").value.trim();
-            const canDelete = document.getElementById("new-user-can-delete").checked; // التقاط صلاحية الحذف
+            const canDelete = document.getElementById("new-user-can-delete").checked; 
             const addError = document.getElementById("add-error"), btn = document.getElementById('addUserBtn');
             
             if (newUser === "" || newPass === "") { addError.style.display = "block"; return; }
@@ -682,19 +710,16 @@
             });
         }
         
-        // تغيير الصلاحية للمستخدم الحالي (التعديل الذي طلبته)
         async function toggleUserPermission(index) {
             const user = additionalUsers[index];
-            const newPermission = !user.canDeleteCloud; // قلب الصلاحية الحالية
+            const newPermission = !user.canDeleteCloud; 
             
             if(window.updateSystemUserInFirebase && user.id) {
                 try {
                     await window.updateSystemUserInFirebase(user.id, { canDeleteCloud: newPermission });
-                    user.canDeleteCloud = newPermission; // تحديث المصفوفة محلياً
-                    renderUsers(); // إعادة رسم القائمة
-                } catch(e) {
-                    alert("حدث خطأ أثناء تحديث الصلاحية");
-                }
+                    user.canDeleteCloud = newPermission; 
+                    renderUsers(); 
+                } catch(e) { alert("حدث خطأ أثناء تحديث الصلاحية"); }
             }
         }
 
@@ -703,7 +728,6 @@
             if (additionalUsers.length === 0) { list.innerHTML = "<li style='justify-content:center; color:#aaa; border:none; background:transparent;'>لا يوجد مستخدمين آخرين حالياً</li>"; return; }
             additionalUsers.forEach((user, index) => {
                 const li = document.createElement("li");
-                
                 const deleteBadge = user.canDeleteCloud ? 
                     `<span style="background: rgba(39, 174, 96, 0.2); color: #2ecc71; padding: 3px 8px; border-radius: 5px; font-size: 12px; margin-right: 10px;">🟢 يحق له مسح الطلبات</span>` : 
                     `<span style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; padding: 3px 8px; border-radius: 5px; font-size: 12px; margin-right: 10px;">🔴 لا يحق له المسح</span>`;
@@ -736,14 +760,12 @@
             btn.innerText = "دخول للنظام"; btn.disabled = false;
 
             if (user === ADMIN_USER && pass === ADMIN_PASS) { 
-                loggedInUser = user; 
-                loggedInUserCanDelete = true; // المدير لديه الصلاحية دائماً
+                loggedInUser = user; loggedInUserCanDelete = true; 
                 showDashboard(); errorMsg.style.display = "none"; 
             } else {
                 const isNormalUser = additionalUsers.find(u => u.username === user && u.password === pass);
                 if (isNormalUser) { 
-                    loggedInUser = user; 
-                    loggedInUserCanDelete = isNormalUser.canDeleteCloud || false; // تحقق من صلاحية المندوب
+                    loggedInUser = user; loggedInUserCanDelete = isNormalUser.canDeleteCloud || false; 
                     showDashboard(); errorMsg.style.display = "none"; 
                 } else { errorMsg.style.display = "block"; }
             }
@@ -758,8 +780,7 @@
 
         function logout() {
             showConfirmDialog("هل أنت متأكد من تسجيل الخروج؟ سيتم مسح البيانات الحالية من الجدول.", function() {
-                loggedInUser = ""; 
-                loggedInUserCanDelete = false;
+                loggedInUser = ""; loggedInUserCanDelete = false;
                 document.getElementById("dashboard-section").style.display = "none"; document.getElementById("login-section").style.display = "flex";
                 document.getElementById("floatingTgBtn").style.display = "none"; document.getElementById('telegramSidebar').classList.remove('active');
                 document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = '';
