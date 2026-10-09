@@ -25,12 +25,15 @@
             --neon-purple: #4b0082;
             --glass-bg: rgba(15, 15, 20, 0.75);
             --glass-border: rgba(255, 215, 0, 0.25);
+            --bg-color: #090a0f;
+            --text-color: #fff;
         }
 
         html {
-            background-color: #090a0f;
+            background-color: var(--bg-color);
             min-height: 100vh;
             min-height: -webkit-fill-available;
+            transition: background-color 0.5s;
         }
 
         body {
@@ -43,12 +46,49 @@
             min-height: 100vh; 
             min-height: -webkit-fill-available;
             width: 100%;
-            color: #fff; 
+            color: var(--text-color); 
             overflow-x: hidden;
             background: linear-gradient(45deg, #090a0f, #1a1814, #2d1b2e, #4a3b1c, #1f1c2c);
             background-size: 400% 400%; 
             animation: gradientBG 15s ease infinite;
         }
+
+        /* ------------------ ألوان الوضع الفاتح (Light Mode) ------------------ */
+        body.light-mode {
+            --bg-color: #f0f2f5;
+            --text-color: #111;
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef, #f1f3f5, #e9ecef, #f8f9fa);
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-color);
+        }
+        body.light-mode .login-box, body.light-mode .card, body.light-mode .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        body.light-mode input[type="text"], body.light-mode input[type="password"], body.light-mode input[type="number"], 
+        body.light-mode input[type="date"], body.light-mode select, body.light-mode textarea {
+            background: #fff; color: #111; border: 1px solid #ccc; box-shadow: none;
+        }
+        body.light-mode input:focus, body.light-mode select:focus, body.light-mode textarea:focus {
+            border-color: var(--neon-dark-gold); box-shadow: 0 0 8px rgba(218, 165, 32, 0.3); background: #fff;
+        }
+        body.light-mode label { color: #333; text-shadow: none; font-weight: bold; }
+        body.light-mode h1, body.light-mode h2, body.light-mode h3, body.light-mode h4 { color: #222; text-shadow: none; }
+        body.light-mode select option { background: #fff; color: #111; }
+        body.light-mode table { background: rgba(255, 255, 255, 0.9); }
+        body.light-mode th { background-color: rgba(218, 165, 32, 0.15); color: #333; }
+        body.light-mode td { border-bottom: 1px solid #eee; }
+        body.light-mode .user-list li { background: #f8f9fa; border-color: #ddd; color: #333; }
+        body.light-mode .items-container { background: #f8f9fa; border-color: #ccc; }
+        body.light-mode .tab-btn { background: #e9ecef; color: #333; border-color: #ccc; }
+        body.light-mode .tab-btn.active { background: var(--neon-gold); color: #000; }
+        body.light-mode .btn-outline { color: #555; border-color: #999; }
+        body.light-mode .btn-outline:hover { background: #eee; color: #000; border-color: #333; }
+        body.light-mode .date-wrapper { background: #fff; border: 1px solid #ccc; }
+        body.light-mode .date-wrapper label { color: #555 !important; }
+        body.light-mode .date-wrapper input { color: #111 !important; }
+        /* ----------------------------------------------------------------------- */
 
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
@@ -110,9 +150,24 @@
         textarea { height: 150px; resize: vertical; border: 2px dashed var(--neon-dark-gold); }
         input:focus, select:focus, textarea:focus { border-color: var(--neon-gold); box-shadow: 0 0 15px var(--neon-gold), inset 0 0 10px var(--neon-gold); background: rgba(0, 0, 0, 0.6); }
         input[type="checkbox"] { width: auto; transform: scale(1.3); margin-left: 10px; accent-color: var(--neon-gold); }
-        
         input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         
+        /* تنسيق خاص لحقول التاريخ لفتح التقويم بكامل الحقل */
+        .date-wrapper {
+            display: flex; align-items: center; gap: 10px; flex: 1; min-width: 150px; 
+            background: rgba(0,0,0,0.4); padding: 5px 15px; border-radius: 10px; border: 1px solid var(--neon-dark-gold);
+            position: relative; cursor: pointer;
+        }
+        .date-wrapper label { margin: 0; color: #ccc; text-shadow: none; font-size: 14px; font-weight: normal; white-space: nowrap; }
+        .date-wrapper input[type="date"] {
+            border: none; background: transparent; padding: 5px; box-shadow: none; flex: 1; outline: none; 
+            color: inherit; cursor: pointer; text-align: left;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%;
+            color: transparent; background: transparent; cursor: pointer; opacity: 0;
+        }
+
         .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; }
         .button-group { display: flex; gap: 15px; margin-top: 20px; justify-content: center; flex-wrap: wrap; }
 
@@ -166,7 +221,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .items-container { grid-column: 1 / -1; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px dashed var(--neon-gold); }
-        .order-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .order-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
         .qty-controls { display: flex; align-items: center; gap: 5px; justify-content: center; }
         .qty-btn { padding: 8px 12px; font-size: 16px; line-height: 1; border-radius: 5px; width: auto; color: white; border: none; font-weight: bold; cursor: pointer;}
         .qty-btn.plus { background: #27ae60; }
@@ -206,7 +261,6 @@
                 </div>
 
                 <div class="tab-content">
-                    <!-- تبويب إدارة البيجات -->
                     <div id="pagesTab" class="tab-pane active">
                         <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">أضف أسماء البيجات المتاحة ليتم اختيارها إلزامياً عند إدخال الطلبات.</p>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
@@ -217,7 +271,6 @@
                         <ul class="user-list" id="pagesListDisplay" style="max-height: 250px; overflow-y: auto;"></ul>
                     </div>
 
-                    <!-- تبويب أكواد الطلبات -->
                     <div id="typesTab" class="tab-pane">
                         <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">الطلبات المضافة هنا ستظهر لجميع المناديب في قائمة الاختيار.</p>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -229,7 +282,6 @@
                         <ul class="user-list" id="orderTypesListDisplay" style="max-height: 250px; overflow-y: auto;"></ul>
                     </div>
 
-                    <!-- تبويب المستخدمين -->
                     <div id="usersTab" class="tab-pane">
                         <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">إنشاء الحسابات هنا سيسمح للمناديب بالدخول، ويمكنك منحهم صلاحية حذف الطلبات.</p>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -280,9 +332,24 @@
             <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
             <h3 style="margin-bottom: 20px;">☁️ الأرشيف السحابي (Firestore)</h3>
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
-                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، المحافظة، المندوب، البيج..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 200px;">
-                <input type="date" id="cloudDateFrom" onchange="filterCloudOrders()" style="flex: 1; min-width: 130px;" title="من تاريخ">
-                <input type="date" id="cloudDateTo" onchange="filterCloudOrders()" style="flex: 1; min-width: 130px;" title="إلى تاريخ">
+                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، المحافظة، المندوب..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 200px;">
+                
+                <!-- فلتر البيجات الجديد -->
+                <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 150px; font-weight: bold;">
+                    <option value="">-- كل البيجات --</option>
+                </select>
+
+                <!-- حقول التاريخ -->
+                <div class="date-wrapper">
+                    <label>من:</label>
+                    <input type="date" id="cloudDateFrom" onchange="filterCloudOrders()" onclick="if(this.showPicker) this.showPicker();" title="من تاريخ" dir="ltr">
+                </div>
+                
+                <div class="date-wrapper">
+                    <label>إلى:</label>
+                    <input type="date" id="cloudDateTo" onchange="filterCloudOrders()" onclick="if(this.showPicker) this.showPicker();" title="إلى تاريخ" dir="ltr">
+                </div>
+                
                 <button class="btn-parse" onclick="openCloudOrders()" style="width: auto;">تحديث 🔄</button>
                 <button class="btn-export" onclick="exportCloudToExcel()" style="width: auto;">تصدير XLSX 📊</button>
             </div>
@@ -330,6 +397,7 @@
                 <h2 id="welcome-text" style="margin: 0; text-shadow: none;">نظام التوزيع الذكي للطلبات</h2>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button id="themeToggleBtn" class="btn-outline" onclick="toggleTheme()" style="padding: 8px 15px; font-size: 14px;">🌓 المظهر: تلقائي</button>
                 <button class="btn-parse" onclick="openCloudOrders()" style="padding: 8px 15px; font-size: 14px;">☁️ الأرشيف السحابي</button>
                 <button class="btn-settings" onclick="openSettings()" style="padding: 8px 15px; font-size: 14px;">⚙️ الإعدادات</button>
                 <button class="btn-outline logout-btn" onclick="logout()" style="padding: 8px 15px; font-size: 14px;">تسجيل خروج</button>
@@ -371,8 +439,9 @@
                     
                     <div id="dynamicRowsWrapper">
                         <div class="order-item-row">
-                            <input type="text" class="orderTypeInput" list="orderTypesDatalist" placeholder="نوع الطلب (اختر أو اكتب)" style="flex: 2;">
-                            <div class="qty-controls" style="flex: 1;">
+                            <input type="text" class="orderTypeInput" list="orderTypesDatalist" placeholder="نوع الطلب" style="flex: 2; min-width: 120px;">
+                            <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;">
+                            <div class="qty-controls" style="flex: 1; min-width: 120px;">
                                 <label style="color:#ccc; font-size:12px; margin:0 5px;">العدد:</label>
                                 <button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button>
                                 <input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center; font-weight: bold; padding: 8px;">
@@ -477,6 +546,39 @@
 
     <!-- الأكواد البرمجية (JavaScript) -->
     <script>
+        // ================= التحكم بالمظهر (Theme) =================
+        let currentTheme = localStorage.getItem('gl_theme') || 'auto';
+        
+        function applyTheme(theme) {
+            const btn = document.getElementById('themeToggleBtn');
+            if (theme === 'light') {
+                document.body.classList.add('light-mode');
+                if (btn) btn.innerText = '☀️ المظهر: فاتح';
+            } else if (theme === 'dark') {
+                document.body.classList.remove('light-mode');
+                if (btn) btn.innerText = '🌙 المظهر: داكن';
+            } else {
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                    document.body.classList.add('light-mode');
+                } else {
+                    document.body.classList.remove('light-mode');
+                }
+                if (btn) btn.innerText = '🌓 المظهر: تلقائي';
+            }
+        }
+        
+        function toggleTheme() {
+            if (currentTheme === 'auto') currentTheme = 'dark';
+            else if (currentTheme === 'dark') currentTheme = 'light';
+            else currentTheme = 'auto';
+            
+            localStorage.setItem('gl_theme', currentTheme);
+            applyTheme(currentTheme);
+        }
+        // تطبيق المظهر عند فتح الصفحة
+        applyTheme(currentTheme);
+        // =========================================================
+
         const ADMIN_USER = "Zain";
         const ADMIN_PASS = "327798";
         
@@ -566,12 +668,15 @@
         function filterCloudOrders() {
             const queryText = document.getElementById('cloudSearchInput').value.toLowerCase();
             const fromDateVal = document.getElementById('cloudDateFrom').value, toDateVal = document.getElementById('cloudDateTo').value;
+            const selectedPageFilter = document.getElementById('cloudPageFilter').value;
+            
             let fromDate = fromDateVal ? new Date(fromDateVal) : null; if(fromDate) fromDate.setHours(0,0,0,0);
             let toDate = toDateVal ? new Date(toDateVal) : null; if(toDate) toDate.setHours(23,59,59,999);
 
             filteredCloudOrders = allCloudOrders.filter(o => {
                 const textMatch = (o.name || "").toLowerCase().includes(queryText) || (o.phone1 || "").includes(queryText) || 
-                              (o.phone2 || "").includes(queryText) || (o.gov || "").includes(queryText) || (o.addedBy || "").includes(queryText) || (o.constant || "").toLowerCase().includes(queryText) || queryText === '';
+                              (o.phone2 || "").includes(queryText) || (o.gov || "").includes(queryText) || (o.addedBy || "").includes(queryText) || queryText === '';
+                
                 let dateMatch = true;
                 if(fromDate || toDate) {
                     if(o.timestamp?.seconds) {
@@ -579,7 +684,11 @@
                         if(fromDate && orderDate < fromDate) dateMatch = false;
                         if(toDate && orderDate > toDate) dateMatch = false;
                     } else dateMatch = false;
-                } return textMatch && dateMatch;
+                }
+                
+                let pageMatch = selectedPageFilter === "" || (o.constant || "") === selectedPageFilter;
+                
+                return textMatch && dateMatch && pageMatch;
             }); renderCloudOrdersTable(filteredCloudOrders);
         }
 
@@ -661,13 +770,24 @@
             const select = document.getElementById('constantField');
             const currentVal = select.value;
             select.innerHTML = '<option value="">-- اختر البيج التابع له الطلب --</option>';
+            
+            const cloudSelect = document.getElementById('cloudPageFilter');
+            const cloudCurrentVal = cloudSelect.value;
+            cloudSelect.innerHTML = '<option value="">-- كل البيجات --</option>';
+
             configuredPages.forEach(page => {
                 const opt = document.createElement('option');
                 opt.value = page.name;
                 opt.textContent = page.name;
                 select.appendChild(opt);
+
+                const optCloud = document.createElement('option');
+                optCloud.value = page.name;
+                optCloud.textContent = page.name;
+                cloudSelect.appendChild(optCloud);
             });
             select.value = currentVal;
+            cloudSelect.value = cloudCurrentVal;
         }
 
         // ================= إدارة أنواع الطلبات =================
@@ -843,8 +963,9 @@
         function addOrderItemRow() {
             const wrapper = document.getElementById('dynamicRowsWrapper'); const row = document.createElement('div'); row.className = 'order-item-row';
             row.innerHTML = `
-                <input type="text" class="orderTypeInput" list="orderTypesDatalist" placeholder="نوع الطلب (إضافي)" style="flex: 2;">
-                <div class="qty-controls" style="flex: 1;">
+                <input type="text" class="orderTypeInput" list="orderTypesDatalist" placeholder="نوع الطلب" style="flex: 2; min-width: 120px;">
+                <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;">
+                <div class="qty-controls" style="flex: 1; min-width: 120px;">
                     <label style="color:#ccc; font-size:12px; margin:0 5px;">العدد:</label>
                     <button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button>
                     <input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center; font-weight: bold; padding: 8px;">
@@ -857,8 +978,9 @@
         function resetItemsContainer() {
             document.getElementById('dynamicRowsWrapper').innerHTML = `
                 <div class="order-item-row">
-                    <input type="text" class="orderTypeInput" list="orderTypesDatalist" placeholder="نوع الطلب (اختر أو اكتب)" style="flex: 2;">
-                    <div class="qty-controls" style="flex: 1;">
+                    <input type="text" class="orderTypeInput" list="orderTypesDatalist" placeholder="نوع الطلب" style="flex: 2; min-width: 120px;">
+                    <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;">
+                    <div class="qty-controls" style="flex: 1; min-width: 120px;">
                         <label style="color:#ccc; font-size:12px; margin:0 5px;">العدد:</label>
                         <button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button>
                         <input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center; font-weight: bold; padding: 8px;">
@@ -889,14 +1011,22 @@
 
         async function addToTable() {
             const selectedPage = document.getElementById('constantField').value;
-            if (!selectedPage) { alert("⚠️ يجب اختيار البيج (الحقل الثابت) بصورة إلزامية قبل إضافة الطلب!"); return; }
+            if (!selectedPage) { alert("⚠️ يجب اختيار البيج بصورة إلزامية قبل إضافة الطلب!"); return; }
 
             let combinedOrderEntries = []; let totalQuantity = 0; const itemRows = document.querySelectorAll('.order-item-row');
             itemRows.forEach(row => {
-                const typeVal = row.querySelector('.orderTypeInput').value.trim(); const qtyVal = parseInt(row.querySelector('.orderQtyInput').value) || 1;
+                const typeVal = row.querySelector('.orderTypeInput').value.trim(); 
+                const colorVal = row.querySelector('.orderColorInput').value.trim();
+                const qtyVal = parseInt(row.querySelector('.orderQtyInput').value) || 1;
+                
                 if (typeVal !== "") {
-                    let code = typeVal; const foundType = configuredOrderTypes.find(t => t.name === typeVal); if (foundType) code = foundType.code;
-                    combinedOrderEntries.push(`${code} (${qtyVal})`); totalQuantity += qtyVal;
+                    let code = typeVal; 
+                    const foundType = configuredOrderTypes.find(t => t.name === typeVal); 
+                    if (foundType) code = foundType.code;
+                    
+                    let formattedItem = colorVal ? `[${code} (${qtyVal}) ${colorVal}]` : `[${code} (${qtyVal})]`;
+                    combinedOrderEntries.push(formattedItem); 
+                    totalQuantity += qtyVal;
                 }
             });
 
