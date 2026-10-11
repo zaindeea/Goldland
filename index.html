@@ -5,66 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gold Land</title>
     
-    <!-- إعدادات تطبيق الويب للشاشة الرئيسية (PWA) -->
-    <link rel="manifest" href="data:application/manifest+json;base64,ewog "name": "Gold Land",\n "short_name": "Gold Land",\n "start_url": "./",\n "display": "standalone",\n "background_color": "#090a0f",\n "theme_color": "#ffd700",\n "icons": [\n  {\n   "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0jMDkwYTBmIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJjZW50cmFsIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgc2VyaWYiIGZvbnQtc2l6ZT0iMjQwIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0idXJsKCNncmFkKSI+R0w8L3RleHQ+PGRlZnM+PGxpbmVhcmdyYWRpZW50IGlkPSJncmFkIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjZmZkNzAwIi8+PHN0b3Agb2Zmc2ldPSIxMDAlIiBzdG9wLWNvbG9yPSIjYjg4NjBiIi8+PC9saW5lYXJncmFkaWVudD48L2RlZnM+PC9zdmc+",\n   "sizes": "512x512",\n   "type": "image/svg+xml"\n  }\n ]\n}">
+    <!-- إعدادات تطبيق الويب للشاشة الرئيسية (PWA) بتشفير Base64 سليم -->
+    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiR29sZCBMYW5kIiwic2hvcnRfbmFtZSI6IkdvbGQgTGFuZCIsInN0YXJ0X3VybCI6Ii4vIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzA5MGEwZiIsInRoZW1lX2NvbG9yIjoiI2ZmZDcwMCIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSFpwWlhkQ2IzZzlJakFnTUNBMU1USWdOVEV5SWo0OGNtVmpUQ0IzYVdSMGFEcGlOVEV5SWlCb1pXVnBaaDBQU0kxTVRJaUlHWnBiR3c5SXpBNU1HRXdaSWk2UEM5eFpXTjBQaTQ4ZEdWNGRDQjRQU0k1TUNVaUlHazlJakV3TUNVWUlHUnZiV2x1WVc1MExXSmhjMlZzYVc1bFBTSmpZWEprY21WbExDSWdZMlZ1ZEhKaGJDSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0lnWm05dWRDMW1ZVzFwYkhrOUlraGxiM0puYVdFc0lITmxjbWxtSWlCbWIyNTBMWE5wZW1VOUlqSTBNQ0lnWm05dWRDMTNhV2xuYUhROUkySnZiR1FpSUdabWJHeDliRDBpZFhKc0tDTm5jbUZrS1NJK1IwdzgvdGV4dD48ZGVmcz48bGluZWFyZ3JhZGllbnQgaWQ9ImdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZmQ3MDAiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNiODg2MGIiLz48L2xpbmVhcmdyYWRpZW50PjwvZGVmcz48L3N2Zz4iLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Gold Land">
 
+    <!-- مكتبات التصدير -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         :root {
             --neon-gold: #ffd700;
             --neon-dark-gold: #daa520;
-            --neon-purple: #4b0082;
-            --glass-bg: rgba(15, 15, 20, 0.75);
-            --glass-border: rgba(255, 215, 0, 0.25);
+            --glass-bg: rgba(15, 15, 20, 0.4);
+            --glass-border: rgba(255, 215, 0, 0.15);
             --bg-color: #090a0f;
             --text-color: #fff;
         }
 
-        html {
-            background-color: var(--bg-color);
-            min-height: 100vh;
-            min-height: -webkit-fill-available;
-            transition: background-color 0.5s;
-        }
+        html { background-color: var(--bg-color); min-height: 100vh; min-height: -webkit-fill-available; transition: background-color 0.5s; }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0; 
-            padding: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: flex-start;
-            min-height: 100vh; 
-            min-height: -webkit-fill-available;
-            width: 100%;
-            color: var(--text-color); 
-            overflow-x: hidden;
+            margin: 0; padding: 0; display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; min-height: -webkit-fill-available; width: 100%;
+            color: var(--text-color); overflow-x: hidden;
             background: linear-gradient(45deg, #090a0f, #1a1814, #2d1b2e, #4a3b1c, #1f1c2c);
-            background-size: 400% 400%; 
-            animation: gradientBG 15s ease infinite;
+            background-size: 400% 400%; animation: gradientBG 15s ease infinite;
         }
 
-        /* ------------------ ألوان الوضع الفاتح (Light Mode) ------------------ */
         body.light-mode {
-            --bg-color: #f0f2f5;
-            --text-color: #111;
+            --bg-color: #f0f2f5; --text-color: #111;
             background: linear-gradient(45deg, #f8f9fa, #e9ecef, #f1f3f5, #e9ecef, #f8f9fa);
-            animation: gradientBG 15s ease infinite;
-            color: var(--text-color);
+            animation: gradientBG 15s ease infinite; color: var(--text-color);
         }
-        body.light-mode .login-box, body.light-mode .card, body.light-mode .modal-content {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        body.light-mode .card, body.light-mode .modal-content {
+            background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.05);
         }
         body.light-mode input[type="text"], body.light-mode input[type="password"], body.light-mode input[type="number"], 
         body.light-mode input[type="date"], body.light-mode select, body.light-mode textarea {
@@ -88,7 +68,6 @@
         body.light-mode .date-wrapper { background: #fff; border: 1px solid #ccc; }
         body.light-mode .date-wrapper label { color: #555 !important; }
         body.light-mode .date-wrapper input { color: #111 !important; }
-        /* ----------------------------------------------------------------------- */
 
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
@@ -107,9 +86,6 @@
         }
         @keyframes rotateGlow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .main-logo { width: 110px; height: 110px; margin: 0 auto 20px auto; transition: 0.5s; }
-        .main-logo .logo-inner { font-size: 45px; }
-        .main-logo:hover { transform: scale(1.1); box-shadow: 0 0 40px var(--neon-gold); }
         .dash-logo { width: 50px; height: 50px; border: 2px solid var(--neon-gold); }
         .dash-logo .logo-inner { font-size: 20px; letter-spacing: -1px; }
 
@@ -119,64 +95,72 @@
         .logo-2 { bottom: 10%; right: 5%; animation-direction: reverse, alternate; width: 180px; height: 180px; }
         .logo-2 .logo-inner { font-size: 70px; }
 
-        .container { 
-            width: 100%; 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            padding: 20px; 
-            transition: all 0.5s ease; 
-        }
-        
+        /* واجهة تسجيل الدخول والتأثير الذهبي */
+        .login-wrapper { display: flex; align-items: center; justify-content: center; min-height: 100vh; width: 100%; position: relative; }
         .login-box {
-            background: var(--glass-bg); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--glass-border);
-            padding: 40px; border-radius: 20px; width: 100%; max-width: 450px; margin: 5vh auto; box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 20px rgba(255, 215, 0, 0.1);
+            position: relative; background: rgba(15, 15, 20, 0.7); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border-radius: 24px; padding: 45px 35px; width: 90%; max-width: 420px; z-index: 10; overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255, 215, 0, 0.1);
         }
-        .card {
-            background: var(--glass-bg); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid var(--glass-border);
-            padding: 25px; border-radius: 15px; box-shadow: inset 0 0 20px rgba(255, 215, 0, 0.1); margin-bottom: 25px;
+        body:not(.light-mode) .login-box::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: conic-gradient(transparent, transparent, transparent, var(--neon-gold));
+            animation: rotateBorder 4s linear infinite; z-index: -2;
+        }
+        body:not(.light-mode) .login-box::after {
+            content: ''; position: absolute; inset: 2px; background: rgba(15, 15, 20, 0.95); border-radius: 22px; z-index: -1;
+        }
+        @keyframes rotateBorder { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .main-logo { width: 100px; height: 100px; margin: 0 auto 20px auto; animation: pulseGlow 2s infinite alternate; }
+        .main-logo .logo-inner { font-size: 40px; }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 15px rgba(255, 215, 0, 0.2), inset 0 0 15px rgba(218, 165, 32, 0.2); transform: scale(1); }
+            100% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.6), inset 0 0 20px rgba(218, 165, 32, 0.4); transform: scale(1.05); }
         }
 
-        h1, h2, h3, h4 { text-align: center; color: var(--neon-gold); text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 20px rgba(255, 215, 0, 0.4); letter-spacing: 1px; }
+        .login-title {
+            text-align: center; font-size: 38px; margin-bottom: 30px; font-family: 'Georgia', serif;
+            background: linear-gradient(to right, #b8860b, #ffd700, #fff8dc, #ffd700, #b8860b);
+            background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: shineGoldText 3s linear infinite; filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+            letter-spacing: 2px; font-weight: 900;
+        }
+        @keyframes shineGoldText { to { background-position: 200% center; } }
+
+        .login-input-group { position: relative; margin-bottom: 25px; }
+        .login-input-group input {
+            width: 100%; padding: 15px 15px 15px 45px; background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 215, 0, 0.2); border-radius: 12px; color: #fff; font-size: 16px;
+            outline: none; transition: all 0.3s ease;
+        }
+        .login-input-group input:focus {
+            border-color: var(--neon-gold); background: rgba(0, 0, 0, 0.8);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.2); transform: translateY(-2px);
+        }
+
+        .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px; transition: all 0.5s ease; }
+        .card { background: var(--glass-bg); backdrop-filter: blur(15px); border: 1px solid var(--glass-border); padding: 25px; border-radius: 15px; margin-bottom: 25px; }
+        h1, h2, h3, h4 { text-align: center; color: var(--neon-gold); text-shadow: 0 0 10px rgba(255, 215, 0, 0.8); }
         .form-group { margin-bottom: 20px; display: flex; flex-direction: column; }
-        label { margin-bottom: 8px; color: #f1c40f; text-shadow: 0 0 5px rgba(241, 196, 15, 0.5); font-weight: bold; }
+        label { margin-bottom: 8px; color: #f1c40f; font-weight: bold; }
         
-        input[type="text"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--neon-dark-gold); border-radius: 10px;
-            color: #fff; font-size: 16px; outline: none; transition: 0.3s; box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.1); font-family: inherit;
+        input[type="text"]:not(.login-input-group input), input[type="password"]:not(.login-input-group input), input[type="number"], input[type="date"], select, textarea {
+            -webkit-appearance: none; appearance: none; width: 100%; padding: 12px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--neon-dark-gold); border-radius: 10px; color: #fff; font-size: 16px; outline: none; transition: 0.3s;
         }
         select option { background: #151515; color: #fff; }
         textarea { height: 150px; resize: vertical; border: 2px dashed var(--neon-dark-gold); }
-        input:focus, select:focus, textarea:focus { border-color: var(--neon-gold); box-shadow: 0 0 15px var(--neon-gold), inset 0 0 10px var(--neon-gold); background: rgba(0, 0, 0, 0.6); }
-        input[type="checkbox"] { width: auto; transform: scale(1.3); margin-left: 10px; accent-color: var(--neon-gold); }
-        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input:focus, select:focus, textarea:focus { border-color: var(--neon-gold); box-shadow: 0 0 15px var(--neon-gold); background: rgba(0, 0, 0, 0.6); }
         
-        /* تنسيق خاص لحقول التاريخ لفتح التقويم بكامل الحقل */
-        .date-wrapper {
-            display: flex; align-items: center; gap: 10px; flex: 1; min-width: 150px; 
-            background: rgba(0,0,0,0.4); padding: 5px 15px; border-radius: 10px; border: 1px solid var(--neon-dark-gold);
-            position: relative; cursor: pointer;
-        }
-        .date-wrapper label { margin: 0; color: #ccc; text-shadow: none; font-size: 14px; font-weight: normal; white-space: nowrap; }
-        .date-wrapper input[type="date"] {
-            border: none; background: transparent; padding: 5px; box-shadow: none; flex: 1; outline: none; 
-            color: inherit; cursor: pointer; text-align: left;
-        }
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%;
-            color: transparent; background: transparent; cursor: pointer; opacity: 0;
-        }
+        .date-wrapper { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 150px; background: rgba(0,0,0,0.4); padding: 5px 15px; border-radius: 10px; border: 1px solid var(--neon-dark-gold); position: relative; cursor: pointer; }
+        .date-wrapper label { margin: 0; color: #ccc; font-size: 14px; white-space: nowrap; }
+        .date-wrapper input[type="date"] { border: none; background: transparent; padding: 5px; flex: 1; outline: none; color: inherit; cursor: pointer; text-align: left; }
+        input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 
         .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 20px; }
         .button-group { display: flex; gap: 15px; margin-top: 20px; justify-content: center; flex-wrap: wrap; }
 
-        button {
-            -webkit-appearance: none;
-            appearance: none;
-            padding: 12px 25px; background: linear-gradient(90deg, #b8860b, #ffd700, #b8860b); background-size: 200% auto;
-            color: #111; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.5s; box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3); text-align: center;
-        }
+        button { -webkit-appearance: none; appearance: none; padding: 12px 25px; background: linear-gradient(90deg, #b8860b, #ffd700, #b8860b); background-size: 200% auto; color: #111; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.5s; }
         button:hover { background-position: right center; transform: translateY(-3px); box-shadow: 0 10px 30px rgba(255, 215, 0, 0.6); color: #000; }
 
         .btn-parse { background: linear-gradient(90deg, #8e44ad, #9b59b6); color: white; }
@@ -185,37 +169,24 @@
         .btn-danger { background: linear-gradient(90deg, #ff0055, #990000); color: white; }
         .btn-outline { background: transparent; border: 1px solid var(--neon-gold); color: var(--neon-gold); box-shadow: none; }
         .btn-outline:hover { background: var(--neon-gold); color: #000; }
-        .btn-settings { background: rgba(0, 0, 0, 0.5); border: 1px solid var(--neon-gold); color: var(--neon-gold); box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
-        .btn-settings:hover { background: var(--neon-gold); color: #000; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: rgba(0, 0, 0, 0.3); border-radius: 10px; overflow: hidden; }
         th, td { padding: 12px; text-align: right; border-bottom: 1px solid rgba(255, 215, 0, 0.2); }
-        th { background-color: rgba(218, 165, 32, 0.2); color: var(--neon-gold); font-weight: bold; text-shadow: 0 0 5px rgba(255,215,0,0.5); }
+        th { background-color: rgba(218, 165, 32, 0.2); color: var(--neon-gold); font-weight: bold; }
         tr:hover { background-color: rgba(255, 215, 0, 0.1); }
 
         .error-msg { color: #ff4757; text-shadow: 0 0 10px #ff4757; text-align: center; margin-top: 15px; display: none; }
         .header-dash { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--neon-dark-gold); padding-bottom: 15px; flex-wrap: wrap; gap: 10px; }
-        .user-list { list-style: none; padding: 0; margin-top: 20px; }
-        .user-list li { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 10px; transition: 0.3s; flex-wrap: wrap; gap: 10px;}
-        .user-list li:hover { border-color: var(--neon-gold); box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); }
-
+        
         #dashboard-section { display: none; }
 
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(5px); z-index: 10000; display: none; justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px;
-            padding: 30px; width: 90%; max-width: 500px; box-shadow: 0 0 40px rgba(255, 215, 0, 0.2);
-            position: relative; max-height: 90vh; overflow-y: auto; text-align: center;
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 10000; display: none; justify-content: center; align-items: center; }
+        .modal-content { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 30px; width: 90%; max-width: 650px; position: relative; max-height: 90vh; overflow-y: auto; text-align: center; }
         .close-modal { position: absolute; top: 15px; left: 20px; font-size: 24px; color: var(--neon-gold); cursor: pointer; }
 
         .settings-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--neon-dark-gold); padding-bottom: 15px; flex-wrap: wrap; }
         .tab-btn { flex: 1; min-width: 120px; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--neon-dark-gold); color: white; border-radius: 8px; cursor: pointer; transition: 0.3s; font-size: 14px; font-weight: bold; }
-        .tab-btn:hover { background: rgba(255, 215, 0, 0.1); }
-        .tab-btn.active { background: var(--neon-gold); color: #000; box-shadow: 0 0 15px rgba(255, 215, 0, 0.5); border-color: var(--neon-gold); }
+        .tab-btn.active { background: var(--neon-gold); color: #000; }
         .tab-pane { display: none; text-align: right; animation: fadeIn 0.4s ease-in-out; }
         .tab-pane.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -223,16 +194,13 @@
         .items-container { grid-column: 1 / -1; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px dashed var(--neon-gold); }
         .order-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
         .qty-controls { display: flex; align-items: center; gap: 5px; justify-content: center; }
-        .qty-btn { padding: 8px 12px; font-size: 16px; line-height: 1; border-radius: 5px; width: auto; color: white; border: none; font-weight: bold; cursor: pointer;}
+        .qty-btn { padding: 8px 12px; font-size: 16px; border-radius: 5px; color: white; border: none; font-weight: bold; cursor: pointer;}
         .qty-btn.plus { background: #27ae60; }
         .qty-btn.minus { background: #e74c3c; }
-        .qty-btn:hover { opacity: 0.8; transform: scale(1.05); }
 
-        .install-buttons-container { display: flex; gap: 10px; margin-top: 25px; justify-content: center; }
-        .btn-install { padding: 10px 15px; border-radius: 8px; font-size: 14px; border: none; cursor: pointer; color: white; font-weight: bold; flex: 1; transition: 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .android-btn { background: linear-gradient(90deg, #2ecc71, #27ae60); border: 1px solid #2ecc71; }
-        .ios-btn { background: linear-gradient(90deg, #34495e, #2c3e50); border: 1px solid #7f8c8d; }
-        .btn-install:hover { transform: translateY(-3px); }
+        .report-card { background: rgba(0,0,0,0.4); border: 1px solid var(--neon-gold); border-radius: 10px; padding: 15px; flex: 1; min-width: 150px; text-align: center; }
+        .report-card h4 { margin: 0 0 10px 0; color: #fff; font-size: 14px; }
+        .report-card .val { color: var(--neon-gold); font-size: 22px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -240,172 +208,49 @@
     <div class="css-logo animated-logo-bg logo-1"><div class="logo-inner">GL</div></div>
     <div class="css-logo animated-logo-bg logo-2"><div class="logo-inner">GL</div></div>
 
-    <!-- الإعدادات -->
-    <div class="modal-overlay" id="settingsModal">
-        <div class="modal-content" style="max-width: 650px;">
-            <span class="close-modal" onclick="closeSettings()">&times;</span>
-            <div id="settingsAuthSection">
-                <h3>🔒 إعدادات النظام المتقدمة</h3>
-                <p style="text-align: center; color: #ccc;">الرجاء إدخال الرقم السري لمدير النظام للوصول للإعدادات:</p>
-                <div class="form-group"><input type="password" id="settingsPass" placeholder="الرقم السري" onkeypress="if(event.key==='Enter') verifySettingsPass()"></div>
-                <button onclick="verifySettingsPass()" style="width: 100%;">تحقق ودخول 🔑</button>
-                <div class="error-msg" id="settings-error">الرقم السري غير صحيح!</div>
-            </div>
-            
-            <div id="settingsManagerSection" style="display: none;">
-                <h3 style="margin-bottom: 20px;">⚙️ إعدادات النظام</h3>
-                <div class="settings-tabs">
-                    <button class="tab-btn active" onclick="switchTab('pagesTab', this)">🏷️ إدارة البيجات</button>
-                    <button class="tab-btn" onclick="switchTab('typesTab', this)">📦 أنواع الطلبات</button>
-                    <button class="tab-btn" onclick="switchTab('usersTab', this)">👥 المستخدمين</button>
-                </div>
-
-                <div class="tab-content">
-                    <div id="pagesTab" class="tab-pane active">
-                        <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">أضف أسماء البيجات المتاحة ليتم اختيارها إلزامياً عند إدخال الطلبات.</p>
-                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                            <input type="text" id="newPageName" placeholder="اسم البيج (مثال: Gold Land VIP)" style="flex:1;">
-                        </div>
-                        <button id="addPageBtn" onclick="addPageType()" style="width: 100%; margin-bottom: 20px;">إضافة بيج للسحابة ☁️</button>
-                        <div class="error-msg" id="page-error">يجب إدخال اسم البيج.</div>
-                        <ul class="user-list" id="pagesListDisplay" style="max-height: 250px; overflow-y: auto;"></ul>
-                    </div>
-
-                    <div id="typesTab" class="tab-pane">
-                        <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">الطلبات المضافة هنا ستظهر لجميع المناديب في قائمة الاختيار.</p>
-                        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                            <input type="text" id="newOrderName" placeholder="اسم الطلب (مثال: خشب 2ملم)" style="flex:2; min-width: 150px;">
-                            <input type="text" id="newOrderCode" placeholder="الرمز (مثال: W2)" style="flex:1; min-width: 100px;">
-                        </div>
-                        <button id="addTypeBtn" onclick="addOrderType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button>
-                        <div class="error-msg" id="type-error">يجب ملء الاسم والرمز.</div>
-                        <ul class="user-list" id="orderTypesListDisplay" style="max-height: 250px; overflow-y: auto;"></ul>
-                    </div>
-
-                    <div id="usersTab" class="tab-pane">
-                        <p style="color: #ddd; font-size: 14px; margin-bottom: 15px;">إنشاء الحسابات هنا سيسمح للمناديب بالدخول، ويمكنك منحهم صلاحية حذف الطلبات.</p>
-                        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                            <input type="text" id="new-user-name" placeholder="اسم المستخدم الجديد" style="flex:1; min-width: 150px;">
-                            <input type="password" id="new-user-pass" placeholder="كلمة المرور" style="flex:1; min-width: 150px;">
-                        </div>
-                        <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: flex-start; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px;">
-                            <label style="margin: 0; display: flex; align-items: center; cursor: pointer; color: #fff; font-weight: normal; text-shadow: none;">
-                                <input type="checkbox" id="new-user-can-delete"> 
-                                <span style="margin-right: 10px;">إعطاء هذا المستخدم صلاحية مسح الطلبات من الأرشيف السحابي</span>
-                            </label>
-                        </div>
-                        <button id="addUserBtn" onclick="addUser()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button>
-                        <div id="add-error" class="error-msg">يجب ملء البيانات بالكامل.</div>
-                        <ul class="user-list" id="users-list" style="max-height: 350px; overflow-y: auto;"></ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- نافذة التأكيد -->
-    <div class="modal-overlay" id="confirmModal" style="z-index: 10500;">
-        <div class="modal-content" style="max-width: 400px; padding-top: 40px;">
-            <div style="font-size: 50px; margin-bottom: 15px;">⚠️</div>
-            <h3 id="confirmTitle" style="color: #ff4757; text-shadow: 0 0 10px #ff4757; margin-bottom: 10px;">تأكيد الإجراء</h3>
-            <p id="confirmMessage" style="color: #ddd; margin-bottom: 30px; font-size: 16px;">هل أنت متأكد من هذا الإجراء؟</p>
-            <div style="display: flex; gap: 15px; justify-content: center;">
-                <button id="confirmYesBtn" class="btn-danger" style="width: 50%;">نعم، متأكد</button>
-                <button onclick="closeConfirmModal()" class="btn-outline" style="width: 50%;">إلغاء</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- تعليمات التثبيت -->
-    <div class="modal-overlay" id="installModal">
-        <div class="modal-content" style="max-width: 400px;">
-            <span class="close-modal" onclick="closeInstallModal()">&times;</span>
-            <h3 id="installTitle" style="margin-bottom: 20px;">كيفية إضافة التطبيق</h3>
-            <div id="installInstructions" style="color: #ddd; font-size: 16px; line-height: 1.8; text-align: right; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; border: 1px dashed var(--neon-gold);"></div>
-            <button onclick="closeInstallModal()" style="width: 100%; margin-top: 20px;">فهمت، إغلاق</button>
-        </div>
-    </div>
-
-    <!-- الأرشيف السحابي -->
-    <div class="modal-overlay" id="cloudOrdersModal">
-        <div class="modal-content" style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; padding: 20px;">
-            <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
-            <h3 style="margin-bottom: 20px;">☁️ الأرشيف السحابي (Firestore)</h3>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
-                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، المحافظة، المندوب..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 200px;">
-                
-                <!-- فلتر البيجات الجديد -->
-                <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 150px; font-weight: bold;">
-                    <option value="">-- كل البيجات --</option>
-                </select>
-
-                <!-- حقول التاريخ -->
-                <div class="date-wrapper">
-                    <label>من:</label>
-                    <input type="date" id="cloudDateFrom" onchange="filterCloudOrders()" onclick="if(this.showPicker) this.showPicker();" title="من تاريخ" dir="ltr">
-                </div>
-                
-                <div class="date-wrapper">
-                    <label>إلى:</label>
-                    <input type="date" id="cloudDateTo" onchange="filterCloudOrders()" onclick="if(this.showPicker) this.showPicker();" title="إلى تاريخ" dir="ltr">
-                </div>
-                
-                <button class="btn-parse" onclick="openCloudOrders()" style="width: auto;">تحديث 🔄</button>
-                <button class="btn-export" onclick="exportCloudToExcel()" style="width: auto;">تصدير XLSX 📊</button>
-            </div>
-            <div style="overflow-y: auto; flex: 1; border: 1px solid var(--glass-border); border-radius: 10px;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>التسلسل</th> <th>اسم البيج</th> <th>اسم الزبون</th> <th>الهاتف الأول</th> <th>الهاتف الثاني</th>
-                            <th>المحافظة</th> <th>المنطقة</th> <th style="color:var(--neon-gold);">الطلب</th>
-                            <th style="color:var(--neon-gold);">العدد</th> <th>المبلغ</th> <th>التاريخ</th>
-                            <th>المندوب</th> <th>الحالة</th> <th style="color:#ff4757;">إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody id="cloudOrdersTbody"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- تسجيل الدخول -->
-    <div class="container" id="login-section">
+    <!-- تسجيل الدخول بالتصميم الجديد -->
+    <div class="login-wrapper" id="login-section">
         <div class="login-box">
             <div class="css-logo main-logo"><div class="logo-inner">GL</div></div>
-            <h2>Gold Land</h2>
-            <div class="form-group"><label>اسم المستخدم</label><input type="text" id="username" placeholder="أدخل اسم المستخدم"></div>
-            <div class="form-group"><label>الرقم السري</label><input type="password" id="password" placeholder="أدخل كلمة المرور" onkeypress="handleEnter(event)"></div>
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <button id="loginBtn" onclick="login()" style="flex: 2;">دخول للنظام</button>
-                <button onclick="exitApp()" class="btn-danger" style="flex: 1; padding: 12px;">خروج</button>
+            <h2 class="login-title">Gold Land</h2>
+            
+            <div class="login-input-group">
+                <input type="text" id="username" placeholder="اسم المستخدم">
+            </div>
+            <div class="login-input-group">
+                <input type="password" id="password" placeholder="كلمة المرور" onkeypress="handleEnter(event)">
+            </div>
+            
+            <div style="display: flex; gap: 15px; margin-top: 25px;">
+                <button id="loginBtn" onclick="login()" style="flex: 2; padding: 15px; border-radius: 12px;">تسجيل الدخول</button>
             </div>
             <div class="error-msg" id="login-error">بيانات الدخول غير صحيحة!</div>
             
-            <div class="install-buttons-container">
-                <button class="btn-install android-btn" onclick="showInstallInstructions('android')">📱 تثبيت أندرويد</button>
-                <button class="btn-install ios-btn" onclick="showInstallInstructions('ios')">🍏 تثبيت آيفون</button>
+            <div style="margin-top: 35px; border-top: 1px solid rgba(255,215,0,0.1); padding-top: 20px; display: flex; gap: 10px;">
+                <button onclick="showInstallInstructions('android')" style="background: linear-gradient(90deg, #2ecc71, #27ae60); color: white; flex: 1; padding: 10px; font-size: 14px;">📱 تثبيت أندرويد</button>
+                <button onclick="showInstallInstructions('ios')" style="background: linear-gradient(90deg, #34495e, #2c3e50); color: white; flex: 1; padding: 10px; font-size: 14px;">🍏 تثبيت آيفون</button>
             </div>
         </div>
     </div>
 
-    <!-- لوحة التحكم -->
+    <!-- لوحة التحكم الرئيسية -->
     <div class="container" id="dashboard-section">
         <div class="header-dash">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div class="css-logo dash-logo"><div class="logo-inner">GL</div></div>
-                <h2 id="welcome-text" style="margin: 0; text-shadow: none;">نظام التوزيع الذكي للطلبات</h2>
+                <h2 style="margin: 0; text-shadow: none;">نظام التوزيع الذكي</h2>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button id="themeToggleBtn" class="btn-outline" onclick="toggleTheme()" style="padding: 8px 15px; font-size: 14px;">🌓 المظهر: تلقائي</button>
-                <button class="btn-parse" onclick="openCloudOrders()" style="padding: 8px 15px; font-size: 14px;">☁️ الأرشيف السحابي</button>
+                <button class="btn-outline" onclick="toggleTheme()" style="padding: 8px 15px; font-size: 14px;">🌓 المظهر</button>
+                <button class="btn-parse" onclick="openReports()" style="padding: 8px 15px; font-size: 14px;">التقارير 📊</button>
+                <button class="btn-parse" onclick="openCloudOrders()" style="padding: 8px 15px; font-size: 14px;">☁️ السحابة</button>
                 <button class="btn-settings" onclick="openSettings()" style="padding: 8px 15px; font-size: 14px;">⚙️ الإعدادات</button>
-                <button class="btn-outline logout-btn" onclick="logout()" style="padding: 8px 15px; font-size: 14px;">تسجيل خروج</button>
+                <button class="btn-danger" onclick="logout()" style="padding: 8px 15px; font-size: 14px;">خروج</button>
             </div>
         </div>
 
         <div class="card">
-            <label for="pasteArea">قم بلصق النص هنا لاستخراج البيانات:</label>
+            <label>قم بلصق النص هنا لاستخراج البيانات:</label>
             <textarea id="pasteArea" placeholder="الصق رسالة الطلب هنا..."></textarea>
             <div class="button-group">
                 <button class="btn-parse" onclick="parseText()">توزيع البيانات 🔄</button>
@@ -416,7 +261,6 @@
         <div class="card">
             <h3 style="text-align: right;">تفاصيل الطلب (يمكنك التعديل عليها):</h3>
             <div class="form-grid">
-                <!-- اختيار البيج الإلزامي -->
                 <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 5px;">
                     <label style="color: var(--neon-gold); font-size: 16px;">📌 اختر البيج (إلزامي):</label>
                     <select id="constantField" style="border: 2px solid var(--neon-gold); background: rgba(255, 215, 0, 0.05); font-weight: bold;">
@@ -434,25 +278,27 @@
                 <div class="items-container" id="itemsContainer">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <label style="color: var(--neon-gold); margin:0;">📦 أنواع الطلبات والعدد</label>
-                        <button type="button" class="btn-outline" onclick="addOrderItemRow()" style="padding: 5px 10px; font-size: 13px; box-shadow:none;">➕ إضافة صنف آخر</button>
+                        <button type="button" class="btn-outline" onclick="addOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ إضافة صنف آخر</button>
                     </div>
-                    
                     <div id="dynamicRowsWrapper">
                         <div class="order-item-row">
-                            <input type="text" class="orderTypeInput" list="orderTypesDatalist" placeholder="نوع الطلب" style="flex: 2; min-width: 120px;">
+                            <div style="display:flex; flex: 2; min-width: 140px; gap:5px;">
+                                <select class="orderTypeSelect" style="flex: 1;"></select>
+                                <input type="text" class="orderTypeCustomInput" placeholder="اكتب نوع الطلب..." style="display:none; flex: 1;">
+                                <button type="button" class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)" style="padding: 0 10px;" title="كتابة يدوية">✍️</button>
+                            </div>
                             <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;">
                             <div class="qty-controls" style="flex: 1; min-width: 120px;">
-                                <label style="color:#ccc; font-size:12px; margin:0 5px;">العدد:</label>
+                                <label style="color:#ccc; font-size:12px;">العدد:</label>
                                 <button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button>
-                                <input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center; font-weight: bold; padding: 8px;">
+                                <input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center;">
                                 <button type="button" class="qty-btn minus" onclick="changeQty(this, -1)">-</button>
                             </div>
                         </div>
                     </div>
-                    <datalist id="orderTypesDatalist"></datalist>
                 </div>
                 
-                <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="amount"></div>
+                <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="amount" onblur="formatAmount(this)"></div>
                 <div class="form-group"><label>ملاحظة مهمة</label><input type="text" id="note"></div>
             </div>
             <div class="button-group">
@@ -474,12 +320,166 @@
                         <tr>
                             <th>التسلسل</th> <th>اسم البيج</th> <th>اسم الزبون</th> <th>الهاتف الأول</th> <th>الهاتف الثاني</th>
                             <th>المحافظة</th> <th>المنطقة</th> <th style="color:var(--neon-gold);">رمز الطلب</th>
-                            <th style="color:var(--neon-gold); text-align: center;">مجموع العدد</th> <th>المبلغ</th>
-                            <th>الملاحظات</th> <th style="text-align: center; color: #ff4757;">حذف</th>
+                            <th style="color:var(--neon-gold);">العدد</th> <th>المبلغ</th> <th>الملاحظات</th> <th style="color: #ff4757;">حذف</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة الإعدادات -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeSettings()">&times;</span>
+            <div id="settingsAuthSection">
+                <h3>🔒 إعدادات النظام المتقدمة</h3>
+                <p style="color: #ccc;">أدخل الرقم السري للمدير:</p>
+                <div class="form-group"><input type="password" id="settingsPass" onkeypress="if(event.key==='Enter') verifySettingsPass()"></div>
+                <button onclick="verifySettingsPass()" style="width: 100%;">تحقق ودخول 🔑</button>
+                <div class="error-msg" id="settings-error">الرقم السري غير صحيح!</div>
+            </div>
+            
+            <div id="settingsManagerSection" style="display: none;">
+                <h3 style="margin-bottom: 20px;">⚙️ الإعدادات</h3>
+                <div class="settings-tabs">
+                    <button class="tab-btn active" onclick="switchTab('pagesTab', this)">🏷️ البيجات</button>
+                    <button class="tab-btn" onclick="switchTab('typesTab', this)">📦 الطلبات</button>
+                    <button class="tab-btn" onclick="switchTab('usersTab', this)">👥 المستخدمين</button>
+                    <button class="tab-btn" onclick="switchTab('deliveryTab', this)">🚚 التوصيل</button>
+                </div>
+                <div class="tab-content">
+                    <div id="pagesTab" class="tab-pane active" style="text-align: right;">
+                        <input type="text" id="newPageName" placeholder="اسم البيج" style="width:100%; margin-bottom:10px;">
+                        <button onclick="addPageType()" style="width: 100%; margin-bottom: 15px;">إضافة للسحابة ☁️</button>
+                        <ul id="pagesListDisplay" style="list-style:none; padding:0;"></ul>
+                    </div>
+                    <div id="typesTab" class="tab-pane" style="text-align: right;">
+                        <input type="text" id="newOrderName" placeholder="اسم الطلب" style="width:100%; margin-bottom:10px;">
+                        <input type="text" id="newOrderCode" placeholder="الرمز" style="width:100%; margin-bottom:10px;">
+                        <button onclick="addOrderType()" style="width: 100%; margin-bottom: 15px;">إضافة للسحابة ☁️</button>
+                        <ul id="orderTypesListDisplay" style="list-style:none; padding:0;"></ul>
+                    </div>
+                    <div id="usersTab" class="tab-pane" style="text-align: right;">
+                        <input type="text" id="new-user-name" placeholder="المستخدم" style="width:100%; margin-bottom:10px;">
+                        <input type="password" id="new-user-pass" placeholder="كلمة المرور" style="width:100%; margin-bottom:10px;">
+                        <button onclick="addUser()" style="width: 100%; margin-bottom: 15px;">إضافة مستخدم ☁️</button>
+                        <ul id="users-list" style="list-style:none; padding:0;"></ul>
+                    </div>
+                    <div id="deliveryTab" class="tab-pane" style="text-align: right;">
+                        <label>توصيل بغداد</label><input type="number" id="feeBaghdadInput" style="margin-bottom:10px;">
+                        <label>توصيل المحافظات</label><input type="number" id="feeOtherInput" style="margin-bottom:10px;">
+                        <button onclick="saveDeliveryFees()" style="width: 100%;">حفظ 💾</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة التقارير المحدثة -->
+    <div class="modal-overlay" id="reportsModal">
+        <div class="modal-content" style="max-width: 800px; height: 85vh; display: flex; flex-direction: column;">
+            <span class="close-modal" onclick="closeReports()">&times;</span>
+            <h3 style="margin-bottom: 20px;">📊 تقارير النظام الشاملة</h3>
+            <div class="settings-tabs" style="justify-content: center;">
+                <button class="tab-btn active" onclick="switchReportTab('repPageTab', this)">🏷️ تقرير البيجات</button>
+                <button class="tab-btn" onclick="switchReportTab('repTypeTab', this)">📦 تقرير الطلبات</button>
+                <button class="tab-btn" onclick="switchReportTab('repFinTab', this)">💰 التقرير المالي</button>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; justify-content: center;">
+                <div class="date-wrapper"><label>من:</label><input type="date" id="repDateFrom" dir="ltr"></div>
+                <div class="date-wrapper"><label>إلى:</label><input type="date" id="repDateTo" dir="ltr"></div>
+                <button class="btn-parse" onclick="generateReports()" style="width: auto;">توليد 🔄</button>
+            </div>
+            <div style="flex: 1; overflow-y: auto;">
+                
+                <!-- تبويب تقرير البيجات (المحدث) -->
+                <div id="repPageTab" class="tab-pane active" style="text-align: right;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
+                        <label style="color: var(--neon-gold); font-weight: bold;">اختر البيج:</label>
+                        <select id="repPageFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;">
+                            <option value="all">-- كل البيجات --</option>
+                        </select>
+                        <button class="btn-export" onclick="exportPageReportPDF()" style="padding: 10px 15px; background: linear-gradient(90deg, #c0392b, #e74c3c);">تصدير PDF 📄</button>
+                    </div>
+                    
+                    <div style="overflow-x: auto;">
+                        <table id="pageReportTable">
+                            <thead>
+                                <tr>
+                                    <th>نوع الطلب (الرمز واللون)</th>
+                                    <th>عدد الطلبات</th>
+                                    <th>المبلغ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repPageTbody"></tbody>
+                            <tfoot>
+                                <tr style="background: rgba(218, 165, 32, 0.2); font-weight: bold; color: var(--neon-gold);">
+                                    <td>المجموع الكلي</td>
+                                    <td id="totalPageQty">0</td>
+                                    <td id="totalPageAmount">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- تبويب تقرير الطلبات (البطاقات المربعة) -->
+                <div id="repTypeTab" class="tab-pane" style="text-align: right;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 25px; align-items: center; flex-wrap: wrap;">
+                        <label style="color: var(--neon-gold); font-weight: bold;">تصفية الطلبات:</label>
+                        <select id="repTypeFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;">
+                            <option value="all">-- كل الطلبات --</option>
+                        </select>
+                    </div>
+                    <div id="repTypeCardsContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">
+                        <!-- يتم توليد البطاقات هنا برمجياً -->
+                    </div>
+                </div>
+                
+                <div id="repFinTab" class="tab-pane" style="text-align: right;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;" id="repFinCards">
+                        <div class="report-card"><h4>الطلبات</h4><div class="val" id="finCount">0</div></div>
+                        <div class="report-card"><h4>القطع المباعة</h4><div class="val" id="finQty">0</div></div>
+                        <div class="report-card"><h4>المبلغ الكلي</h4><div class="val" id="finGross">0</div></div>
+                        <div class="report-card" style="border-color: #e74c3c;"><h4>أجور التوصيل</h4><div class="val" id="finDelivery" style="color:#e74c3c;">0</div></div>
+                        <div class="report-card" style="border-color: #2ecc71;"><h4>الصافي</h4><div class="val" id="finNet" style="color:#2ecc71;">0</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة الأرشيف السحابي -->
+    <div class="modal-overlay" id="cloudOrdersModal">
+        <div class="modal-content" style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; padding: 20px;">
+            <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
+            <h3 style="margin-bottom: 20px;">☁️ الأرشيف السحابي</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
+                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 150px;">
+                <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل البيجات --</option></select>
+                <div class="date-wrapper"><label>من:</label><input type="date" id="cloudDateFrom" onchange="filterCloudOrders()" dir="ltr"></div>
+                <div class="date-wrapper"><label>إلى:</label><input type="date" id="cloudDateTo" onchange="filterCloudOrders()" dir="ltr"></div>
+                <button class="btn-parse" onclick="openCloudOrders()" style="width: auto;">تحديث 🔄</button>
+            </div>
+            <div style="overflow-y: auto; flex: 1;">
+                <table>
+                    <thead><tr><th>التسلسل</th> <th>البيج</th> <th>اسم الزبون</th> <th>الهواتف</th> <th>المحافظة</th> <th style="color:var(--neon-gold);">الطلب</th> <th>المبلغ</th> <th>التاريخ</th> <th>إجراء</th></tr></thead>
+                    <tbody id="cloudOrdersTbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal" style="z-index: 10500;">
+        <div class="modal-content" style="max-width: 400px; padding-top: 40px;">
+            <div style="font-size: 50px; margin-bottom: 15px;">⚠️</div>
+            <h3 style="color: #ff4757; margin-bottom: 10px;">تأكيد الإجراء</h3>
+            <p id="confirmMessage" style="color: #ddd; margin-bottom: 30px;">هل أنت متأكد؟</p>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button id="confirmYesBtn" class="btn-danger" style="width: 50%;">نعم</button>
+                <button onclick="closeConfirmModal()" class="btn-outline" style="width: 50%;">إلغاء</button>
             </div>
         </div>
     </div>
@@ -495,597 +495,465 @@
             projectId: "gold-land2021",
             storageBucket: "gold-land2021.firebasestorage.app",
             messagingSenderId: "580003463235",
-            appId: "1:580003463235:web:4ebb43e8f3db552b3294f6",
-            measurementId: "G-LJJQS0BYGP"
+            appId: "1:580003463235:web:4ebb43e8f3db552b3294f6"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        try {
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
 
-        window.saveDataToFirebase = async function(orderData) {
-            try {
-                orderData.timestamp = serverTimestamp();
-                await addDoc(collection(db, "orders"), orderData); return true;
-            } catch (error) { console.error("Error:", error); return false; }
-        };
-
-        window.getCloudOrdersFromFirebase = async function() {
-            try {
-                const q = query(collection(db, "orders")); const querySnapshot = await getDocs(q); let orders = [];
-                querySnapshot.forEach((doc) => { orders.push({ id_doc: doc.id, ...doc.data() }); }); return orders;
-            } catch (error) { console.error("Error:", error); return []; }
-        };
-        
-        window.deleteOrderFromFirebase = async function(docId) { await deleteDoc(doc(db, "orders", docId)); };
-
-        window.loadSystemDataFromFirebase = async function() {
-            try {
-                const usersSnap = await getDocs(collection(db, "system_users"));
-                let users = []; usersSnap.forEach(doc => users.push({ id: doc.id, ...doc.data() }));
-
-                const typesSnap = await getDocs(collection(db, "order_types"));
-                let types = []; typesSnap.forEach(doc => types.push({ id: doc.id, ...doc.data() }));
-
-                const pagesSnap = await getDocs(collection(db, "system_pages"));
-                let pages = []; pagesSnap.forEach(doc => pages.push({ id: doc.id, ...doc.data() }));
-
-                return { users, types, pages };
-            } catch (error) { console.error("Error loading data:", error); return { users: [], types: [], pages: [] }; }
-        };
-
-        window.addSystemUserToFirebase = async function(userData) { return await addDoc(collection(db, "system_users"), userData); };
-        window.deleteSystemUserFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_users", docId)); };
-        window.updateSystemUserInFirebase = async function(docId, data) { await updateDoc(doc(db, "system_users", docId), data); };
-        
-        window.addOrderTypeToFirebase = async function(typeData) { return await addDoc(collection(db, "order_types"), typeData); };
-        window.deleteOrderTypeFromFirebase = async function(docId) { await deleteDoc(doc(db, "order_types", docId)); };
-
-        window.addSystemPageToFirebase = async function(pageData) { return await addDoc(collection(db, "system_pages"), pageData); };
-        window.deleteSystemPageFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_pages", docId)); };
+            window.saveDataToFirebase = async function(orderData) {
+                try { orderData.timestamp = serverTimestamp(); await addDoc(collection(db, "orders"), orderData); return true; } 
+                catch (e) { return false; }
+            };
+            window.getCloudOrdersFromFirebase = async function() {
+                try { const q = query(collection(db, "orders")); const snap = await getDocs(q); let orders = []; snap.forEach(d => orders.push({ id_doc: d.id, ...d.data() })); return orders; } 
+                catch (e) { return []; }
+            };
+            window.deleteOrderFromFirebase = async function(docId) { await deleteDoc(doc(db, "orders", docId)); };
+            window.loadSystemDataFromFirebase = async function() {
+                try {
+                    let users = [], types = [], pages = [];
+                    const [uSnap, tSnap, pSnap] = await Promise.all([ getDocs(collection(db, "system_users")), getDocs(collection(db, "order_types")), getDocs(collection(db, "system_pages")) ]);
+                    uSnap.forEach(d => users.push({ id: d.id, ...d.data() }));
+                    tSnap.forEach(d => types.push({ id: d.id, ...d.data() }));
+                    pSnap.forEach(d => pages.push({ id: d.id, ...d.data() }));
+                    return { users, types, pages };
+                } catch (e) { return { users: [], types: [], pages: [] }; }
+            };
+            window.addSystemUserToFirebase = async function(data) { return await addDoc(collection(db, "system_users"), data); };
+            window.deleteSystemUserFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_users", docId)); };
+            window.updateSystemUserInFirebase = async function(docId, data) { await updateDoc(doc(db, "system_users", docId), data); };
+            window.addOrderTypeToFirebase = async function(data) { return await addDoc(collection(db, "order_types"), data); };
+            window.deleteOrderTypeFromFirebase = async function(docId) { await deleteDoc(doc(db, "order_types", docId)); };
+            window.addSystemPageToFirebase = async function(data) { return await addDoc(collection(db, "system_pages"), data); };
+            window.deleteSystemPageFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_pages", docId)); };
+        } catch(e) {
+            console.warn("Firebase Init Error", e);
+        }
     </script>
 
-    <!-- الأكواد البرمجية (JavaScript) -->
+    <!-- الأكواد البرمجية الأساسية -->
     <script>
-        // ================= التحكم بالمظهر (Theme) =================
-        let currentTheme = localStorage.getItem('gl_theme') || 'auto';
-        
+        function safeGetStorage(key, def) { try { return localStorage.getItem(key) || def; } catch(e) { return def; } }
+        function safeSetStorage(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
+
+        let currentTheme = safeGetStorage('gl_theme', 'auto');
         function applyTheme(theme) {
-            const btn = document.getElementById('themeToggleBtn');
-            if (theme === 'light') {
-                document.body.classList.add('light-mode');
-                if (btn) btn.innerText = '☀️ المظهر: فاتح';
-            } else if (theme === 'dark') {
-                document.body.classList.remove('light-mode');
-                if (btn) btn.innerText = '🌙 المظهر: داكن';
-            } else {
-                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-                    document.body.classList.add('light-mode');
-                } else {
-                    document.body.classList.remove('light-mode');
-                }
-                if (btn) btn.innerText = '🌓 المظهر: تلقائي';
-            }
+            if (theme === 'light') document.body.classList.add('light-mode');
+            else if (theme === 'dark') document.body.classList.remove('light-mode');
+            else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) document.body.classList.add('light-mode');
+            else document.body.classList.remove('light-mode');
         }
-        
         function toggleTheme() {
-            if (currentTheme === 'auto') currentTheme = 'dark';
-            else if (currentTheme === 'dark') currentTheme = 'light';
-            else currentTheme = 'auto';
-            
-            localStorage.setItem('gl_theme', currentTheme);
-            applyTheme(currentTheme);
+            currentTheme = (currentTheme === 'auto') ? 'dark' : (currentTheme === 'dark') ? 'light' : 'auto';
+            safeSetStorage('gl_theme', currentTheme); applyTheme(currentTheme);
         }
-        // تطبيق المظهر عند فتح الصفحة
         applyTheme(currentTheme);
-        // =========================================================
 
-        const ADMIN_USER = "Zain";
-        const ADMIN_PASS = "327798";
-        
-        let additionalUsers = [];
-        let configuredOrderTypes = [];
-        let configuredPages = [];
-        let loggedInUser = "";
-        let loggedInUserCanDelete = false; 
+        const ADMIN_USER = "Zain"; const ADMIN_PASS = "327798";
+        let additionalUsers = [], configuredOrderTypes = [], configuredPages = [];
+        let loggedInUser = "", loggedInUserCanDelete = false, loggedInUserCanSettings = false, loggedInUserCanReports = false; 
 
-        let allCloudOrders = [];
-        let filteredCloudOrders = []; 
+        let feeBaghdad = parseInt(safeGetStorage('feeBaghdad', '5000')) || 5000;
+        let feeOther = parseInt(safeGetStorage('feeOther', '8000')) || 8000;
 
-        let currentConfirmAction = null;
-        function showConfirmDialog(message, callback) {
-            document.getElementById('confirmMessage').innerText = message;
-            currentConfirmAction = callback;
-            document.getElementById('confirmModal').style.display = 'flex';
-            document.getElementById('confirmYesBtn').onclick = function() {
-                if(currentConfirmAction) currentConfirmAction();
-                closeConfirmModal();
-            };
+        function saveDeliveryFees() {
+            feeBaghdad = parseInt(document.getElementById('feeBaghdadInput').value) || 0;
+            feeOther = parseInt(document.getElementById('feeOtherInput').value) || 0;
+            safeSetStorage('feeBaghdad', feeBaghdad); safeSetStorage('feeOther', feeOther);
+            alert("تم حفظ أجور التوصيل بنجاح!");
         }
+
+        let allCloudOrders = [], filteredCloudOrders = []; 
+        let currentConfirmAction = null;
+
+        function showConfirmDialog(msg, callback) { document.getElementById('confirmMessage').innerText = msg; currentConfirmAction = callback; document.getElementById('confirmModal').style.display = 'flex'; document.getElementById('confirmYesBtn').onclick = function() { if(currentConfirmAction) currentConfirmAction(); closeConfirmModal(); }; }
         function closeConfirmModal() { document.getElementById('confirmModal').style.display = 'none'; currentConfirmAction = null; }
-        function exitApp() { showConfirmDialog("هل أنت متأكد أنك تريد الخروج وإغلاق النظام؟", function() { window.close(); }); }
         function handleEnter(event) { if (event.key === "Enter") login(); }
 
+        function formatAmount(input) {
+            let val = input.value.trim(); if (!val) return;
+            let numericVal = parseFloat(val.replace(/[^0-9.-]+/g, ""));
+            if (!isNaN(numericVal) && numericVal > 0 && numericVal < 1000) input.value = (numericVal * 1000).toString();
+        }
+
+        function toggleOrderInput(btn) {
+            let container = btn.parentElement, select = container.querySelector('.orderTypeSelect'), customInput = container.querySelector('.orderTypeCustomInput');
+            if(select.style.display !== 'none') { select.style.display = 'none'; customInput.style.display = 'block'; customInput.focus(); btn.innerHTML = '📋'; } 
+            else { customInput.style.display = 'none'; customInput.value = ''; select.style.display = 'block'; btn.innerHTML = '✍️'; }
+        }
+
+        async function login() {
+            try {
+                const user = document.getElementById("username").value.trim(), pass = document.getElementById("password").value.trim();
+                const errorMsg = document.getElementById("login-error"), btn = document.getElementById("loginBtn");
+                if(user === "" || pass === "") return;
+
+                let isManager = (user === ADMIN_USER && pass === ADMIN_PASS);
+
+                btn.innerText = "جاري التحقق... ⏳"; btn.disabled = true;
+
+                if (isManager) {
+                    loggedInUser = user; loggedInUserCanDelete = true; loggedInUserCanSettings = true; loggedInUserCanReports = true;
+                    showDashboard(); errorMsg.style.display = "none";
+                    
+                    if(window.loadSystemDataFromFirebase) {
+                        window.loadSystemDataFromFirebase().then(cloudData => {
+                            additionalUsers = cloudData.users; configuredOrderTypes = cloudData.types; configuredPages = cloudData.pages;
+                            document.getElementById('feeBaghdadInput').value = feeBaghdad; document.getElementById('feeOtherInput').value = feeOther;
+                            updateOrderTypeSelects(); updatePagesDropdown();
+                        }).catch(e => console.log(e));
+                    }
+                    btn.innerText = "تسجيل الدخول"; btn.disabled = false; return;
+                }
+
+                if(window.loadSystemDataFromFirebase) {
+                    const cloudData = await window.loadSystemDataFromFirebase();
+                    additionalUsers = cloudData.users; configuredOrderTypes = cloudData.types; configuredPages = cloudData.pages;
+                    document.getElementById('feeBaghdadInput').value = feeBaghdad; document.getElementById('feeOtherInput').value = feeOther;
+                    updateOrderTypeSelects(); updatePagesDropdown();
+                }
+
+                btn.innerText = "تسجيل الدخول"; btn.disabled = false;
+
+                const isNormalUser = additionalUsers.find(u => u.username === user && u.password === pass);
+                if (isNormalUser) { 
+                    loggedInUser = user; 
+                    loggedInUserCanDelete = isNormalUser.canDeleteCloud || false; 
+                    loggedInUserCanSettings = isNormalUser.canAccessSettings || false; 
+                    loggedInUserCanReports = isNormalUser.canAccessReports || false; 
+                    showDashboard(); errorMsg.style.display = "none"; 
+                } else { errorMsg.style.display = "block"; }
+
+            } catch (err) {
+                alert("تعذر الاتصال بقاعدة البيانات. تحقق من الإنترنت.");
+                document.getElementById("loginBtn").innerText = "تسجيل الدخول"; document.getElementById("loginBtn").disabled = false;
+            }
+        }
+
+        function showDashboard() { document.getElementById("login-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "block"; }
+        function logout() { showConfirmDialog("تسجيل الخروج سيقوم بمسح الجدول الحالي، هل أنت متأكد؟", function() { loggedInUser = ""; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("login-section").style.display = "flex"; clearForm(); document.getElementById('tableBody').innerHTML = ""; }); }
+
+        // ======================= التقارير السحابية المُحدّثة =======================
+        async function openReports() {
+            if (!loggedInUserCanReports) { alert("❌ ليس لديك صلاحية للوصول إلى التقارير."); return; }
+            document.getElementById('reportsModal').style.display = 'flex';
+            
+            if (allCloudOrders.length === 0 && window.getCloudOrdersFromFirebase) {
+                document.getElementById('repPageTbody').innerHTML = '<tr><td colspan="3" style="text-align:center;">جاري جلب البيانات... ⏳</td></tr>';
+                allCloudOrders = await window.getCloudOrdersFromFirebase();
+            }
+            
+            // استخراج أسماء البيجات وأنواع الطلبات لملء الفلاتر
+            const pagesSet = new Set(), typesSet = new Set();
+            allCloudOrders.forEach(o => {
+                if(o.constant) pagesSet.add(o.constant);
+                if(o.type) {
+                    o.type.split('+').forEach(item => {
+                        let match = item.match(/\[(.*?)\s\(/);
+                        if(match) typesSet.add(match[1].trim());
+                    });
+                }
+            });
+            
+            document.getElementById('repPageFilter').innerHTML = '<option value="all">-- كل البيجات --</option>' + Array.from(pagesSet).map(p => `<option value="${p}">${p}</option>`).join('');
+            document.getElementById('repTypeFilter').innerHTML = '<option value="all">-- كل الطلبات --</option>' + Array.from(typesSet).map(t => `<option value="${t}">${t}</option>`).join('');
+            
+            generateReports();
+        }
+
+        function closeReports() { document.getElementById('reportsModal').style.display = 'none'; }
+        
+        function switchReportTab(tabId, btn) { 
+            document.querySelectorAll('#reportsModal .tab-btn').forEach(b => b.classList.remove('active')); 
+            document.querySelectorAll('#reportsModal .tab-pane').forEach(p => p.classList.remove('active')); 
+            btn.classList.add('active'); 
+            document.getElementById(tabId).classList.add('active'); 
+        }
+
+        function generateReports() {
+            if(allCloudOrders.length === 0) return;
+            const fromVal = document.getElementById('repDateFrom').value, toVal = document.getElementById('repDateTo').value;
+            let fromDate = fromVal ? new Date(fromVal) : null; if(fromDate) fromDate.setHours(0,0,0,0);
+            let toDate = toVal ? new Date(toVal) : null; if(toDate) toDate.setHours(23,59,59,999);
+
+            const selPage = document.getElementById('repPageFilter').value;
+            const selType = document.getElementById('repTypeFilter').value;
+
+            let targetOrders = allCloudOrders.filter(o => {
+                if(fromDate || toDate) {
+                    if(!o.timestamp?.seconds) return false;
+                    const orderDate = new Date(o.timestamp.seconds * 1000);
+                    if(fromDate && orderDate < fromDate) return false;
+                    if(toDate && orderDate > toDate) return false;
+                } return true;
+            });
+
+            // 1. تقرير البيجات المحدث
+            let pageTargetOrders = targetOrders;
+            if(selPage !== "all") pageTargetOrders = targetOrders.filter(o => o.constant === selPage);
+
+            let totalPageQty = 0, totalPageAmt = 0, pageTbodyHtml = "";
+            if (pageTargetOrders.length === 0) {
+                pageTbodyHtml = '<tr><td colspan="3" style="text-align:center;">لا توجد بيانات</td></tr>';
+            } else {
+                pageTargetOrders.forEach(o => {
+                    let amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0;
+                    let qty = parseInt(o.qty) || 1;
+                    totalPageQty += qty; totalPageAmt += amt;
+                    
+                    // إصلاح مشكلة تداخل الأقواس واللغات بفرض اتجاه ثابت لكل عنصر
+                    let safeType = (o.type || "غير محدد").split(' + ').map(item => `<span dir="ltr" style="display: inline-block; padding: 0 5px;">${item}</span>`).join(' <span style="font-weight:bold; color:inherit;">+</span> ');
+                    
+                    pageTbodyHtml += `<tr><td style="color:var(--neon-gold); font-size: 14px; text-align: center;">${safeType}</td><td>${qty}</td><td>${amt.toLocaleString()}</td></tr>`;
+                });
+            }
+            
+            document.getElementById('repPageTbody').innerHTML = pageTbodyHtml;
+            document.getElementById('totalPageQty').innerText = totalPageQty;
+            document.getElementById('totalPageAmount').innerText = totalPageAmt.toLocaleString();
+
+            // 2. تقرير الطلبات المحدث (بطاقات مربعة)
+            let typeStats = {};
+            targetOrders.forEach(o => {
+                if(o.type) {
+                    o.type.split('+').forEach(item => {
+                        let match = item.match(/\[(.*?)\s\((\d+)\)/);
+                        if(match) { 
+                            let code = match[1].trim(), qty = parseInt(match[2]) || 1; 
+                            typeStats[code] = (typeStats[code] || 0) + qty; 
+                        }
+                    });
+                }
+            });
+
+            let typeCardsHtml = "";
+            let filteredTypes = Object.entries(typeStats);
+            if(selType !== "all") filteredTypes = filteredTypes.filter(([tCode]) => tCode === selType);
+
+            if(filteredTypes.length === 0) {
+                typeCardsHtml = '<div style="width:100%; text-align:center; color:#ccc; padding:20px;">لا توجد بيانات</div>';
+            } else {
+                filteredTypes.forEach(([tCode, tQty]) => {
+                    typeCardsHtml += `
+                        <div class="report-card" style="width: 140px; border: 2px solid var(--neon-gold); background: rgba(0,0,0,0.5); padding: 20px 10px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+                            <h4 style="color: #fff; font-size: 15px; margin: 0 0 15px 0; border-bottom: 1px dashed rgba(255,215,0,0.5); padding-bottom: 10px;">${tCode}</h4>
+                            <div class="val" style="font-size: 32px; color: var(--neon-gold); font-weight: 900;">${tQty}</div>
+                        </div>`;
+                });
+            }
+            document.getElementById('repTypeCardsContainer').innerHTML = typeCardsHtml;
+
+            // 3. التقرير المالي
+            let finCount = targetOrders.length, finQty = 0, finGross = 0, finDelivery = 0;
+            targetOrders.forEach(o => {
+                let amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0;
+                finQty += parseInt(o.qty) || 1; finGross += amt;
+                finDelivery += (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther;
+            });
+            document.getElementById('finCount').innerText = finCount; document.getElementById('finQty').innerText = finQty;
+            document.getElementById('finGross').innerText = finGross.toLocaleString(); document.getElementById('finDelivery').innerText = finDelivery.toLocaleString();
+            document.getElementById('finNet').innerText = (finGross - finDelivery).toLocaleString();
+        }
+
+        // دالة التصدير إلى PDF لتقرير البيجات
+        function exportPageReportPDF() {
+            const pageName = document.getElementById('repPageFilter').value;
+            const titleText = 'تقرير المبيعات - ' + (pageName === 'all' ? 'جميع البيجات' : pageName);
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.style.padding = '30px';
+            tempDiv.style.background = '#ffffff';
+            tempDiv.style.color = '#000000';
+            tempDiv.style.direction = 'rtl';
+            tempDiv.style.fontFamily = 'Arial, sans-serif';
+            
+            const title = document.createElement('h2');
+            title.innerText = titleText;
+            title.style.textAlign = 'center';
+            title.style.marginBottom = '25px';
+            title.style.color = '#000';
+            tempDiv.appendChild(title);
+            
+            const tableClone = document.getElementById('pageReportTable').cloneNode(true);
+            tableClone.style.width = '100%';
+            tableClone.style.borderCollapse = 'collapse';
+            
+            const cells = tableClone.querySelectorAll('th, td');
+            cells.forEach(cell => {
+                cell.style.border = '1px solid #333';
+                cell.style.padding = '12px';
+                cell.style.color = '#000';
+                cell.style.textAlign = 'center';
+                cell.style.background = '#fff';
+            });
+            
+            tableClone.querySelectorAll('th').forEach(th => th.style.background = '#f2f2f2');
+            tableClone.querySelectorAll('tfoot td').forEach(td => { 
+                td.style.background = '#e6e6e6'; 
+                td.style.fontWeight = 'bold'; 
+            });
+
+            tempDiv.appendChild(tableClone);
+            document.body.appendChild(tempDiv); 
+
+            const opt = {
+                margin:       10,
+                filename:     `تقرير_${pageName === 'all' ? 'عام' : pageName}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(tempDiv).save().then(() => {
+                document.body.removeChild(tempDiv); 
+            });
+        }
+
+        // ======================= الأرشيف السحابي والإعدادات =======================
         async function openCloudOrders() {
             document.getElementById('cloudOrdersModal').style.display = 'flex';
-            const tbody = document.getElementById('cloudOrdersTbody');
-            tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding: 20px;">جاري جلب البيانات من السحابة... ⏳</td></tr>';
-            
             if(window.getCloudOrdersFromFirebase) {
                 allCloudOrders = await window.getCloudOrdersFromFirebase();
-                allCloudOrders.sort((a, b) => { return (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0); });
-                filteredCloudOrders = [...allCloudOrders];
-                renderCloudOrdersTable(filteredCloudOrders);
+                allCloudOrders.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                filteredCloudOrders = [...allCloudOrders]; filterCloudOrders();
             }
         }
         function closeCloudOrders() { document.getElementById('cloudOrdersModal').style.display = 'none'; }
         
-        function renderCloudOrdersTable(orders) {
-            const tbody = document.getElementById('cloudOrdersTbody'); tbody.innerHTML = '';
-            if(orders.length === 0) { tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding: 20px;">لا توجد طلبات محفوظة أو مطابقة للبحث</td></tr>'; return; }
-            orders.forEach(order => {
+        function filterCloudOrders() {
+            const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value;
+            const tb = document.getElementById('cloudOrdersTbody'); tb.innerHTML = '';
+            filteredCloudOrders = allCloudOrders.filter(o => ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt)) && (pF === "" || (o.constant||"") === pF));
+            
+            filteredCloudOrders.forEach(o => {
                 const tr = document.createElement('tr');
-                let dateStr = "غير معروف";
-                if(order.timestamp?.seconds) {
-                    let d = new Date(order.timestamp.seconds * 1000);
-                    dateStr = d.toLocaleDateString('ar-IQ') + " " + d.toLocaleTimeString('ar-IQ', {hour: '2-digit', minute:'2-digit'});
-                }
-                let statusColor = order.status === 'جديد' ? '#27ae60' : '#f39c12';
-                
-                let deleteActionHtml = '-';
-                if(loggedInUserCanDelete) {
-                    deleteActionHtml = `<button class="btn-danger" style="padding: 5px; font-size: 12px; width: 35px; border-radius: 5px;" onclick="deleteCloudOrder('${order.id_doc}')" title="حذف الطلب">🗑️</button>`;
-                }
-
-                tr.innerHTML = `
-                    <td>${order.id || '-'}</td>
-                    <td style="color:var(--neon-gold); font-weight:bold;">${order.constant || '-'}</td>
-                    <td>${order.name || '-'}</td>
-                    <td dir="ltr">${order.phone1 || '-'}</td><td dir="ltr">${order.phone2 || '-'}</td>
-                    <td>${order.gov || '-'}</td><td>${order.area || '-'}</td>
-                    <td style="color:var(--neon-gold); font-weight:bold;">${order.type || '-'}</td>
-                    <td style="color:var(--neon-gold); font-weight:bold; text-align:center;">${order.qty || '-'}</td>
-                    <td>${order.amount || '-'}</td><td style="font-size:12px; color:#aaa;">${dateStr}</td>
-                    <td style="color:#3498db;">${order.addedBy || 'مجهول'}</td>
-                    <td><span style="background:${statusColor}; color:#fff; padding:3px 8px; border-radius:5px; font-size:12px;">${order.status || 'مسجل'}</span></td>
-                    <td style="text-align: center;">${deleteActionHtml}</td>
-                `; tbody.appendChild(tr);
+                tr.innerHTML = `<td>${o.id||'-'}</td> <td style="color:var(--neon-gold);">${o.constant||'-'}</td> <td>${o.name||'-'}</td>
+                    <td dir="ltr" style="font-size:12px;">${o.phone1}<br>${o.phone2||''}</td> <td style="font-size:12px;">${o.gov||'-'}</td>
+                    <td style="color:var(--neon-gold); font-size:12px;">${o.type||'-'}</td> <td>${o.amount||'-'}</td> <td style="font-size:12px;">${o.addedBy||''}</td>
+                    <td>${loggedInUserCanDelete ? `<button class="btn-danger" onclick="deleteCloudOrder('${o.id_doc}')">🗑️</button>` : '-'}</td>`;
+                tb.appendChild(tr);
             });
         }
 
         function deleteCloudOrder(docId) {
-            showConfirmDialog("هل أنت متأكد من حذف هذا الطلب من الأرشيف السحابي نهائياً؟ لا يمكن التراجع عن هذا الإجراء.", async function() {
-                if(window.deleteOrderFromFirebase) {
-                    try {
-                        await window.deleteOrderFromFirebase(docId);
-                        allCloudOrders = allCloudOrders.filter(o => o.id_doc !== docId);
-                        filteredCloudOrders = filteredCloudOrders.filter(o => o.id_doc !== docId);
-                        renderCloudOrdersTable(filteredCloudOrders);
-                    } catch(e) { alert("حدث خطأ أثناء الحذف!"); }
-                }
+            showConfirmDialog("تأكيد الحذف النهائي؟", async function() {
+                if(window.deleteOrderFromFirebase) { await window.deleteOrderFromFirebase(docId); allCloudOrders = allCloudOrders.filter(o => o.id_doc !== docId); filterCloudOrders(); }
             });
-        }
-
-        function filterCloudOrders() {
-            const queryText = document.getElementById('cloudSearchInput').value.toLowerCase();
-            const fromDateVal = document.getElementById('cloudDateFrom').value, toDateVal = document.getElementById('cloudDateTo').value;
-            const selectedPageFilter = document.getElementById('cloudPageFilter').value;
-            
-            let fromDate = fromDateVal ? new Date(fromDateVal) : null; if(fromDate) fromDate.setHours(0,0,0,0);
-            let toDate = toDateVal ? new Date(toDateVal) : null; if(toDate) toDate.setHours(23,59,59,999);
-
-            filteredCloudOrders = allCloudOrders.filter(o => {
-                const textMatch = (o.name || "").toLowerCase().includes(queryText) || (o.phone1 || "").includes(queryText) || 
-                              (o.phone2 || "").includes(queryText) || (o.gov || "").includes(queryText) || (o.addedBy || "").includes(queryText) || queryText === '';
-                
-                let dateMatch = true;
-                if(fromDate || toDate) {
-                    if(o.timestamp?.seconds) {
-                        const orderDate = new Date(o.timestamp.seconds * 1000);
-                        if(fromDate && orderDate < fromDate) dateMatch = false;
-                        if(toDate && orderDate > toDate) dateMatch = false;
-                    } else dateMatch = false;
-                }
-                
-                let pageMatch = selectedPageFilter === "" || (o.constant || "") === selectedPageFilter;
-                
-                return textMatch && dateMatch && pageMatch;
-            }); renderCloudOrdersTable(filteredCloudOrders);
         }
 
         function exportCloudToExcel() {
-            if(!filteredCloudOrders || filteredCloudOrders.length === 0) { alert("لا توجد بيانات مطابقة لتصديرها!"); return; }
-            let exportData = filteredCloudOrders.map((order, index) => {
-                const totalAmount = parseFloat((order.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0;
-                const delivery = (order.gov || "").includes("بغداد") ? 5000 : 8000;
-                let dateStr = "";
-                if(order.timestamp?.seconds) {
-                    let d = new Date(order.timestamp.seconds * 1000);
-                    dateStr = d.getFullYear() + "/" + (d.getMonth() + 1).toString().padStart(2, '0') + "/" + d.getDate().toString().padStart(2, '0');
-                }
-                return {
-                    "ت": index + 1, "البيج": order.constant || "", "رقم الوصل": index + 1, "تاريخ": dateStr,
-                    "اسم الزبون": order.name || "", "رقم الهاتف": order.phone2 ? `${order.phone1} - ${order.phone2}` : order.phone1,
-                    "العنوان": order.gov || "", "العنوان منطقة": order.area || "", "العدد": parseInt(order.qty) || 1, 
-                    "المبلغ الكلي": totalAmount, "مبلغ التوصيل": delivery, "المبلغ الصافي": totalAmount - delivery, "ملاحظات": order.type || ""
-                };
+            if(filteredCloudOrders.length === 0) return;
+            let exportData = filteredCloudOrders.map((o, i) => {
+                const amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0;
+                const del = (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther;
+                return { "ت": i+1, "البيج": o.constant||"", "اسم الزبون": o.name||"", "رقم الهاتف": o.phone1, "العنوان": o.gov||"", "العدد": parseInt(o.qty)||1, "المبلغ الكلي": amt, "مبلغ التوصيل": del, "الصافي": amt-del };
             });
-            const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(exportData), "الأرشيف السحابي"); XLSX.writeFile(workbook, "أرشيف_Gold_Land.xlsx");
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportData), "السحابة"); XLSX.writeFile(wb, "أرشيف_السحابة.xlsx");
         }
 
         function openSettings() {
-            document.getElementById('settingsModal').style.display = 'flex'; document.getElementById('settingsAuthSection').style.display = 'block';
-            document.getElementById('settingsManagerSection').style.display = 'none'; document.getElementById('settingsPass').value = ''; document.getElementById('settings-error').style.display = 'none';
+            document.getElementById('settingsModal').style.display = 'flex'; 
+            if (loggedInUserCanSettings) { document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; renderPagesSettings(); renderOrderTypesSettings(); renderUsers(); } 
+            else { document.getElementById('settingsAuthSection').style.display = 'block'; document.getElementById('settingsManagerSection').style.display = 'none'; }
         }
         function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
-        
-        function verifySettingsPass() {
-            if (document.getElementById('settingsPass').value === ADMIN_PASS) {
-                document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block';
-                renderPagesSettings(); renderOrderTypesSettings(); renderUsers();
-            } else { document.getElementById('settings-error').style.display = 'block'; }
-        }
+        function verifySettingsPass() { if (document.getElementById('settingsPass').value === ADMIN_PASS) { document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; renderPagesSettings(); renderOrderTypesSettings(); renderUsers(); } else { document.getElementById('settings-error').style.display = 'block'; } }
+        function switchTab(tabId, btn) { document.querySelectorAll('#settingsModal .tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('#settingsModal .tab-pane').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); }
 
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-            btn.classList.add('active'); document.getElementById(tabId).classList.add('active');
-        }
+        async function addPageType() { const val = document.getElementById('newPageName').value.trim(); if(val && window.addSystemPageToFirebase) { const r = await window.addSystemPageToFirebase({name: val}); configuredPages.push({id: r.id, name: val}); renderPagesSettings(); updatePagesDropdown(); } }
+        async function deletePageType(idx) { showConfirmDialog("حذف البيج؟", async function() { await window.deleteSystemPageFromFirebase(configuredPages[idx].id); configuredPages.splice(idx, 1); renderPagesSettings(); updatePagesDropdown(); }); }
+        function renderPagesSettings() { document.getElementById("pagesListDisplay").innerHTML = configuredPages.map((p, i) => `<li>${p.name} <button class="btn-danger" onclick="deletePageType(${i})">حذف ❌</button></li>`).join(''); }
+        function updatePagesDropdown() { const s1 = document.getElementById('constantField'), s2 = document.getElementById('cloudPageFilter'); s1.innerHTML = '<option value="">-- اختر البيج --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); s2.innerHTML = '<option value="">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); }
 
-        // ================= إدارة البيجات =================
-        async function addPageType() {
-            const pageName = document.getElementById('newPageName').value.trim();
-            const err = document.getElementById('page-error'), btn = document.getElementById('addPageBtn');
-            if (pageName === "") { err.style.display = "block"; return; }
-            
-            btn.innerText = "جاري الحفظ سحابياً... ⏳"; btn.disabled = true;
-            if(window.addSystemPageToFirebase) {
-                const docRef = await window.addSystemPageToFirebase({ name: pageName });
-                if(docRef) {
-                    configuredPages.push({ id: docRef.id, name: pageName });
-                    document.getElementById('newPageName').value = ""; err.style.display = "none";
-                    renderPagesSettings(); updatePagesDropdown();
-                }
-            }
-            btn.innerText = "إضافة بيج للسحابة ☁️"; btn.disabled = false;
-        }
+        async function addOrderType() { const n = document.getElementById('newOrderName').value.trim(), c = document.getElementById('newOrderCode').value.trim(); if(n && c && window.addOrderTypeToFirebase) { const r = await window.addOrderTypeToFirebase({name: n, code: c}); configuredOrderTypes.push({id: r.id, name: n, code: c}); renderOrderTypesSettings(); updateOrderTypeSelects(); } }
+        async function deleteOrderType(idx) { showConfirmDialog("حذف نوع الطلب؟", async function() { await window.deleteOrderTypeFromFirebase(configuredOrderTypes[idx].id); configuredOrderTypes.splice(idx, 1); renderOrderTypesSettings(); updateOrderTypeSelects(); }); }
+        function renderOrderTypesSettings() { document.getElementById("orderTypesListDisplay").innerHTML = configuredOrderTypes.map((t, i) => `<li>${t.name} (${t.code}) <button class="btn-danger" onclick="deleteOrderType(${i})">حذف ❌</button></li>`).join(''); }
+        function updateOrderTypeSelects() { document.querySelectorAll('.orderTypeSelect').forEach(s => { const v = s.value; s.innerHTML = '<option value="">-- اختر الطلب --</option>' + configuredOrderTypes.map(t => `<option value="${t.name}">${t.name}</option>`).join(''); s.value = v; }); }
 
-        function deletePageType(index) {
-            showConfirmDialog("هل أنت متأكد من حذف هذا البيج نهائياً من النظام؟", async function() {
-                const page = configuredPages[index];
-                if(window.deleteSystemPageFromFirebase && page.id) { await window.deleteSystemPageFromFirebase(page.id); }
-                configuredPages.splice(index, 1); renderPagesSettings(); updatePagesDropdown();
-            });
-        }
-
-        function renderPagesSettings() {
-            const list = document.getElementById("pagesListDisplay"); list.innerHTML = "";
-            if (configuredPages.length === 0) { list.innerHTML = "<li style='justify-content:center; color:#aaa; border:none; background:transparent;'>لا توجد بيجات محفوظة حالياً</li>"; return; }
-            configuredPages.forEach((page, index) => {
-                const li = document.createElement("li");
-                li.innerHTML = `🏷️ ${page.name} <button class="btn-danger" style="padding:5px 10px;" onclick="deletePageType(${index})">حذف ❌</button>`;
-                list.appendChild(li);
-            });
-        }
-
-        function updatePagesDropdown() {
-            const select = document.getElementById('constantField');
-            const currentVal = select.value;
-            select.innerHTML = '<option value="">-- اختر البيج التابع له الطلب --</option>';
-            
-            const cloudSelect = document.getElementById('cloudPageFilter');
-            const cloudCurrentVal = cloudSelect.value;
-            cloudSelect.innerHTML = '<option value="">-- كل البيجات --</option>';
-
-            configuredPages.forEach(page => {
-                const opt = document.createElement('option');
-                opt.value = page.name;
-                opt.textContent = page.name;
-                select.appendChild(opt);
-
-                const optCloud = document.createElement('option');
-                optCloud.value = page.name;
-                optCloud.textContent = page.name;
-                cloudSelect.appendChild(optCloud);
-            });
-            select.value = currentVal;
-            cloudSelect.value = cloudCurrentVal;
-        }
-
-        // ================= إدارة أنواع الطلبات =================
-        async function addOrderType() {
-            const name = document.getElementById('newOrderName').value.trim(), code = document.getElementById('newOrderCode').value.trim();
-            const err = document.getElementById('type-error'), btn = document.getElementById('addTypeBtn');
-            if (name === "" || code === "") { err.style.display = "block"; return; }
-            
-            btn.innerText = "جاري الحفظ سحابياً... ⏳"; btn.disabled = true;
-            if(window.addOrderTypeToFirebase) {
-                const docRef = await window.addOrderTypeToFirebase({ name, code });
-                if(docRef) {
-                    configuredOrderTypes.push({ id: docRef.id, name, code });
-                    document.getElementById('newOrderName').value = ""; document.getElementById('newOrderCode').value = ""; err.style.display = "none";
-                    renderOrderTypesSettings(); updateDatalist();
-                }
-            }
-            btn.innerText = "إضافة للسحابة ☁️"; btn.disabled = false;
-        }
-
-        function deleteOrderType(index) {
-            showConfirmDialog("هل أنت متأكد من حذف نوع الطلب هذا نهائياً من النظام؟", async function() {
-                const type = configuredOrderTypes[index];
-                if(window.deleteOrderTypeFromFirebase && type.id) { await window.deleteOrderTypeFromFirebase(type.id); }
-                configuredOrderTypes.splice(index, 1); renderOrderTypesSettings(); updateDatalist();
-            });
-        }
-
-        function renderOrderTypesSettings() {
-            const list = document.getElementById("orderTypesListDisplay"); list.innerHTML = "";
-            if (configuredOrderTypes.length === 0) { list.innerHTML = "<li style='justify-content:center; color:#aaa; border:none; background:transparent;'>لا توجد طلبات محفوظة حالياً</li>"; return; }
-            configuredOrderTypes.forEach((type, index) => {
-                const li = document.createElement("li");
-                li.innerHTML = `📦 ${type.name} <span style="color:var(--neon-gold); font-size:12px;">(الرمز: ${type.code})</span>
-                                <button class="btn-danger" style="padding:5px 10px;" onclick="deleteOrderType(${index})">حذف ❌</button>`;
-                list.appendChild(li);
-            });
-        }
-        function updateDatalist() {
-            const datalist = document.getElementById('orderTypesDatalist'); datalist.innerHTML = '';
-            configuredOrderTypes.forEach(type => { const option = document.createElement('option'); option.value = type.name; datalist.appendChild(option); });
-        }
-
-        // ================= إدارة المستخدمين =================
         async function addUser() {
-            const newUser = document.getElementById("new-user-name").value.trim(), newPass = document.getElementById("new-user-pass").value.trim();
-            const canDelete = document.getElementById("new-user-can-delete").checked; 
-            const addError = document.getElementById("add-error"), btn = document.getElementById('addUserBtn');
-            
-            if (newUser === "" || newPass === "") { addError.style.display = "block"; return; }
-            if (newUser === ADMIN_USER || additionalUsers.some(u => u.username === newUser)) { addError.innerText = "هذا المستخدم مسجل مسبقاً!"; addError.style.display = "block"; return; }
-
-            btn.innerText = "جاري الحفظ سحابياً... ⏳"; btn.disabled = true;
-            if(window.addSystemUserToFirebase) {
-                const userData = { username: newUser, password: newPass, canDeleteCloud: canDelete };
-                const docRef = await window.addSystemUserToFirebase(userData);
-                if(docRef) {
-                    additionalUsers.push({ id: docRef.id, ...userData });
-                    document.getElementById("new-user-name").value = ""; document.getElementById("new-user-pass").value = ""; 
-                    document.getElementById("new-user-can-delete").checked = false; addError.style.display = "none"; renderUsers();
-                }
-            }
-            btn.innerText = "إضافة للسحابة ☁️"; btn.disabled = false;
+            const u = document.getElementById("new-user-name").value.trim(), p = document.getElementById("new-user-pass").value.trim();
+            if(u === "" || p === "" || u === ADMIN_USER) return;
+            const data = { username: u, password: p, canDeleteCloud: document.getElementById("new-user-can-delete").checked, canAccessSettings: document.getElementById("new-user-can-settings").checked, canAccessReports: document.getElementById("new-user-can-reports").checked };
+            const r = await window.addSystemUserToFirebase(data); additionalUsers.push({id: r.id, ...data}); renderUsers();
         }
-
-        function deleteUser(index) {
-            showConfirmDialog("هل أنت متأكد من إلغاء صلاحية هذا المستخدم نهائياً؟", async function() {
-                const user = additionalUsers[index];
-                if(window.deleteSystemUserFromFirebase && user.id) { await window.deleteSystemUserFromFirebase(user.id); }
-                additionalUsers.splice(index, 1); renderUsers();
-            });
-        }
+        function deleteUser(idx) { showConfirmDialog("حذف المستخدم؟", async function() { await window.deleteSystemUserFromFirebase(additionalUsers[idx].id); additionalUsers.splice(idx, 1); renderUsers(); }); }
+        async function togglePermission(idx, field) { const u = additionalUsers[idx]; u[field] = !u[field]; await window.updateSystemUserInFirebase(u.id, {[field]: u[field]}); renderUsers(); }
         
-        async function toggleUserPermission(index) {
-            const user = additionalUsers[index];
-            const newPermission = !user.canDeleteCloud; 
-            
-            if(window.updateSystemUserInFirebase && user.id) {
-                try {
-                    await window.updateSystemUserInFirebase(user.id, { canDeleteCloud: newPermission });
-                    user.canDeleteCloud = newPermission; 
-                    renderUsers(); 
-                } catch(e) { alert("حدث خطأ أثناء تحديث الصلاحية"); }
-            }
-        }
-
         function renderUsers() {
-            const list = document.getElementById("users-list"); list.innerHTML = "";
-            if (additionalUsers.length === 0) { list.innerHTML = "<li style='justify-content:center; color:#aaa; border:none; background:transparent;'>لا يوجد مستخدمين آخرين حالياً</li>"; return; }
-            additionalUsers.forEach((user, index) => {
-                const li = document.createElement("li");
-                const deleteBadge = user.canDeleteCloud ? 
-                    `<span style="background: rgba(39, 174, 96, 0.2); color: #2ecc71; padding: 3px 8px; border-radius: 5px; font-size: 12px; margin-right: 10px;">🟢 يحق له مسح الطلبات</span>` : 
-                    `<span style="background: rgba(231, 76, 60, 0.2); color: #e74c3c; padding: 3px 8px; border-radius: 5px; font-size: 12px; margin-right: 10px;">🔴 لا يحق له المسح</span>`;
-                
-                li.innerHTML = `
-                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px;">
-                        👤 ${user.username} (المرور: ${user.password})
-                        ${deleteBadge}
-                        <button class="btn-outline" style="padding: 3px 8px; font-size: 11px; border-radius: 5px; border-color: #3498db; color: #3498db;" onclick="toggleUserPermission(${index})">تغيير الصلاحية 🔄</button>
+            document.getElementById("users-list").innerHTML = additionalUsers.map((u, i) => `
+                <li style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; justify-content:space-between; width:100%;"><b>${u.username} (${u.password})</b> <button class="btn-danger" onclick="deleteUser(${i})">حذف</button></div>
+                    <div style="display:flex; gap:10px; font-size:12px;">
+                        <span onclick="togglePermission(${i}, 'canDeleteCloud')" style="cursor:pointer;">${u.canDeleteCloud?'🟢 مسح':'🔴 مسح'}</span>
+                        <span onclick="togglePermission(${i}, 'canAccessSettings')" style="cursor:pointer;">${u.canAccessSettings?'🟢 إعدادات':'🔴 إعدادات'}</span>
+                        <span onclick="togglePermission(${i}, 'canAccessReports')" style="cursor:pointer;">${u.canAccessReports?'🟢 تقارير':'🔴 تقارير'}</span>
                     </div>
-                    <button class="btn-danger" style="padding:5px 10px;" onclick="deleteUser(${index})">حذف ❌</button>
-                `;
-                list.appendChild(li);
-            });
+                </li>`).join('');
         }
 
-        async function login() {
-            const user = document.getElementById("username").value.trim(), pass = document.getElementById("password").value.trim();
-            const errorMsg = document.getElementById("login-error"), btn = document.getElementById("loginBtn");
-            if(user === "" || pass === "") return;
-
-            btn.innerText = "جاري التحقق من السحابة... ⏳"; btn.disabled = true;
-            if(window.loadSystemDataFromFirebase) {
-                const cloudData = await window.loadSystemDataFromFirebase();
-                additionalUsers = cloudData.users;
-                configuredOrderTypes = cloudData.types;
-                configuredPages = cloudData.pages;
-                updateDatalist(); 
-                updatePagesDropdown();
-            }
-            btn.innerText = "دخول للنظام"; btn.disabled = false;
-
-            if (user === ADMIN_USER && pass === ADMIN_PASS) { 
-                loggedInUser = user; loggedInUserCanDelete = true; 
-                showDashboard(); errorMsg.style.display = "none"; 
-            } else {
-                const isNormalUser = additionalUsers.find(u => u.username === user && u.password === pass);
-                if (isNormalUser) { 
-                    loggedInUser = user; loggedInUserCanDelete = isNormalUser.canDeleteCloud || false; 
-                    showDashboard(); errorMsg.style.display = "none"; 
-                } else { errorMsg.style.display = "block"; }
-            }
-        }
-
-        function showDashboard() {
-            document.getElementById("login-section").style.display = "none"; 
-            document.getElementById("dashboard-section").style.display = "block";
-            document.getElementById("username").value = ""; 
-            document.getElementById("password").value = "";
-        }
-
-        function logout() {
-            showConfirmDialog("هل أنت متأكد من تسجيل الخروج؟ سيتم مسح البيانات الحالية من الجدول.", function() {
-                loggedInUser = ""; loggedInUserCanDelete = false;
-                document.getElementById("dashboard-section").style.display = "none"; document.getElementById("login-section").style.display = "flex";
-                document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = '';
-                clearForm(); document.getElementById('tableBody').innerHTML = ""; updateOrdersCounter();
-            });
-        }
-
-        function showInstallInstructions(os) { 
-            const title = document.getElementById('installTitle');
-            const instructions = document.getElementById('installInstructions');
-            
-            if (os === 'ios') {
-                title.innerHTML = '🍏 تثبيت على آيفون (iOS)'; title.style.color = '#3498db'; title.style.textShadow = '0 0 10px #3498db';
-                instructions.innerHTML = `<b>لإضافة النظام كبرنامج في الآيفون باسم Gold Land:</b><br><br>1️⃣ من متصفح Safari، اضغط على زر المشاركة (المربع الذي يخرج منه سهم للأعلى) في أسفل الشاشة.<br><br>2️⃣ اسحب القائمة للأسفل واختر <b>"إضافة إلى الصفحة الرئيسية"</b> (Add to Home Screen) ➕.<br><br>3️⃣ اضغط على "إضافة" (Add) في أعلى اليسار.`;
-            } else {
-                title.innerHTML = '📱 تثبيت على أندرويد'; title.style.color = '#2ecc71'; title.style.textShadow = '0 0 10px #2ecc71';
-                instructions.innerHTML = `<b>لإضافة النظام كبرنامج في الأندرويد باسم Gold Land:</b><br><br>1️⃣ من متصفح Chrome، اضغط على النقاط الثلاث (⋮) في أعلى يسار أو يمين الشاشة.<br><br>2️⃣ اختر من القائمة <b>"الإضافة إلى الشاشة الرئيسية"</b> (Add to Home screen) 📱.<br><br>3️⃣ اضغط على "إضافة" (Add) للتأكيد.`;
-            }
-            document.getElementById('installModal').style.display = 'flex';
-        }
-        function closeInstallModal() { document.getElementById('installModal').style.display = 'none'; }
-        function updateOrdersCounter() { document.getElementById('ordersCounterBadge').innerText = `إجمالي الطلبات: ${document.getElementById('tableBody').getElementsByTagName('tr').length}`; }
-        
-        function changeQty(btn, delta) {
-            const input = btn.parentElement.querySelector('.orderQtyInput');
-            let val = parseInt(input.value) || 1; val += delta; if(val < 1) val = 1; input.value = val;
-        }
-
+        // ======================= معالجة وإضافة الطلبات =======================
         function addOrderItemRow() {
-            const wrapper = document.getElementById('dynamicRowsWrapper'); const row = document.createElement('div'); row.className = 'order-item-row';
-            row.innerHTML = `
-                <input type="text" class="orderTypeInput" list="orderTypesDatalist" placeholder="نوع الطلب" style="flex: 2; min-width: 120px;">
-                <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;">
-                <div class="qty-controls" style="flex: 1; min-width: 120px;">
-                    <label style="color:#ccc; font-size:12px; margin:0 5px;">العدد:</label>
-                    <button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button>
-                    <input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center; font-weight: bold; padding: 8px;">
-                    <button type="button" class="qty-btn minus" onclick="changeQty(this, -1)">-</button>
-                    <button type="button" class="btn-danger" onclick="this.parentElement.parentElement.remove()" style="padding: 8px 12px; margin-right:5px; box-shadow:none;">❌</button>
-                </div>`;
-            wrapper.appendChild(row);
+            const wr = document.getElementById('dynamicRowsWrapper'), r = document.createElement('div'); r.className = 'order-item-row';
+            r.innerHTML = `<div style="display:flex; flex: 2; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1;"> <div class="qty-controls"><button class="qty-btn plus" onclick="changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" style="width: 40px; text-align: center;"><button class="qty-btn minus" onclick="changeQty(this, -1)">-</button><button class="btn-danger" onclick="this.closest('.order-item-row').remove()">❌</button></div>`;
+            wr.appendChild(r); updateOrderTypeSelects();
         }
-
-        function resetItemsContainer() {
-            document.getElementById('dynamicRowsWrapper').innerHTML = `
-                <div class="order-item-row">
-                    <input type="text" class="orderTypeInput" list="orderTypesDatalist" placeholder="نوع الطلب" style="flex: 2; min-width: 120px;">
-                    <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;">
-                    <div class="qty-controls" style="flex: 1; min-width: 120px;">
-                        <label style="color:#ccc; font-size:12px; margin:0 5px;">العدد:</label>
-                        <button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button>
-                        <input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center; font-weight: bold; padding: 8px;">
-                        <button type="button" class="qty-btn minus" onclick="changeQty(this, -1)">-</button>
-                    </div>
-                </div>`;
-        }
+        function resetItemsContainer() { document.getElementById('dynamicRowsWrapper').innerHTML = `<div class="order-item-row"><div style="display:flex; flex: 2; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1;"> <div class="qty-controls"><button class="qty-btn plus" onclick="changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" style="width: 40px; text-align: center;"><button class="qty-btn minus" onclick="changeQty(this, -1)">-</button></div></div>`; updateOrderTypeSelects(); }
+        function changeQty(btn, d) { let i = btn.parentElement.querySelector('input[type="number"]'), v = parseInt(i.value)||1; v += d; if(v<1) v=1; i.value = v; }
 
         function extractValue(lines, keyword) {
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].includes(keyword)) {
-                    let val = lines[i].split(':').pop().trim().replace(/🛑/g, '').trim();
-                    if (val !== "" && val !== keyword.replace(/:/g, '').trim()) return val;
-                    if (i + 1 < lines.length) { let nextLineVal = lines[i + 1].replace(/🛑/g, '').trim(); if(nextLineVal && !nextLineVal.includes(':')) return nextLineVal; }
+                    let val = lines[i].split(':').pop().trim().replace(/🛑/g, '').trim(); if (val !== "" && val !== keyword.replace(/:/g, '').trim()) return val;
+                    if (i + 1 < lines.length) { let nVal = lines[i+1].replace(/🛑/g, '').trim(); if(nVal && !nVal.includes(':')) return nVal; }
                 }
             } return "";
         }
 
         function parseText() {
-            const text = document.getElementById('pasteArea').value; if (!text.trim()) { alert("الرجاء لصق النص أولاً!"); return; }
-            const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
-            document.getElementById('custId').value = extractValue(lines, 'تسلسل الزب'); document.getElementById('custName').value = extractValue(lines, 'اسم الزبون');
-            document.getElementById('phone1').value = extractValue(lines, 'رقم الهاتف الاول'); document.getElementById('phone2').value = extractValue(lines, 'رقم الهاتف الثاني');
-            document.getElementById('gov').value = extractValue(lines, 'المحافظة'); document.getElementById('area').value = extractValue(lines, 'المنطقة');
-            document.getElementById('amount').value = extractValue(lines, 'المبلغ الكلي'); document.getElementById('note').value = extractValue(lines, 'ملاحظة مهمة');
-            let firstOrderInput = document.querySelector('.orderTypeInput'); if (firstOrderInput) firstOrderInput.value = extractValue(lines, 'نوع الطلب');
+            const txt = document.getElementById('pasteArea').value.trim(); if (!txt) return;
+            const lines = txt.split('\n').map(l => l.trim()).filter(l => l !== '');
+            document.getElementById('custId').value = extractValue(lines, 'تسلسل الزب'); document.getElementById('custName').value = extractValue(lines, 'اسم الزبون'); document.getElementById('phone1').value = extractValue(lines, 'رقم الهاتف الاول'); document.getElementById('phone2').value = extractValue(lines, 'رقم الهاتف الثاني'); document.getElementById('gov').value = extractValue(lines, 'المحافظة'); document.getElementById('area').value = extractValue(lines, 'المنطقة'); document.getElementById('amount').value = extractValue(lines, 'المبلغ الكلي'); formatAmount(document.getElementById('amount')); document.getElementById('note').value = extractValue(lines, 'ملاحظة مهمة');
+            
+            let s = document.querySelector('.orderTypeSelect'), ci = document.querySelector('.orderTypeCustomInput'), tb = s.parentElement.querySelector('.toggle-custom-btn');
+            let extType = extractValue(lines, 'نوع الطلب');
+            if (extType && s) {
+                if (Array.from(s.options).some(o => o.value === extType)) { if(s.style.display === 'none') toggleOrderInput(tb); s.value = extType; } 
+                else { if(s.style.display !== 'none') toggleOrderInput(tb); ci.value = extType; }
+            }
         }
 
         async function addToTable() {
-            const selectedPage = document.getElementById('constantField').value;
-            if (!selectedPage) { alert("⚠️ يجب اختيار البيج بصورة إلزامية قبل إضافة الطلب!"); return; }
-
-            let combinedOrderEntries = []; let totalQuantity = 0; const itemRows = document.querySelectorAll('.order-item-row');
-            itemRows.forEach(row => {
-                const typeVal = row.querySelector('.orderTypeInput').value.trim(); 
-                const colorVal = row.querySelector('.orderColorInput').value.trim();
-                const qtyVal = parseInt(row.querySelector('.orderQtyInput').value) || 1;
-                
-                if (typeVal !== "") {
-                    let code = typeVal; 
-                    const foundType = configuredOrderTypes.find(t => t.name === typeVal); 
-                    if (foundType) code = foundType.code;
-                    
-                    let formattedItem = colorVal ? `[${code} (${qtyVal}) ${colorVal}]` : `[${code} (${qtyVal})]`;
-                    combinedOrderEntries.push(formattedItem); 
-                    totalQuantity += qtyVal;
-                }
+            const pg = document.getElementById('constantField').value; if (!pg) { alert("يجب اختيار البيج!"); return; }
+            let arr = [], totQty = 0;
+            document.querySelectorAll('.order-item-row').forEach(r => {
+                let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim();
+                let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim();
+                let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1;
+                if (tv !== "") { let ft = configuredOrderTypes.find(t => t.name === tv); let cd = ft ? ft.code : tv; arr.push(`[${cd} (${qv}) ${cv}]`.trim()); totQty += qv; }
             });
+            const data = { id: document.getElementById('custId').value, name: document.getElementById('custName').value, phone1: document.getElementById('phone1').value, phone2: document.getElementById('phone2').value, gov: document.getElementById('gov').value, area: document.getElementById('area').value, type: arr.join(' + '), qty: totQty, amount: document.getElementById('amount').value, constant: pg, note: document.getElementById('note').value, addedBy: loggedInUser || 'مجهول', status: 'جديد' };
+            if (!data.id && !data.name) return;
 
-            const data = {
-                id: document.getElementById('custId').value, name: document.getElementById('custName').value,
-                phone1: document.getElementById('phone1').value, phone2: document.getElementById('phone2').value,
-                gov: document.getElementById('gov').value, area: document.getElementById('area').value,
-                type: combinedOrderEntries.join(' + '), qty: totalQuantity, amount: document.getElementById('amount').value,
-                constant: selectedPage, note: document.getElementById('note').value,
-                addedBy: loggedInUser || 'مجهول', status: 'جديد'
-            };
-
-            if (!data.id && !data.name && !data.phone1) { alert("لا توجد بيانات لإضافتها!"); return; }
-
-            const btn = document.getElementById("mainSaveBtn"), originalText = btn.innerText;
-            if (window.saveDataToFirebase) {
-                btn.innerText = "جاري الحفظ في السحابة ⏳..."; btn.disabled = true;
-                const isSaved = await window.saveDataToFirebase(data);
-                btn.innerText = originalText; btn.disabled = false;
-                if (!isSaved) { alert("⚠ فشل الحفظ في السحابة. تأكد من اتصال الإنترنت أو إعدادات قاعدة البيانات."); return; }
-            }
-
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${data.id}</td>
-                <td style="color:var(--neon-gold); font-weight:bold;">${data.constant}</td>
-                <td>${data.name}</td>
-                <td dir="ltr">${data.phone1}</td><td dir="ltr">${data.phone2}</td>
-                <td>${data.gov}</td><td>${data.area}</td>
-                <td style="color:var(--neon-gold); font-weight:bold;">${data.type}</td>
-                <td style="color:var(--neon-gold); font-weight:bold; text-align:center;">${data.qty}</td>
-                <td>${data.amount}</td><td>${data.note}</td>
-                <td style="text-align: center;"><button class="btn-danger" style="padding: 5px 10px; font-size: 13px;" onclick="deleteTableRow(this)">حذف ❌</button></td>
-            `; document.getElementById('tableBody').appendChild(row);
-            updateOrdersCounter(); clearForm(); document.getElementById('pasteArea').value = '';
+            if (window.saveDataToFirebase) { document.getElementById("mainSaveBtn").disabled = true; await window.saveDataToFirebase(data); document.getElementById("mainSaveBtn").disabled = false; }
+            const row = document.createElement('tr'); row.innerHTML = `<td>${data.id}</td> <td style="color:var(--neon-gold);">${data.constant}</td> <td>${data.name}</td> <td dir="ltr">${data.phone1}</td> <td dir="ltr">${data.phone2}</td> <td>${data.gov}</td> <td>${data.area}</td> <td style="color:var(--neon-gold);">${data.type}</td> <td style="color:var(--neon-gold);">${data.qty}</td> <td>${data.amount}</td> <td>${data.note}</td> <td><button class="btn-danger" onclick="this.closest('tr').remove(); updateOrdersCounter();">حذف ❌</button></td>`;
+            document.getElementById('tableBody').appendChild(row); updateOrdersCounter(); clearForm(); document.getElementById('pasteArea').value = '';
         }
 
-        function deleteTableRow(button) { showConfirmDialog("هل أنت متأكد من حذف هذا الطلب من الجدول؟", function() { button.closest("tr").remove(); updateOrdersCounter(); }); }
         function clearForm() { ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => document.getElementById(id).value = ''); resetItemsContainer(); }
-        function clearAll() { showConfirmDialog("هل أنت متأكد من مسح كافة بيانات الحقول؟", function() { document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = ''; clearForm(); }); }
+        function clearAll() { document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = ''; clearForm(); }
+        function updateOrdersCounter() { document.getElementById('ordersCounterBadge').innerText = `الطلبات: ${document.getElementById('tableBody').rows.length}`; }
 
         function exportToExcel() {
-            const table = document.getElementById("dataTable"); if(table.rows.length <= 1) { alert("الجدول فارغ!"); return; }
-            const uiRows = document.getElementById("tableBody").rows, today = new Date();
-            const dateStr = today.getFullYear() + "/" + (today.getMonth() + 1).toString().padStart(2, '0') + "/" + today.getDate().toString().padStart(2, '0');
-            let exportData = [];
-            for (let i = 0; i < uiRows.length; i++) {
-                const uiRow = uiRows[i], totalAmount = parseFloat(uiRow.cells[9].innerText.trim().replace(/[^0-9.-]+/g,"")) || 0;
-                const gov = uiRow.cells[5].innerText.trim(), delivery = gov.includes("بغداد") ? 5000 : 8000;
-                const notes = uiRow.cells[10].innerText.trim(), orderCode = uiRow.cells[7].innerText.trim();
-                exportData.push({
-                    "ت": i + 1, "البيج": uiRow.cells[1].innerText.trim(), "رقم الوصل": i + 1, "تاريخ": dateStr,
-                    "اسم الزبون": uiRow.cells[2].innerText.trim(), "رقم الهاتف": uiRow.cells[4].innerText.trim() ? `${uiRow.cells[3].innerText.trim()} - ${uiRow.cells[4].innerText.trim()}` : uiRow.cells[3].innerText.trim(),
-                    "العنوان": gov, "العنوان منطقة": uiRow.cells[6].innerText.trim(),
-                    "العدد": parseInt(uiRow.cells[8].innerText.trim()) || 1, "المبلغ الكلي": totalAmount, "مبلغ التوصيل": delivery,
-                    "المبلغ الصافي": totalAmount - delivery, "ملاحظات": notes ? `الطلب: ${orderCode} | ملاحظات: ${notes}` : `الطلب: ${orderCode}`
-                });
-            }
-            const workbook = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(exportData), "الجدول"); XLSX.writeFile(workbook, "طلبات_Gold_Land.xlsx");
+            const trs = document.getElementById("tableBody").rows; if(trs.length === 0) return;
+            let d = new Date(), ds = d.getFullYear() + "/" + (d.getMonth() + 1).toString().padStart(2, '0') + "/" + d.getDate().toString().padStart(2, '0');
+            let exp = Array.from(trs).map((r, i) => {
+                const amt = parseFloat(r.cells[9].innerText.replace(/[^0-9.-]+/g,"")) || 0;
+                const del = r.cells[5].innerText.includes("بغداد") ? feeBaghdad : feeOther;
+                return { "ت": i+1, "البيج": r.cells[1].innerText, "رقم الوصل": i+1, "تاريخ": ds, "اسم الزبون": r.cells[2].innerText, "رقم الهاتف": r.cells[3].innerText, "العنوان": r.cells[5].innerText, "العنوان منطقة": r.cells[6].innerText, "العدد": parseInt(r.cells[8].innerText)||1, "المبلغ الكلي": amt, "مبلغ التوصيل": del, "المبلغ الصافي": amt-del, "ملاحظات": r.cells[7].innerText };
+            });
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), "الجدول"); XLSX.writeFile(wb, "طلبات_المندوب.xlsx");
         }
     </script>
 </body>
