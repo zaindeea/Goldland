@@ -17,6 +17,10 @@
     <!-- مكتبات التصدير -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- مكتبات Firebase القياسية (تعمل في كل مكان حتى بدون خادم محلي) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
     <div class="css-logo animated-logo-bg logo-1"><div class="logo-inner">GL</div></div>
@@ -54,12 +58,12 @@
                 <div class="css-logo dash-logo"><div class="logo-inner">GL</div></div>
                 <h2 style="margin: 0; text-shadow: none;">نظام التوزيع الذكي</h2>
             </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn-outline" onclick="toggleTheme()" style="padding: 8px 15px; font-size: 14px;">🌓 المظهر</button>
-                <button class="btn-parse" onclick="openReports()" style="padding: 8px 15px; font-size: 14px;">التقارير 📊</button>
-                <button class="btn-parse" onclick="openCloudOrders()" style="padding: 8px 15px; font-size: 14px;">☁️ السحابة</button>
-                <button class="btn-settings" onclick="openSettings()" style="padding: 8px 15px; font-size: 14px;">⚙️ الإعدادات</button>
-                <button class="btn-danger" onclick="logout()" style="padding: 8px 15px; font-size: 14px;">خروج</button>
+            <div class="header-actions">
+                <button class="btn-outline" onclick="toggleTheme()">🌓 المظهر</button>
+                <button class="btn-parse" onclick="openReports()">التقارير 📊</button>
+                <button class="btn-parse" onclick="openCloudOrders()">☁️ السحابة</button>
+                <button class="btn-settings" onclick="openSettings()">⚙️ الإعدادات</button>
+                <button class="btn-danger" onclick="logout()">خروج</button>
             </div>
         </div>
 
@@ -90,9 +94,9 @@
                 <div class="form-group"><label>المنطقة</label><input type="text" id="area"></div>
                 
                 <div class="items-container" id="itemsContainer">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                         <label style="color: var(--neon-gold); margin:0;">📦 أنواع الطلبات والعدد</label>
-                        <button type="button" class="btn-outline" onclick="addOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ إضافة صنف آخر</button>
+                        <button type="button" class="btn-outline" onclick="addOrderItemRow()" style="padding: 6px 12px; font-size: 13px;">➕ إضافة صنف آخر</button>
                     </div>
                     <div id="dynamicRowsWrapper">
                         <div class="order-item-row">
@@ -103,7 +107,7 @@
                             </div>
                             <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;">
                             <div class="qty-controls" style="flex: 1; min-width: 120px;">
-                                <label style="color:#ccc; font-size:12px;">العدد:</label>
+                                <label style="color:#ccc; font-size:12px; margin:0;">العدد:</label>
                                 <button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button>
                                 <input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center;">
                                 <button type="button" class="qty-btn minus" onclick="changeQty(this, -1)">-</button>
@@ -116,13 +120,13 @@
                 <div class="form-group"><label>ملاحظة مهمة</label><input type="text" id="note"></div>
             </div>
             <div class="button-group">
-                <button id="mainSaveBtn" onclick="addToTable()" style="padding: 15px 40px; font-size: 18px;">إضافة إلى الجدول والحفظ سحابياً ➕</button>
+                <button id="mainSaveBtn" onclick="addToTable()" style="padding: 15px 40px; font-size: 18px; width: 100%; max-width: 400px;">إضافة إلى الجدول والحفظ سحابياً ➕</button>
             </div>
         </div>
 
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap:10px; margin-bottom: 15px; border-bottom: 1px solid rgba(255,215,0,0.3); padding-bottom: 10px;">
-                <div style="display: flex; align-items: center; gap: 15px;">
+                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
                     <h3 style="margin: 0;">سجل الطلبات</h3>
                     <span id="ordersCounterBadge" style="background: var(--neon-gold); color: #000; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 14px;">إجمالي الطلبات: 0</span>
                 </div>
@@ -164,65 +168,73 @@
                     <button class="tab-btn" onclick="switchTab('deliveryTab', this)">🚚 التوصيل</button>
                 </div>
                 <div class="tab-content">
-                    <div id="pagesTab" class="tab-pane active" style="text-align: right;">
+                    <div id="pagesTab" class="tab-pane active">
                         <input type="text" id="newPageName" placeholder="اسم البيج" style="width:100%; margin-bottom:10px;">
                         <button onclick="addPageType()" style="width: 100%; margin-bottom: 15px;">إضافة للسحابة ☁️</button>
-                        <ul id="pagesListDisplay" style="list-style:none; padding:0;"></ul>
+                        <ul id="pagesListDisplay" style="list-style:none; padding:0; margin:0;"></ul>
                     </div>
-                    <div id="typesTab" class="tab-pane" style="text-align: right;">
+                    <div id="typesTab" class="tab-pane">
                         <input type="text" id="newOrderName" placeholder="اسم الطلب" style="width:100%; margin-bottom:10px;">
                         <input type="text" id="newOrderCode" placeholder="الرمز" style="width:100%; margin-bottom:10px;">
                         <button onclick="addOrderType()" style="width: 100%; margin-bottom: 15px;">إضافة للسحابة ☁️</button>
-                        <ul id="orderTypesListDisplay" style="list-style:none; padding:0;"></ul>
+                        <ul id="orderTypesListDisplay" style="list-style:none; padding:0; margin:0;"></ul>
                     </div>
-                    <div id="usersTab" class="tab-pane" style="text-align: right;">
-                        <input type="text" id="new-user-name" placeholder="المستخدم" style="width:100%; margin-bottom:10px;">
+                    <div id="usersTab" class="tab-pane">
+                        <input type="text" id="new-user-name" placeholder="اسم المستخدم" style="width:100%; margin-bottom:10px;">
                         <input type="password" id="new-user-pass" placeholder="كلمة المرور" style="width:100%; margin-bottom:10px;">
                         
-                        <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; justify-content: flex-start; padding: 10px; background: rgba(0,0,0,0.1); border-radius: 8px;">
-                            <label style="margin:0; cursor:pointer;"><input type="checkbox" id="new-user-can-delete"> حذف السحابة</label>
-                            <label style="margin:0; cursor:pointer;"><input type="checkbox" id="new-user-can-edit"> تعديل السحابة</label>
-                            <label style="margin:0; cursor:pointer;"><input type="checkbox" id="new-user-can-settings"> الإعدادات</label>
-                            <label style="margin:0; cursor:pointer;"><input type="checkbox" id="new-user-can-reports"> التقارير</label>
+                        <div class="permissions-check-group">
+                            <label><input type="checkbox" id="new-user-can-delete"> حذف السحابة</label>
+                            <label><input type="checkbox" id="new-user-can-edit"> تعديل السحابة</label>
+                            <label><input type="checkbox" id="new-user-can-settings"> الإعدادات</label>
+                            <label><input type="checkbox" id="new-user-can-reports"> التقارير</label>
                         </div>
                         
                         <button onclick="addUser()" style="width: 100%; margin-bottom: 15px;">إضافة مستخدم ☁️</button>
-                        <ul id="users-list" style="list-style:none; padding:0;"></ul>
+                        <ul id="users-list" style="list-style:none; padding:0; margin:0;"></ul>
                     </div>
-                    <div id="deliveryTab" class="tab-pane" style="text-align: right;">
-                        <label>توصيل بغداد</label><input type="number" id="feeBaghdadInput" style="margin-bottom:10px;">
-                        <label>توصيل المحافظات</label><input type="number" id="feeOtherInput" style="margin-bottom:10px;">
-                        <button onclick="saveDeliveryFees()" style="width: 100%;">حفظ 💾</button>
+                    <div id="deliveryTab" class="tab-pane">
+                        <div class="form-group">
+                            <label>أجور توصيل بغداد</label>
+                            <input type="text" id="feeBaghdadInput" onblur="formatAmount(this)" placeholder="مثال: 5000">
+                        </div>
+                        <div class="form-group">
+                            <label>أجور توصيل المحافظات</label>
+                            <input type="text" id="feeOtherInput" onblur="formatAmount(this)" placeholder="مثال: 8000">
+                        </div>
+                        <button onclick="saveDeliveryFees()" style="width: 100%;">حفظ في السحابة ☁️💾</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- نافذة التقارير -->
+    <!-- نافذة التقارير الشاملة -->
     <div class="modal-overlay" id="reportsModal">
-        <div class="modal-content" style="max-width: 800px; height: 85vh; display: flex; flex-direction: column;">
+        <div class="modal-content modal-large">
             <span class="close-modal" onclick="closeReports()">&times;</span>
-            <h3 style="margin-bottom: 20px;">📊 تقارير النظام الشاملة</h3>
-            <div class="settings-tabs" style="justify-content: center;">
+            <h3 style="margin-bottom: 15px;">📊 تقارير النظام الشاملة</h3>
+            
+            <div class="settings-tabs">
                 <button class="tab-btn active" onclick="switchReportTab('repPageTab', this)">🏷️ تقرير البيجات</button>
                 <button class="tab-btn" onclick="switchReportTab('repTypeTab', this)">📦 تقرير الطلبات</button>
                 <button class="tab-btn" onclick="switchReportTab('repFinTab', this)">💰 التقرير المالي</button>
             </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; justify-content: center;">
+            
+            <div class="filter-bar">
                 <div class="date-wrapper"><label>من:</label><input type="date" id="repDateFrom" dir="ltr"></div>
                 <div class="date-wrapper"><label>إلى:</label><input type="date" id="repDateTo" dir="ltr"></div>
-                <button class="btn-parse" onclick="generateReports()" style="width: auto;">توليد 🔄</button>
+                <button class="btn-parse filter-btn" onclick="generateReports()">توليد 🔄</button>
             </div>
-            <div style="flex: 1; overflow-y: auto;">
-                
-                <div id="repPageTab" class="tab-pane active" style="text-align: right;">
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
-                        <label style="color: var(--neon-gold); font-weight: bold;">اختر البيج:</label>
-                        <select id="repPageFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;">
+
+            <div class="modal-body-scroll">
+                <div id="repPageTab" class="tab-pane active">
+                    <div class="sub-filter-row">
+                        <label>اختر البيج:</label>
+                        <select id="repPageFilter" onchange="generateReports()">
                             <option value="all">-- كل البيجات --</option>
                         </select>
-                        <button class="btn-export" onclick="exportPageReportPDF()" style="padding: 10px 15px; background: linear-gradient(90deg, #c0392b, #e74c3c);">تصدير PDF 📄</button>
+                        <button class="btn-export pdf-btn" onclick="exportPageReportPDF()">تصدير PDF 📄</button>
                     </div>
                     <div style="overflow-x: auto;">
                         <table id="pageReportTable">
@@ -245,24 +257,23 @@
                     </div>
                 </div>
                 
-                <div id="repTypeTab" class="tab-pane" style="text-align: right;">
-                    <div style="display: flex; gap: 10px; margin-bottom: 25px; align-items: center; flex-wrap: wrap;">
-                        <label style="color: var(--neon-gold); font-weight: bold;">تصفية الطلبات:</label>
-                        <select id="repTypeFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;">
+                <div id="repTypeTab" class="tab-pane">
+                    <div class="sub-filter-row">
+                        <label>تصفية الطلبات:</label>
+                        <select id="repTypeFilter" onchange="generateReports()">
                             <option value="all">-- كل الطلبات --</option>
                         </select>
                     </div>
-                    <div id="repTypeCardsContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">
-                    </div>
+                    <div id="repTypeCardsContainer" class="cards-grid-container"></div>
                 </div>
                 
-                <div id="repFinTab" class="tab-pane" style="text-align: right;">
-                    <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;" id="repFinCards">
+                <div id="repFinTab" class="tab-pane">
+                    <div class="cards-grid-container" id="repFinCards">
                         <div class="report-card"><h4>الطلبات</h4><div class="val" id="finCount">0</div></div>
                         <div class="report-card"><h4>القطع المباعة</h4><div class="val" id="finQty">0</div></div>
                         <div class="report-card"><h4>المبلغ الكلي</h4><div class="val" id="finGross">0</div></div>
                         <div class="report-card" style="border-color: #e74c3c;"><h4>أجور التوصيل</h4><div class="val" id="finDelivery" style="color:#e74c3c;">0</div></div>
-                        <div class="report-card" style="border-color: #2ecc71;"><h4>الصافي</h4><div class="val" id="finNet" style="color:#2ecc71;">0</div></div>
+                        <div class="report-card full-width-card" style="border-color: #2ecc71;"><h4>الصافي</h4><div class="val" id="finNet" style="color:#2ecc71;">0</div></div>
                     </div>
                 </div>
             </div>
@@ -271,21 +282,25 @@
 
     <!-- نافذة الأرشيف السحابي -->
     <div class="modal-overlay" id="cloudOrdersModal">
-        <div class="modal-content" style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; padding: 20px;">
+        <div class="modal-content modal-xl">
             <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
-            <h3 style="margin-bottom: 20px;">☁️ الأرشيف السحابي</h3>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px;">
-                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 150px;">
-                <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل البيجات --</option></select>
+            <h3 style="margin-bottom: 15px;">☁️ الأرشيف السحابي</h3>
+            
+            <div class="filter-bar">
+                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 180px;">
+                <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 140px;"><option value="">-- كل البيجات --</option></select>
                 <div class="date-wrapper"><label>من:</label><input type="date" id="cloudDateFrom" onchange="filterCloudOrders()" dir="ltr"></div>
                 <div class="date-wrapper"><label>إلى:</label><input type="date" id="cloudDateTo" onchange="filterCloudOrders()" dir="ltr"></div>
-                <button class="btn-parse" onclick="openCloudOrders()" style="width: auto;">تحديث 🔄</button>
+                <button class="btn-export filter-btn" onclick="exportCloudToExcel()">تصدير الكل 📊</button>
             </div>
-            <div style="overflow-y: auto; flex: 1;">
-                <table>
-                    <thead><tr><th>التسلسل</th> <th>البيج</th> <th>اسم الزبون</th> <th>الهواتف</th> <th>المحافظة</th> <th style="color:var(--neon-gold);">الطلب</th> <th>المبلغ</th> <th>التاريخ</th> <th>إجراء</th></tr></thead>
-                    <tbody id="cloudOrdersTbody"></tbody>
-                </table>
+            
+            <div class="modal-body-scroll">
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead><tr><th>التسلسل</th> <th>البيج</th> <th>اسم الزبون</th> <th>الهواتف</th> <th>المحافظة</th> <th style="color:var(--neon-gold);">الطلب</th> <th>المبلغ</th> <th>المُدخِل</th> <th>إجراء</th></tr></thead>
+                        <tbody id="cloudOrdersTbody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -295,7 +310,7 @@
         <div class="modal-content" style="max-width: 500px; text-align: right;">
             <span class="close-modal" onclick="closeEditModal()">&times;</span>
             <h3 style="margin-bottom: 20px; text-align: center;">✏️ تعديل بيانات الطلب</h3>
-            <div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div>
+            <div class="form-group"><label>اسم البيج</label><select id="editConstant"></select></div>
             <div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div>
             <div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr" style="text-align:right;"></div>
             <div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr" style="text-align:right;"></div>
@@ -303,8 +318,9 @@
             <div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div>
             <div class="form-group"><label>الطلب (الأنواع والألوان)</label><input type="text" id="editType"></div>
             <div class="form-group"><label>العدد الكلي</label><input type="number" id="editQty" min="1"></div>
-            <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount"></div>
-            <button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التعديلات 💾</button>
+            <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount" onblur="formatAmount(this)"></div>
+            <div class="form-group"><label>ملاحظة</label><input type="text" id="editNote"></div>
+            <button class="btn-parse" id="saveEditBtn" onclick="saveEditedOrder()" style="width: 100%; margin-top: 10px;">حفظ التعديلات في السحابة 💾</button>
         </div>
     </div>
 
@@ -321,7 +337,7 @@
         </div>
     </div>
 
-    <!-- ربط ملف الجافاسكريبت (من نوع module ليعمل الفايربيس) -->
-    <script type="module" src="script.js"></script>
+    <!-- ربط ملف الجافاسكريبت العادي بدون module لضمان عمله في كل مكان -->
+    <script src="script.js"></script>
 </body>
 </html>
