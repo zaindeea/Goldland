@@ -25,7 +25,6 @@ body {
     background-size: 400% 400%; animation: gradientBG 15s ease infinite;
 }
 
-/* الوضع النهاري */
 body.light-mode {
     --bg-color: #f0f2f5; --text-color: #111;
     background: linear-gradient(45deg, #f8f9fa, #e9ecef, #f1f3f5, #e9ecef, #f8f9fa);
@@ -60,7 +59,6 @@ body.light-mode .report-card h4 { color: #444 !important; border-bottom-color: #
 
 @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-/* الشعار المتحرك */
 .css-logo {
     display: flex; justify-content: center; align-items: center; border-radius: 50%; background: #111; position: relative;
     overflow: hidden; border: 2px solid var(--neon-dark-gold); box-shadow: 0 0 20px rgba(255, 215, 0, 0.3), inset 0 0 15px rgba(218, 165, 32, 0.2);
@@ -86,7 +84,6 @@ body.light-mode .report-card h4 { color: #444 !important; border-bottom-color: #
 .logo-2 { bottom: 10%; right: 5%; width: 180px; height: 180px; }
 .logo-2 .logo-inner { font-size: 70px; }
 
-/* تسجيل الدخول */
 .login-wrapper { display: flex; align-items: center; justify-content: center; min-height: 100vh; width: 100%; padding: 15px; position: relative; }
 .login-box {
     position: relative; background: rgba(15, 15, 20, 0.75); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
@@ -130,7 +127,6 @@ body:not(.light-mode) .login-box::after {
     box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
 }
 
-/* الحاويات والبطاقات */
 .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 15px; transition: all 0.5s ease; }
 .card { background: var(--glass-bg); backdrop-filter: blur(15px); border: 1px solid var(--glass-border); padding: 20px; border-radius: 16px; margin-bottom: 20px; }
 h1, h2, h3, h4 { text-align: center; color: var(--neon-gold); text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); margin-top: 0; }
@@ -144,7 +140,6 @@ select option { background: #151515; color: #fff; }
 textarea { height: 120px; resize: vertical; border: 2px dashed var(--neon-dark-gold); }
 input:focus, select:focus, textarea:focus { border-color: var(--neon-gold); box-shadow: 0 0 12px rgba(255, 215, 0, 0.4); background: rgba(0, 0, 0, 0.7); }
 
-/* تنسيق حقول التاريخ المتجاوبة */
 .date-wrapper { 
     display: flex; align-items: center; gap: 8px; flex: 1; min-width: 140px; 
     background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 10px; 
@@ -183,14 +178,12 @@ tr:hover { background-color: rgba(255, 215, 0, 0.08); }
 
 .error-msg { color: #ff4757; text-shadow: 0 0 10px #ff4757; text-align: center; margin-top: 15px; display: none; font-weight: bold; }
 
-/* هيدر لوحة التحكم */
 .header-dash { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--neon-dark-gold); padding-bottom: 15px; flex-wrap: wrap; gap: 12px; }
 .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .header-actions button { padding: 8px 14px; font-size: 13px; }
 
 #dashboard-section { display: none; }
 
-/* النوافذ المنبثقة (Modals) وتوافقها مع الجوال */
 .modal-overlay { 
     position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
     background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 10000; 
@@ -211,7 +204,6 @@ tr:hover { background-color: rgba(255, 215, 0, 0.08); }
     color: var(--neon-gold); cursor: pointer; z-index: 10; line-height: 1;
 }
 
-/* أزرار التبويبات داخل النوافذ */
 .settings-tabs { 
     display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); 
     gap: 8px; margin-bottom: 15px; border-bottom: 1px solid rgba(218, 165, 32, 0.4); padding-bottom: 12px; 
@@ -225,7 +217,6 @@ tr:hover { background-color: rgba(255, 215, 0, 0.08); }
 .tab-pane.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-/* أشرطة الفلترة والتقارير */
 .filter-bar {
     display: flex; gap: 10px; margin-bottom: 15px; 
     background: rgba(0,0,0,0.4); padding: 12px; border-radius: 12px; 
@@ -242,7 +233,6 @@ tr:hover { background-color: rgba(255, 215, 0, 0.08); }
 .sub-filter-row select { flex: 1; min-width: 140px; }
 .pdf-btn { background: linear-gradient(90deg, #c0392b, #e74c3c); padding: 10px 15px; white-space: nowrap; }
 
-/* بطاقات التقارير المربعة */
 .cards-grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -258,7 +248,6 @@ tr:hover { background-color: rgba(255, 215, 0, 0.08); }
 .report-card h4 { margin: 0 0 10px 0; color: #fff; font-size: 14px; border-bottom: 1px dashed rgba(255,215,0,0.4); padding-bottom: 8px; }
 .report-card .val { color: var(--neon-gold); font-size: 26px; font-weight: 900; word-break: break-all; }
 
-/* أصناف الطلب */
 .items-container { grid-column: 1 / -1; background: rgba(0,0,0,0.25); padding: 15px; border-radius: 12px; border: 1px dashed var(--neon-gold); }
 .order-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
 .qty-controls { display: flex; align-items: center; gap: 6px; justify-content: center; }
@@ -266,7 +255,6 @@ tr:hover { background-color: rgba(255, 215, 0, 0.08); }
 .qty-btn.plus { background: #27ae60; }
 .qty-btn.minus { background: #e74c3c; }
 
-/* قوائم الإعدادات */
 .permissions-check-group {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 10px; margin-bottom: 15px; padding: 12px; 
@@ -293,7 +281,6 @@ body.light-mode .settings-list-item { background: #f8f9fa; border-color: #ddd; c
 .permission-badge:active { transform: scale(0.95); }
 body.light-mode .permission-badge { background: #e9ecef; border-color: #ccc; color: #111; }
 
-/* التأثيرات البصرية والاشعارات */
 .gold-dust {
     position: fixed; background: var(--neon-gold); border-radius: 50%; 
     box-shadow: 0 0 12px var(--neon-gold), 0 0 20px var(--neon-dark-gold);
@@ -319,7 +306,6 @@ body.light-mode .permission-badge { background: #e9ecef; border-color: #ccc; col
 }
 .success-toast.show { top: 25px; }
 
-/* تعديلات خاصة لشاشات الجوال */
 @media (max-width: 600px) {
     .container { padding: 10px; }
     .card { padding: 15px; border-radius: 14px; }
