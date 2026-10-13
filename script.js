@@ -217,16 +217,33 @@ window.login = async function() {
     }
 }
 
+// التوجيه إلى القائمة الرئيسية بعد تسجيل الدخول
 window.showDashboard = function() { 
     document.getElementById("login-section").style.display = "none"; 
-    const dash = document.getElementById("dashboard-section");
-    dash.style.display = "block"; 
+    document.getElementById("dashboard-section").style.display = "none"; 
+    document.getElementById("main-menu-section").style.display = "flex"; 
+}
+
+// وظائف القائمة الرئيسية
+window.openDistribution = function() {
+    document.getElementById("main-menu-section").style.display = "none"; 
+    document.getElementById("dashboard-section").style.display = "block"; 
+}
+
+window.backToMainMenu = function() {
+    document.getElementById("dashboard-section").style.display = "none"; 
+    document.getElementById("main-menu-section").style.display = "flex"; 
+}
+
+window.comingSoon = function(feature) {
+    alert("ميزة " + feature + " سيتم إضافتها لاحقاً ⏳");
 }
 
 window.logout = function() { 
     window.showConfirmDialog("تسجيل الخروج سيقوم بمسح الجدول الحالي، هل أنت متأكد؟", function() { 
         loggedInUser = ""; 
         document.getElementById("dashboard-section").style.display = "none"; 
+        document.getElementById("main-menu-section").style.display = "none"; 
         document.getElementById("login-section").style.display = "flex"; 
         window.clearForm(); 
         document.getElementById('tableBody').innerHTML = ""; 
