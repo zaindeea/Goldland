@@ -19,8 +19,6 @@
 
     <!-- تسجيل الدخول -->
     <div class="login-wrapper" id="login-section">
-        
-        <!-- زر المظهر الدائري -->
         <button class="theme-toggle-btn login-theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">🌙</button>
 
         <div class="login-box">
@@ -46,22 +44,54 @@
         </div>
     </div>
 
-    <!-- لوحة التحكم الرئيسية -->
-    <div class="container" id="dashboard-section">
-        <div class="header-dash">
+    <!-- القائمة الرئيسية الجديدة -->
+    <div class="menu-wrapper" id="main-menu-section" style="display: none;">
+        <button class="theme-toggle-btn login-theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">🌙</button>
+
+        <div class="menu-glass-card">
+            <div class="css-logo main-logo menu-logo"><div class="logo-inner">GL</div></div>
+            
+            <div class="menu-items">
+                <button class="menu-btn btn-blue" onclick="openDistribution()">
+                    <span class="icon">📄</span> <span>إضافة الطلبات</span>
+                </button>
+                
+                <button class="menu-btn" onclick="comingSoon('الدردشة')">
+                    <span class="icon" style="position:relative;">💬<span class="badge">1</span></span> <span>الدردشة</span>
+                </button>
+                
+                <button class="menu-btn" onclick="openCloudOrders()">
+                    <span class="icon">🗃️</span> <span>الأرشيف</span>
+                </button>
+                
+                <button class="menu-btn" onclick="openReports()">
+                    <span class="icon">📊</span> <span>التقارير</span>
+                </button>
+                
+                <button class="menu-btn" onclick="openSettings()">
+                    <span class="icon">⚙️</span> <span>الإعدادات</span>
+                </button>
+                
+                <button class="menu-btn" onclick="comingSoon('حول التطبيق')">
+                    <span class="icon">ℹ️</span> <span>حول التطبيق</span>
+                </button>
+            </div>
+            
+            <button class="menu-btn-logout" onclick="logout()">
+                <span class="icon">🚪</span> <span>خروج</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- لوحة التحكم الرئيسية (إضافة الطلبات) -->
+    <div class="container" id="dashboard-section" style="display: none;">
+       <div class="header-dash">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div class="css-logo dash-logo"><div class="logo-inner">GL</div></div>
                 <h2 style="margin: 0; font-size: 22px; color: var(--text-color);">التوزيع الذكي</h2>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                
-                <!-- زر المظهر في لوحة التحكم -->
-                <button class="theme-toggle-btn" onclick="toggleTheme()" title="تغيير المظهر">🌙</button>
-                
-                <button class="btn-parse" onclick="openReports()" style="padding: 10px 15px;">التقارير 📊</button>
-                <button class="btn-parse" onclick="openCloudOrders()" style="padding: 10px 15px;">السحابة ☁️</button>
-                <button class="btn-settings" onclick="openSettings()" style="padding: 10px 15px;">الإعدادات ⚙️</button>
-                <button class="btn-danger" onclick="logout()" style="padding: 10px 15px;">خروج</button>
+                <button class="btn-outline" onclick="backToMainMenu()" style="padding: 10px 15px;">🔙 القائمة</button>
             </div>
         </div>
 
