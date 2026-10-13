@@ -18,7 +18,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <!-- مكتبات Firebase القياسية (تعمل في كل مكان حتى بدون خادم محلي) -->
+    <!-- مكتبات Firebase القياسية -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
@@ -36,17 +36,17 @@
                 <input type="text" id="username" placeholder="اسم المستخدم">
             </div>
             <div class="login-input-group">
-                <input type="password" id="password" placeholder="كلمة المرور" onkeypress="handleEnter(event)">
+                <input type="password" id="password" placeholder="كلمة المرور">
             </div>
             
             <div style="display: flex; gap: 15px; margin-top: 25px;">
-                <button id="loginBtn" onclick="login()" style="flex: 2; padding: 15px; border-radius: 12px;">تسجيل الدخول</button>
+                <button type="button" id="loginBtn" onclick="window.login()" style="flex: 2; padding: 15px; border-radius: 12px;">تسجيل الدخول</button>
             </div>
             <div class="error-msg" id="login-error">بيانات الدخول غير صحيحة!</div>
             
             <div style="margin-top: 35px; border-top: 1px solid rgba(255,215,0,0.1); padding-top: 20px; display: flex; gap: 10px;">
-                <button onclick="showInstallInstructions('android')" style="background: linear-gradient(90deg, #2ecc71, #27ae60); color: white; flex: 1; padding: 10px; font-size: 14px;">📱 تثبيت أندرويد</button>
-                <button onclick="showInstallInstructions('ios')" style="background: linear-gradient(90deg, #34495e, #2c3e50); color: white; flex: 1; padding: 10px; font-size: 14px;">🍏 تثبيت آيفون</button>
+                <button type="button" id="btnInstallAndroid" onclick="window.showInstallInstructions('android')" style="background: linear-gradient(90deg, #2ecc71, #27ae60); color: white; flex: 1; padding: 10px; font-size: 14px;">📱 تثبيت أندرويد</button>
+                <button type="button" id="btnInstallIos" onclick="window.showInstallInstructions('ios')" style="background: linear-gradient(90deg, #34495e, #2c3e50); color: white; flex: 1; padding: 10px; font-size: 14px;">🍏 تثبيت آيفون</button>
             </div>
         </div>
     </div>
@@ -59,11 +59,11 @@
                 <h2 style="margin: 0; text-shadow: none;">نظام التوزيع الذكي</h2>
             </div>
             <div class="header-actions">
-                <button class="btn-outline" onclick="toggleTheme()">🌓 المظهر</button>
-                <button class="btn-parse" onclick="openReports()">التقارير 📊</button>
-                <button class="btn-parse" onclick="openCloudOrders()">☁️ السحابة</button>
-                <button class="btn-settings" onclick="openSettings()">⚙️ الإعدادات</button>
-                <button class="btn-danger" onclick="logout()">خروج</button>
+                <button type="button" class="btn-outline" onclick="window.toggleTheme()">🌓 المظهر</button>
+                <button type="button" class="btn-parse" onclick="window.openReports()">التقارير 📊</button>
+                <button type="button" class="btn-parse" onclick="window.openCloudOrders()">☁️ السحابة</button>
+                <button type="button" class="btn-settings" onclick="window.openSettings()">⚙️ الإعدادات</button>
+                <button type="button" class="btn-danger" onclick="window.logout()">خروج</button>
             </div>
         </div>
 
@@ -71,8 +71,8 @@
             <label>قم بلصق النص هنا لاستخراج البيانات:</label>
             <textarea id="pasteArea" placeholder="الصق رسالة الطلب هنا..."></textarea>
             <div class="button-group">
-                <button class="btn-parse" onclick="parseText()">توزيع البيانات 🔄</button>
-                <button class="btn-clear" onclick="clearAll()">مسح الكل 🗑️</button>
+                <button type="button" class="btn-parse" onclick="window.parseText()">توزيع البيانات 🔄</button>
+                <button type="button" class="btn-clear" onclick="window.clearAll()">مسح الكل 🗑️</button>
             </div>
         </div>
 
@@ -96,31 +96,31 @@
                 <div class="items-container" id="itemsContainer">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                         <label style="color: var(--neon-gold); margin:0;">📦 أنواع الطلبات والعدد</label>
-                        <button type="button" class="btn-outline" onclick="addOrderItemRow()" style="padding: 6px 12px; font-size: 13px;">➕ إضافة صنف آخر</button>
+                        <button type="button" class="btn-outline" onclick="window.addOrderItemRow()" style="padding: 6px 12px; font-size: 13px;">➕ إضافة صنف آخر</button>
                     </div>
                     <div id="dynamicRowsWrapper">
                         <div class="order-item-row">
                             <div style="display:flex; flex: 2; min-width: 140px; gap:5px;">
                                 <select class="orderTypeSelect" style="flex: 1;"></select>
                                 <input type="text" class="orderTypeCustomInput" placeholder="اكتب نوع الطلب..." style="display:none; flex: 1;">
-                                <button type="button" class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)" style="padding: 0 10px;" title="كتابة يدوية">✍️</button>
+                                <button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;" title="كتابة يدوية">✍️</button>
                             </div>
                             <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;">
                             <div class="qty-controls" style="flex: 1; min-width: 120px;">
                                 <label style="color:#ccc; font-size:12px; margin:0;">العدد:</label>
-                                <button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button>
+                                <button type="button" class="qty-btn plus" onclick="window.changeQty(this, 1)">+</button>
                                 <input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center;">
-                                <button type="button" class="qty-btn minus" onclick="changeQty(this, -1)">-</button>
+                                <button type="button" class="qty-btn minus" onclick="window.changeQty(this, -1)">-</button>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="amount" onblur="formatAmount(this)"></div>
+                <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="amount" onblur="window.formatAmount(this)"></div>
                 <div class="form-group"><label>ملاحظة مهمة</label><input type="text" id="note"></div>
             </div>
             <div class="button-group">
-                <button id="mainSaveBtn" onclick="addToTable()" style="padding: 15px 40px; font-size: 18px; width: 100%; max-width: 400px;">إضافة إلى الجدول والحفظ سحابياً ➕</button>
+                <button type="button" id="mainSaveBtn" onclick="window.addToTable()" style="padding: 15px 40px; font-size: 18px; width: 100%; max-width: 400px;">إضافة إلى الجدول والحفظ سحابياً ➕</button>
             </div>
         </div>
 
@@ -130,7 +130,7 @@
                     <h3 style="margin: 0;">سجل الطلبات</h3>
                     <span id="ordersCounterBadge" style="background: var(--neon-gold); color: #000; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 14px;">إجمالي الطلبات: 0</span>
                 </div>
-                <button class="btn-export" onclick="exportToExcel()">تصدير XLSX 📊</button>
+                <button type="button" class="btn-export" onclick="window.exportToExcel()">تصدير XLSX 📊</button>
             </div>
             <div style="overflow-x: auto;">
                 <table id="dataTable">
@@ -150,33 +150,33 @@
     <!-- نافذة الإعدادات -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeSettings()">&times;</span>
+            <span class="close-modal" onclick="window.closeSettings()">&times;</span>
             <div id="settingsAuthSection">
                 <h3>🔒 إعدادات النظام المتقدمة</h3>
                 <p style="color: #ccc;">أدخل الرقم السري للمدير:</p>
-                <div class="form-group"><input type="password" id="settingsPass" onkeypress="if(event.key==='Enter') verifySettingsPass()"></div>
-                <button onclick="verifySettingsPass()" style="width: 100%;">تحقق ودخول 🔑</button>
+                <div class="form-group"><input type="password" id="settingsPass"></div>
+                <button type="button" onclick="window.verifySettingsPass()" style="width: 100%;">تحقق ودخول 🔑</button>
                 <div class="error-msg" id="settings-error">الرقم السري غير صحيح!</div>
             </div>
             
             <div id="settingsManagerSection" style="display: none;">
                 <h3 style="margin-bottom: 20px;">⚙️ الإعدادات</h3>
                 <div class="settings-tabs">
-                    <button class="tab-btn active" onclick="switchTab('pagesTab', this)">🏷️ البيجات</button>
-                    <button class="tab-btn" onclick="switchTab('typesTab', this)">📦 الطلبات</button>
-                    <button class="tab-btn" onclick="switchTab('usersTab', this)">👥 المستخدمين</button>
-                    <button class="tab-btn" onclick="switchTab('deliveryTab', this)">🚚 التوصيل</button>
+                    <button type="button" class="tab-btn active" onclick="window.switchTab('pagesTab', this)">🏷️ البيجات</button>
+                    <button type="button" class="tab-btn" onclick="window.switchTab('typesTab', this)">📦 الطلبات</button>
+                    <button type="button" class="tab-btn" onclick="window.switchTab('usersTab', this)">👥 المستخدمين</button>
+                    <button type="button" class="tab-btn" onclick="window.switchTab('deliveryTab', this)">🚚 التوصيل</button>
                 </div>
                 <div class="tab-content">
                     <div id="pagesTab" class="tab-pane active">
                         <input type="text" id="newPageName" placeholder="اسم البيج" style="width:100%; margin-bottom:10px;">
-                        <button onclick="addPageType()" style="width: 100%; margin-bottom: 15px;">إضافة للسحابة ☁️</button>
+                        <button type="button" onclick="window.addPageType()" style="width: 100%; margin-bottom: 15px;">إضافة للسحابة ☁️</button>
                         <ul id="pagesListDisplay" style="list-style:none; padding:0; margin:0;"></ul>
                     </div>
                     <div id="typesTab" class="tab-pane">
                         <input type="text" id="newOrderName" placeholder="اسم الطلب" style="width:100%; margin-bottom:10px;">
                         <input type="text" id="newOrderCode" placeholder="الرمز" style="width:100%; margin-bottom:10px;">
-                        <button onclick="addOrderType()" style="width: 100%; margin-bottom: 15px;">إضافة للسحابة ☁️</button>
+                        <button type="button" onclick="window.addOrderType()" style="width: 100%; margin-bottom: 15px;">إضافة للسحابة ☁️</button>
                         <ul id="orderTypesListDisplay" style="list-style:none; padding:0; margin:0;"></ul>
                     </div>
                     <div id="usersTab" class="tab-pane">
@@ -190,19 +190,19 @@
                             <label><input type="checkbox" id="new-user-can-reports"> التقارير</label>
                         </div>
                         
-                        <button onclick="addUser()" style="width: 100%; margin-bottom: 15px;">إضافة مستخدم ☁️</button>
+                        <button type="button" onclick="window.addUser()" style="width: 100%; margin-bottom: 15px;">إضافة مستخدم ☁️</button>
                         <ul id="users-list" style="list-style:none; padding:0; margin:0;"></ul>
                     </div>
                     <div id="deliveryTab" class="tab-pane">
                         <div class="form-group">
                             <label>أجور توصيل بغداد</label>
-                            <input type="text" id="feeBaghdadInput" onblur="formatAmount(this)" placeholder="مثال: 5000">
+                            <input type="text" id="feeBaghdadInput" onblur="window.formatAmount(this)" placeholder="مثال: 5000">
                         </div>
                         <div class="form-group">
                             <label>أجور توصيل المحافظات</label>
-                            <input type="text" id="feeOtherInput" onblur="formatAmount(this)" placeholder="مثال: 8000">
+                            <input type="text" id="feeOtherInput" onblur="window.formatAmount(this)" placeholder="مثال: 8000">
                         </div>
-                        <button onclick="saveDeliveryFees()" style="width: 100%;">حفظ في السحابة ☁️💾</button>
+                        <button type="button" onclick="window.saveDeliveryFees()" style="width: 100%;">حفظ في السحابة ☁️💾</button>
                     </div>
                 </div>
             </div>
@@ -212,29 +212,29 @@
     <!-- نافذة التقارير الشاملة -->
     <div class="modal-overlay" id="reportsModal">
         <div class="modal-content modal-large">
-            <span class="close-modal" onclick="closeReports()">&times;</span>
+            <span class="close-modal" onclick="window.closeReports()">&times;</span>
             <h3 style="margin-bottom: 15px;">📊 تقارير النظام الشاملة</h3>
             
             <div class="settings-tabs">
-                <button class="tab-btn active" onclick="switchReportTab('repPageTab', this)">🏷️ تقرير البيجات</button>
-                <button class="tab-btn" onclick="switchReportTab('repTypeTab', this)">📦 تقرير الطلبات</button>
-                <button class="tab-btn" onclick="switchReportTab('repFinTab', this)">💰 التقرير المالي</button>
+                <button type="button" class="tab-btn active" onclick="window.switchReportTab('repPageTab', this)">🏷️ تقرير البيجات</button>
+                <button type="button" class="tab-btn" onclick="window.switchReportTab('repTypeTab', this)">📦 تقرير الطلبات</button>
+                <button type="button" class="tab-btn" onclick="window.switchReportTab('repFinTab', this)">💰 التقرير المالي</button>
             </div>
             
             <div class="filter-bar">
                 <div class="date-wrapper"><label>من:</label><input type="date" id="repDateFrom" dir="ltr"></div>
                 <div class="date-wrapper"><label>إلى:</label><input type="date" id="repDateTo" dir="ltr"></div>
-                <button class="btn-parse filter-btn" onclick="generateReports()">توليد 🔄</button>
+                <button type="button" class="btn-parse filter-btn" onclick="window.generateReports()">توليد 🔄</button>
             </div>
 
             <div class="modal-body-scroll">
                 <div id="repPageTab" class="tab-pane active">
                     <div class="sub-filter-row">
                         <label>اختر البيج:</label>
-                        <select id="repPageFilter" onchange="generateReports()">
+                        <select id="repPageFilter" onchange="window.generateReports()">
                             <option value="all">-- كل البيجات --</option>
                         </select>
-                        <button class="btn-export pdf-btn" onclick="exportPageReportPDF()">تصدير PDF 📄</button>
+                        <button type="button" class="btn-export pdf-btn" onclick="window.exportPageReportPDF()">تصدير PDF 📄</button>
                     </div>
                     <div style="overflow-x: auto;">
                         <table id="pageReportTable">
@@ -260,7 +260,7 @@
                 <div id="repTypeTab" class="tab-pane">
                     <div class="sub-filter-row">
                         <label>تصفية الطلبات:</label>
-                        <select id="repTypeFilter" onchange="generateReports()">
+                        <select id="repTypeFilter" onchange="window.generateReports()">
                             <option value="all">-- كل الطلبات --</option>
                         </select>
                     </div>
@@ -283,15 +283,15 @@
     <!-- نافذة الأرشيف السحابي -->
     <div class="modal-overlay" id="cloudOrdersModal">
         <div class="modal-content modal-xl">
-            <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
+            <span class="close-modal" onclick="window.closeCloudOrders()">&times;</span>
             <h3 style="margin-bottom: 15px;">☁️ الأرشيف السحابي</h3>
             
             <div class="filter-bar">
-                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 180px;">
-                <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 140px;"><option value="">-- كل البيجات --</option></select>
-                <div class="date-wrapper"><label>من:</label><input type="date" id="cloudDateFrom" onchange="filterCloudOrders()" dir="ltr"></div>
-                <div class="date-wrapper"><label>إلى:</label><input type="date" id="cloudDateTo" onchange="filterCloudOrders()" dir="ltr"></div>
-                <button class="btn-export filter-btn" onclick="exportCloudToExcel()">تصدير الكل 📊</button>
+                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف..." onkeyup="window.filterCloudOrders()" style="flex: 2; min-width: 180px;">
+                <select id="cloudPageFilter" onchange="window.filterCloudOrders()" style="flex: 1; min-width: 140px;"><option value="">-- كل البيجات --</option></select>
+                <div class="date-wrapper"><label>من:</label><input type="date" id="cloudDateFrom" onchange="window.filterCloudOrders()" dir="ltr"></div>
+                <div class="date-wrapper"><label>إلى:</label><input type="date" id="cloudDateTo" onchange="window.filterCloudOrders()" dir="ltr"></div>
+                <button type="button" class="btn-export filter-btn" onclick="window.exportCloudToExcel()">تصدير الكل 📊</button>
             </div>
             
             <div class="modal-body-scroll">
@@ -308,7 +308,7 @@
     <!-- نافذة تعديل طلب سحابي -->
     <div class="modal-overlay" id="editOrderModal" style="z-index: 11000;">
         <div class="modal-content" style="max-width: 500px; text-align: right;">
-            <span class="close-modal" onclick="closeEditModal()">&times;</span>
+            <span class="close-modal" onclick="window.closeEditModal()">&times;</span>
             <h3 style="margin-bottom: 20px; text-align: center;">✏️ تعديل بيانات الطلب</h3>
             <div class="form-group"><label>اسم البيج</label><select id="editConstant"></select></div>
             <div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div>
@@ -318,9 +318,9 @@
             <div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div>
             <div class="form-group"><label>الطلب (الأنواع والألوان)</label><input type="text" id="editType"></div>
             <div class="form-group"><label>العدد الكلي</label><input type="number" id="editQty" min="1"></div>
-            <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount" onblur="formatAmount(this)"></div>
+            <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount" onblur="window.formatAmount(this)"></div>
             <div class="form-group"><label>ملاحظة</label><input type="text" id="editNote"></div>
-            <button class="btn-parse" id="saveEditBtn" onclick="saveEditedOrder()" style="width: 100%; margin-top: 10px;">حفظ التعديلات في السحابة 💾</button>
+            <button type="button" class="btn-parse" id="saveEditBtn" onclick="window.saveEditedOrder()" style="width: 100%; margin-top: 10px;">حفظ التعديلات في السحابة 💾</button>
         </div>
     </div>
 
@@ -331,13 +331,13 @@
             <h3 style="color: #ff4757; margin-bottom: 10px;">تأكيد الإجراء</h3>
             <p id="confirmMessage" style="color: #ddd; margin-bottom: 30px;">هل أنت متأكد؟</p>
             <div style="display: flex; gap: 15px; justify-content: center;">
-                <button id="confirmYesBtn" class="btn-danger" style="width: 50%;">نعم</button>
-                <button onclick="closeConfirmModal()" class="btn-outline" style="width: 50%;">إلغاء</button>
+                <button type="button" id="confirmYesBtn" class="btn-danger" style="width: 50%;">نعم</button>
+                <button type="button" onclick="window.closeConfirmModal()" class="btn-outline" style="width: 50%;">إلغاء</button>
             </div>
         </div>
     </div>
 
-    <!-- ربط ملف الجافاسكريبت العادي بدون module لضمان عمله في كل مكان -->
+    <!-- ربط ملف الجافاسكريبت -->
     <script src="script.js"></script>
 </body>
 </html>
