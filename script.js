@@ -418,7 +418,7 @@ window.exportCloudToExcel = function() {
 }
 
 // =========================================
-// الإعدادات وإدارة المستخدمين (التنسيق الجديد)
+// الإعدادات وإدارة المستخدمين
 // =========================================
 window.openSettings = function() {
     document.getElementById('settingsModal').style.display = 'flex'; 
@@ -468,6 +468,13 @@ window.addUser = async function() {
 }
 window.deleteUser = function(idx) { window.showConfirmDialog("حذف المستخدم؟", async function() { await window.deleteSystemUserFromFirebase(additionalUsers[idx].id); additionalUsers.splice(idx, 1); window.renderUsers(); }); }
 
+window.togglePermission = async function(idx, field) { 
+    const u = additionalUsers[idx]; 
+    u[field] = !u[field]; 
+    await window.updateSystemUserInFirebase(u.id, {[field]: u[field]}); 
+    window.renderUsers(); 
+}
+
 window.renderUsers = function() {
     document.getElementById("users-list").innerHTML = additionalUsers.map((u, i) => `
         <li class="settings-list-item user-list-item">
@@ -476,10 +483,10 @@ window.renderUsers = function() {
                 <button class="btn-danger" onclick="deleteUser(${i})">حذف</button>
             </div>
             <div class="user-permissions-row">
-                <span class="status-badge ${u.canDeleteCloud ? 'active' : 'inactive'}">مسح</span>
-                <span class="status-badge ${u.canEditCloud ? 'active' : 'inactive'}">تعديل</span>
-                <span class="status-badge ${u.canAccessSettings ? 'active' : 'inactive'}">إعدادات</span>
-                <span class="status-badge ${u.canAccessReports ? 'active' : 'inactive'}">تقارير</span>
+                <span class="status-badge ${u.canDeleteCloud ? 'active' : 'inactive'}" onclick="togglePermission(${i}, 'canDeleteCloud')">مسح</span>
+                <span class="status-badge ${u.canEditCloud ? 'active' : 'inactive'}" onclick="togglePermission(${i}, 'canEditCloud')">تعديل</span>
+                <span class="status-badge ${u.canAccessSettings ? 'active' : 'inactive'}" onclick="togglePermission(${i}, 'canAccessSettings')">إعدادات</span>
+                <span class="status-badge ${u.canAccessReports ? 'active' : 'inactive'}" onclick="togglePermission(${i}, 'canAccessReports')">تقارير</span>
             </div>
         </li>
     `).join('');
