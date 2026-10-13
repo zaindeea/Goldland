@@ -9,6 +9,7 @@
     /* ألوان GL و Gold Land الذهبية */
     --gold-gradient: linear-gradient(135deg, #ffd700 0%, #b8860b 100%);
     --button-gradient: linear-gradient(135deg, #407bff, #1a4fff);
+    --primary-blue: #407bff;
     
     /* ظلال النيومورفيزم */
     --shadow-light: #ffffff;
@@ -100,7 +101,7 @@ body::after { width: 250px; height: 250px; bottom: -50px; right: -50px; }
 .dash-logo .logo-inner { font-size: 22px; }
 
 /* =========================================
-   صفحة تسجيل الدخول والجوال
+   صفحة تسجيل الدخول للجوال
    ========================================= */
 .login-wrapper { display: flex; align-items: center; justify-content: center; min-height: 100vh; width: 100%; position: relative; padding: 20px; }
 .login-box {
@@ -127,6 +128,88 @@ body::after { width: 250px; height: 250px; bottom: -50px; right: -50px; }
     border-radius: 15px; font-weight: bold; flex: 1; font-size: 14px; border: none; cursor: pointer;
 }
 .install-btn:active { box-shadow: var(--inner-shadow); }
+
+
+/* =========================================
+   القائمة الرئيسية (تصميم زجاجي/نيومورفي) المطابق للصورة
+   ========================================= */
+.menu-wrapper { 
+    display: flex; align-items: center; justify-content: center; 
+    min-height: 100vh; width: 100%; position: relative; padding: 20px; 
+}
+
+.menu-glass-card {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 40px;
+    padding: 40px 20px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+}
+
+body.dark-mode .menu-glass-card {
+    background: rgba(30, 30, 40, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
+}
+
+.menu-logo {
+    margin-bottom: 40px;
+    background: transparent;
+    box-shadow: 10px 10px 20px var(--shadow-dark), -10px -10px 20px var(--shadow-light);
+}
+
+.menu-items { width: 100%; display: flex; flex-direction: column; gap: 15px; }
+
+.menu-btn {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-direction: row-reverse; /* الأيقونة على اليمين والنص على اليسار */
+    width: 100%; padding: 15px 25px;
+    background: var(--bg-color);
+    border: none; border-radius: 20px;
+    color: var(--text-color); font-size: 18px; font-weight: 900;
+    box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
+    cursor: pointer; transition: all 0.3s ease;
+}
+
+.menu-btn:active { box-shadow: var(--inner-shadow); transform: scale(0.98); }
+
+.menu-btn.btn-blue {
+    background: linear-gradient(135deg, #70a1ff, #1e90ff);
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(30, 144, 255, 0.3);
+}
+
+.menu-btn.btn-blue:active { box-shadow: inset 5px 5px 10px rgba(0,0,0,0.2); }
+
+.menu-btn .icon { font-size: 24px; }
+.menu-btn .badge {
+    position: absolute; top: -5px; right: -10px;
+    background: #1e90ff; color: white;
+    font-size: 12px; font-weight: bold;
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    border: 2px solid white;
+}
+
+.menu-btn-logout {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-direction: row-reverse;
+    width: 100%; padding: 15px 25px; margin-top: 40px;
+    background: transparent; border: none;
+    color: #ff4b2b; font-size: 18px; font-weight: bold;
+    cursor: pointer; transition: all 0.3s ease;
+}
+.menu-btn-logout:hover { transform: translateX(-5px); }
+
 
 /* =========================================
    لوحة التحكم والعناصر الأساسية
@@ -259,7 +342,6 @@ ul { padding: 0; margin: 0; width: 100%; list-style: none; }
     justify-content: flex-start;
 }
 
-/* شكل أزرار الصلاحيات (مع قابلية النقر) */
 .status-badge {
     background: var(--bg-color);
     box-shadow: var(--inner-shadow);
