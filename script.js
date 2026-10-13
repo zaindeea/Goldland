@@ -1,3 +1,7 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// إعدادات Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyA-2N_HZoej2Vv3vQa0P5hu0gvmwVs0R3o",
     authDomain: "gold-land2021.firebaseapp.com",
@@ -7,159 +11,71 @@ const firebaseConfig = {
     appId: "1:580003463235:web:4ebb43e8f3db552b3294f6"
 };
 
-const ADMIN_USER = "Zain"; 
-const ADMIN_PASS = "327798";
-let additionalUsers = [], configuredOrderTypes = [], configuredPages = [], allCloudOrders = [], filteredCloudOrders = [];
-let loggedInUser = "", loggedInUserCanDelete = false, loggedInUserCanEdit = false, loggedInUserCanSettings = false, loggedInUserCanReports = false; 
-
-function safeGetStorage(key, def) { try { return localStorage.getItem(key) || def; } catch(e) { return def; } }
-function safeSetStorage(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
-
-let feeBaghdad = parseInt(safeGetStorage('feeBaghdad', '5000')) || 5000;
-let feeOther = parseInt(safeGetStorage('feeOther', '8000')) || 8000;
-let currentConfirmAction = null;
-let currentEditDocId = null;
-
-function refreshCurrentUserPermissions() {
-    if (!loggedInUser) return;
-    if (loggedInUser.toLowerCase() === ADMIN_USER.toLowerCase()) {
-        loggedInUserCanDelete = true;
-        loggedInUserCanEdit = true;
-        loggedInUserCanSettings = true;
-        loggedInUserCanReports = true;
-    } else {
-        const u = additionalUsers.find(user => user.username === loggedInUser);
-        if (u) {
-            loggedInUserCanDelete = !!u.canDeleteCloud;
-            loggedInUserCanEdit = !!u.canEditCloud;
-            loggedInUserCanSettings = !!u.canAccessSettings;
-            loggedInUserCanReports = !!u.canAccessReports;
-        }
-    }
-    const cloudModal = document.getElementById('cloudOrdersModal');
-    if (cloudModal && cloudModal.style.display === 'flex') {
-        window.filterCloudOrders();
-    }
-}
-
 try {
-    if (typeof firebase !== 'undefined') {
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.saveDataToFirebase = async function(orderData) {
+        try { orderData.timestamp = serverTimestamp(); await addDoc(collection(db, "orders"), orderData); return true; } 
+        catch (e) { return false; }
+    };
+    
+    window.getCloudOrdersFromFirebase = async function() {
+        try { 
+            const q = query(collection(db, "orders")); 
+            const snap = await getDocs(q); 
+            let orders = []; 
+            snap.forEach(d => orders.push({ id_doc: d.id, ...d.data() })); 
+            return orders; 
+        } 
+        catch (e) { return []; }
+    };
+    
+    window.deleteOrderFromFirebase = async function(docId) { 
+        await deleteDoc(doc(db, "orders", docId)); 
+    };
+
+    window.updateOrderInFirebase = async function(docId, newData) {
+        await updateDoc(doc(db, "orders", docId), newData);
+    };
+    
+    window.loadSystemDataFromFirebase = async function() {
+        try {
+            let users = [], types = [], pages = [];
+            const [uSnap, tSnap, pSnap] = await Promise.all([ 
+                getDocs(collection(db, "system_users")), 
+                getDocs(collection(db, "order_types")), 
+                getDocs(collection(db, "system_pages")) 
+            ]);
+            uSnap.forEach(d => users.push({ id: d.id, ...d.data() }));
+            tSnap.forEach(d => types.push({ id: d.id, ...d.data() }));
+            pSnap.forEach(d => pages.push({ id: d.id, ...d.data() }));
+            return { users, types, pages };
+        } catch (e) { 
+            return { users: [], types: [], pages: [] }; 
         }
-        const db = firebase.firestore();
-
-        db.collection("system_users").onSnapshot((snap) => {
-            additionalUsers = [];
-            snap.forEach(d => additionalUsers.push({ id: d.id, ...d.data() }));
-            refreshCurrentUserPermissions();
-            const setModal = document.getElementById('settingsModal');
-            if (setModal && setModal.style.display === 'flex') {
-                window.renderUsers();
-            }
-        });
-
-        db.collection("order_types").onSnapshot((snap) => {
-            configuredOrderTypes = [];
-            snap.forEach(d => configuredOrderTypes.push({ id: d.id, ...d.data() }));
-            window.updateOrderTypeSelects();
-            const setModal = document.getElementById('settingsModal');
-            if (setModal && setModal.style.display === 'flex') {
-                window.renderOrderTypesSettings();
-            }
-        });
-
-        db.collection("system_pages").onSnapshot((snap) => {
-            configuredPages = [];
-            snap.forEach(d => configuredPages.push({ id: d.id, ...d.data() }));
-            window.updatePagesDropdown();
-            const setModal = document.getElementById('settingsModal');
-            if (setModal && setModal.style.display === 'flex') {
-                window.renderPagesSettings();
-            }
-        });
-
-        db.collection("system_config").doc("delivery_fees").onSnapshot((docSnap) => {
-            if (docSnap.exists) {
-                const data = docSnap.data();
-                feeBaghdad = parseInt(data.baghdad) || 0;
-                feeOther = parseInt(data.other) || 0;
-                safeSetStorage('feeBaghdad', feeBaghdad);
-                safeSetStorage('feeOther', feeOther);
-                
-                const baghdadInput = document.getElementById('feeBaghdadInput');
-                const otherInput = document.getElementById('feeOtherInput');
-                if (baghdadInput) baghdadInput.value = feeBaghdad;
-                if (otherInput) otherInput.value = feeOther;
-
-                const repModal = document.getElementById('reportsModal');
-                if (repModal && repModal.style.display === 'flex') {
-                    window.generateReports();
-                }
-            }
-        });
-
-        db.collection("orders").onSnapshot((snap) => {
-            allCloudOrders = [];
-            snap.forEach(d => allCloudOrders.push({ id_doc: d.id, ...d.data() }));
-            allCloudOrders.sort((a, b) => {
-                const tA = (a.timestamp && a.timestamp.seconds) ? a.timestamp.seconds : 0;
-                const tB = (b.timestamp && b.timestamp.seconds) ? b.timestamp.seconds : 0;
-                return tB - tA;
-            });
-            
-            const cloudModal = document.getElementById('cloudOrdersModal');
-            if (cloudModal && cloudModal.style.display === 'flex') {
-                window.filterCloudOrders();
-            }
-            const repModal = document.getElementById('reportsModal');
-            if (repModal && repModal.style.display === 'flex') {
-                window.populateReportFilters();
-                window.generateReports();
-            }
-        });
-
-        window.saveDataToFirebase = async function(orderData) {
-            try { 
-                orderData.timestamp = firebase.firestore.FieldValue.serverTimestamp(); 
-                await db.collection("orders").add(orderData); 
-                return true; 
-            } catch (e) { return false; }
-        };
-        window.deleteOrderFromFirebase = async function(docId) { await db.collection("orders").doc(docId).delete(); };
-        window.updateOrderInFirebase = async function(docId, newData) { await db.collection("orders").doc(docId).update(newData); };
-        
-        window.addSystemUserToFirebase = async function(data) { return await db.collection("system_users").add(data); };
-        window.deleteSystemUserFromFirebase = async function(docId) { await db.collection("system_users").doc(docId).delete(); };
-        window.updateSystemUserInFirebase = async function(docId, data) { await db.collection("system_users").doc(docId).update(data); };
-        
-        window.addOrderTypeToFirebase = async function(data) { return await db.collection("order_types").add(data); };
-        window.deleteOrderTypeFromFirebase = async function(docId) { await db.collection("order_types").doc(docId).delete(); };
-        
-        window.addSystemPageToFirebase = async function(data) { return await db.collection("system_pages").add(data); };
-        window.deleteSystemPageFromFirebase = async function(docId) { await db.collection("system_pages").doc(docId).delete(); };
-        
-        window.saveDeliveryFeesToFirebase = async function(baghdad, other) {
-            await db.collection("system_config").doc("delivery_fees").set({ baghdad, other });
-        };
-
-        window.loadSystemDataFromFirebase = async function() {
-            try {
-                let users = [];
-                const uSnap = await db.collection("system_users").get();
-                uSnap.forEach(d => users.push({ id: d.id, ...d.data() }));
-                return { users };
-            } catch (e) { return { users: [] }; }
-        };
-    }
+    };
+    
+    window.addSystemUserToFirebase = async function(data) { return await addDoc(collection(db, "system_users"), data); };
+    window.deleteSystemUserFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_users", docId)); };
+    window.updateSystemUserInFirebase = async function(docId, data) { await updateDoc(doc(db, "system_users", docId), data); };
+    window.addOrderTypeToFirebase = async function(data) { return await addDoc(collection(db, "order_types"), data); };
+    window.deleteOrderTypeFromFirebase = async function(docId) { await deleteDoc(doc(db, "order_types", docId)); };
+    window.addSystemPageToFirebase = async function(data) { return await addDoc(collection(db, "system_pages"), data); };
+    window.deleteSystemPageFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_pages", docId)); };
 } catch(e) {
     console.warn("Firebase Init Error", e);
 }
 
+// =========================================
+// الحركات البصرية (الإضافات)
+// =========================================
+
 window.createGoldDust = function() {
     const dustContainer = document.createElement('div');
     document.body.appendChild(dustContainer);
-    for(let i = 0; i < 35; i++) {
+    
+    for(let i = 0; i < 40; i++) {
         let dust = document.createElement('div');
         dust.className = 'gold-dust';
         dust.style.left = Math.random() * 100 + 'vw';
@@ -180,48 +96,64 @@ window.showSuccessToast = function(message) {
         toast.className = 'success-toast';
         document.body.appendChild(toast);
     }
-    toast.innerHTML = '✨ ' + message;
+    toast.innerHTML = `✨ ${message}`;
     toast.classList.add('show');
-    setTimeout(() => { toast.classList.remove('show'); }, 3000);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
 };
 
-let currentTheme = safeGetStorage('gl_theme', 'dark');
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.createGoldDust);
+} else {
+    window.createGoldDust();
+}
+
+
+// =========================================
+// دوال النظام الأساسية والتخزين
+// =========================================
+
+function safeGetStorage(key, def) { try { return localStorage.getItem(key) || def; } catch(e) { return def; } }
+function safeSetStorage(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
+
+let currentTheme = safeGetStorage('gl_theme', 'auto');
 window.applyTheme = function(theme) {
     if (theme === 'light') document.body.classList.add('light-mode');
+    else if (theme === 'dark') document.body.classList.remove('light-mode');
+    else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) document.body.classList.add('light-mode');
     else document.body.classList.remove('light-mode');
-};
+}
 window.toggleTheme = function() {
-    currentTheme = (currentTheme === 'dark') ? 'light' : 'dark';
-    safeSetStorage('gl_theme', currentTheme); 
-    window.applyTheme(currentTheme);
-};
+    currentTheme = (currentTheme === 'auto') ? 'dark' : (currentTheme === 'dark') ? 'light' : 'auto';
+    safeSetStorage('gl_theme', currentTheme); window.applyTheme(currentTheme);
+}
 window.applyTheme(currentTheme);
 
-window.saveDeliveryFees = async function() {
-    const bInput = document.getElementById('feeBaghdadInput');
-    const oInput = document.getElementById('feeOtherInput');
-    window.formatAmount(bInput);
-    window.formatAmount(oInput);
+const ADMIN_USER = "Zain"; 
+const ADMIN_PASS = "327798";
+let additionalUsers = [], configuredOrderTypes = [], configuredPages = [];
+// تمت إضافة الصلاحية الجديدة (تعديل السحابة)
+let loggedInUser = "", loggedInUserCanDelete = false, loggedInUserCanEdit = false, loggedInUserCanSettings = false, loggedInUserCanReports = false; 
 
-    feeBaghdad = parseInt(bInput.value.replace(/[^0-9]/g, "")) || 0;
-    feeOther = parseInt(oInput.value.replace(/[^0-9]/g, "")) || 0;
-    
-    safeSetStorage('feeBaghdad', feeBaghdad); 
-    safeSetStorage('feeOther', feeOther);
-    
-    if (window.saveDeliveryFeesToFirebase) {
-        await window.saveDeliveryFeesToFirebase(feeBaghdad, feeOther);
-    }
-    window.showSuccessToast("تم حفظ أجور التوصيل في السحابة بنجاح! 🚚☁️");
-};
+let feeBaghdad = parseInt(safeGetStorage('feeBaghdad', '5000')) || 5000;
+let feeOther = parseInt(safeGetStorage('feeOther', '8000')) || 8000;
+
+window.saveDeliveryFees = function() {
+    feeBaghdad = parseInt(document.getElementById('feeBaghdadInput').value) || 0;
+    feeOther = parseInt(document.getElementById('feeOtherInput').value) || 0;
+    safeSetStorage('feeBaghdad', feeBaghdad); safeSetStorage('feeOther', feeOther);
+    alert("تم حفظ أجور التوصيل بنجاح!");
+}
+
+let allCloudOrders = [], filteredCloudOrders = []; 
+let currentConfirmAction = null;
+let currentEditDocId = null;
 
 window.showInstallInstructions = function(os) {
-    if (os === 'ios') {
-        alert("لتثبيت التطبيق على آيفون:\n1. اضغط على زر المشاركة (Share) في أسفل متصفح سفاري.\n2. اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen).");
-    } else {
-        alert("لتثبيت التطبيق على أندرويد:\n1. اضغط على النقاط الثلاث في أعلى متصفح كروم.\n2. اختر 'تثبيت التطبيق' أو 'الإضافة إلى الشاشة الرئيسية'.");
-    }
-};
+    alert("تعليمات التثبيت غير متوفرة حالياً. يمكنك إضافة التطبيق للشاشة الرئيسية من خيارات المتصفح.");
+}
 
 window.showConfirmDialog = function(msg, callback) { 
     document.getElementById('confirmMessage').innerText = msg; 
@@ -231,25 +163,20 @@ window.showConfirmDialog = function(msg, callback) {
         if(currentConfirmAction) currentConfirmAction(); 
         window.closeConfirmModal(); 
     }; 
-};
+}
 
 window.closeConfirmModal = function() { 
     document.getElementById('confirmModal').style.display = 'none'; 
     currentConfirmAction = null; 
-};
+}
 
-window.handleEnter = function(event) { if (event.key === "Enter") window.login(); };
+window.handleEnter = function(event) { if (event.key === "Enter") window.login(); }
 
 window.formatAmount = function(input) {
-    if (!input) return;
     let val = input.value.trim(); if (!val) return;
     let numericVal = parseFloat(val.replace(/[^0-9.-]+/g, ""));
-    if (!isNaN(numericVal) && numericVal > 0 && numericVal < 1000) {
-        input.value = (numericVal * 1000).toString();
-    } else if (!isNaN(numericVal)) {
-        input.value = numericVal.toString();
-    }
-};
+    if (!isNaN(numericVal) && numericVal > 0 && numericVal < 1000) input.value = (numericVal * 1000).toString();
+}
 
 window.toggleOrderInput = function(btn) {
     let container = btn.parentElement;
@@ -266,104 +193,96 @@ window.toggleOrderInput = function(btn) {
         select.style.display = 'block'; 
         btn.innerHTML = '✍️'; 
     }
-};
+}
 
 window.login = async function() {
     try {
-        const userEl = document.getElementById("username");
-        const passEl = document.getElementById("password");
+        const user = document.getElementById("username").value.trim();
+        const pass = document.getElementById("password").value.trim();
         const errorMsg = document.getElementById("login-error");
         const btn = document.getElementById("loginBtn");
         
-        const user = userEl ? userEl.value.trim() : "";
-        const pass = passEl ? passEl.value.trim() : "";
-        
-        if(user === "" || pass === "") {
-            alert("يرجى إدخال اسم المستخدم وكلمة المرور");
-            return;
-        }
+        if(user === "" || pass === "") return;
 
-        if (btn) { btn.innerText = "جاري الدخول... ⏳"; btn.disabled = true; }
+        let isManager = (user === ADMIN_USER && pass === ADMIN_PASS);
+        btn.innerText = "جاري التحقق... ⏳"; btn.disabled = true;
 
-        if (user.toLowerCase() === ADMIN_USER.toLowerCase() && pass === ADMIN_PASS) {
-            loggedInUser = ADMIN_USER; 
-            refreshCurrentUserPermissions();
-            const bIn = document.getElementById('feeBaghdadInput');
-            const oIn = document.getElementById('feeOtherInput');
-            if (bIn) bIn.value = feeBaghdad; 
-            if (oIn) oIn.value = feeOther;
-            window.showDashboard(); 
-            if (errorMsg) errorMsg.style.display = "none";
-            if (btn) { btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
-            return;
-        }
-
-        if (additionalUsers.length === 0 && window.loadSystemDataFromFirebase) {
-            try {
-                const cloudData = await Promise.race([
-                    window.loadSystemDataFromFirebase(),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 4000))
-                ]);
-                if (cloudData && cloudData.users) additionalUsers = cloudData.users;
-            } catch (e) {
-                console.warn("Firebase timeout or offline", e);
+        if (isManager) {
+            loggedInUser = user; 
+            loggedInUserCanDelete = true; 
+            loggedInUserCanEdit = true; 
+            loggedInUserCanSettings = true; 
+            loggedInUserCanReports = true;
+            window.showDashboard(); errorMsg.style.display = "none";
+            
+            if(window.loadSystemDataFromFirebase) {
+                window.loadSystemDataFromFirebase().then(cloudData => {
+                    additionalUsers = cloudData.users; configuredOrderTypes = cloudData.types; configuredPages = cloudData.pages;
+                    document.getElementById('feeBaghdadInput').value = feeBaghdad; document.getElementById('feeOtherInput').value = feeOther;
+                    window.updateOrderTypeSelects(); window.updatePagesDropdown();
+                }).catch(e => console.log(e));
             }
+            btn.innerText = "تسجيل الدخول"; btn.disabled = false; return;
         }
 
-        if (btn) { btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
+        if(window.loadSystemDataFromFirebase) {
+            const cloudData = await window.loadSystemDataFromFirebase();
+            additionalUsers = cloudData.users; configuredOrderTypes = cloudData.types; configuredPages = cloudData.pages;
+            document.getElementById('feeBaghdadInput').value = feeBaghdad; document.getElementById('feeOtherInput').value = feeOther;
+            window.updateOrderTypeSelects(); window.updatePagesDropdown();
+        }
+
+        btn.innerText = "تسجيل الدخول"; btn.disabled = false;
 
         const isNormalUser = additionalUsers.find(u => u.username === user && u.password === pass);
         if (isNormalUser) { 
             loggedInUser = user; 
-            refreshCurrentUserPermissions();
-            const bIn = document.getElementById('feeBaghdadInput');
-            const oIn = document.getElementById('feeOtherInput');
-            if (bIn) bIn.value = feeBaghdad; 
-            if (oIn) oIn.value = feeOther;
-            window.showDashboard(); 
-            if (errorMsg) errorMsg.style.display = "none"; 
+            loggedInUserCanDelete = isNormalUser.canDeleteCloud || false; 
+            loggedInUserCanEdit = isNormalUser.canEditCloud || false;
+            loggedInUserCanSettings = isNormalUser.canAccessSettings || false; 
+            loggedInUserCanReports = isNormalUser.canAccessReports || false; 
+            window.showDashboard(); errorMsg.style.display = "none"; 
         } else { 
-            if (errorMsg) errorMsg.style.display = "block"; 
+            errorMsg.style.display = "block"; 
         }
 
     } catch (err) {
-        console.error(err);
-        alert("حدث خطأ أثناء تسجيل الدخول.");
-        const btn = document.getElementById("loginBtn");
-        if (btn) { btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
+        alert("تعذر الاتصال بقاعدة البيانات. تحقق من الإنترنت.");
+        document.getElementById("loginBtn").innerText = "تسجيل الدخول"; 
+        document.getElementById("loginBtn").disabled = false;
     }
-};
+}
 
 window.showDashboard = function() { 
     document.getElementById("login-section").style.display = "none"; 
     const dash = document.getElementById("dashboard-section");
     dash.style.display = "block"; 
     dash.classList.add("fade-in-section"); 
-};
+}
 
 window.logout = function() { 
-    window.showConfirmDialog("تسجيل الخروج سيقوم بمسح الجدول المؤقت الحالي، هل أنت متأكد؟", function() { 
+    window.showConfirmDialog("تسجيل الخروج سيقوم بمسح الجدول الحالي، هل أنت متأكد؟", function() { 
         loggedInUser = ""; 
         document.getElementById("dashboard-section").style.display = "none"; 
         document.getElementById("login-section").style.display = "flex"; 
         window.clearForm(); 
         document.getElementById('tableBody').innerHTML = ""; 
-        window.updateOrdersCounter();
     }); 
-};
+}
 
-window.populateReportFilters = function() {
-    const pageSelect = document.getElementById('repPageFilter');
-    const typeSelect = document.getElementById('repTypeFilter');
-    if (!pageSelect || !typeSelect) return;
-
-    const currentPageVal = pageSelect.value || 'all';
-    const currentTypeVal = typeSelect.value || 'all';
-
+// =========================================
+// التقارير السحابية
+// =========================================
+window.openReports = async function() {
+    if (!loggedInUserCanReports) { alert("❌ ليس لديك صلاحية للوصول إلى التقارير."); return; }
+    document.getElementById('reportsModal').style.display = 'flex';
+    
+    if (allCloudOrders.length === 0 && window.getCloudOrdersFromFirebase) {
+        document.getElementById('repPageTbody').innerHTML = '<tr><td colspan="3" style="text-align:center;">جاري جلب البيانات... ⏳</td></tr>';
+        allCloudOrders = await window.getCloudOrdersFromFirebase();
+    }
+    
     const pagesSet = new Set(), typesSet = new Set();
-    configuredPages.forEach(p => pagesSet.add(p.name));
-    configuredOrderTypes.forEach(t => typesSet.add(t.code));
-
     allCloudOrders.forEach(o => {
         if(o.constant) pagesSet.add(o.constant);
         if(o.type) {
@@ -374,30 +293,23 @@ window.populateReportFilters = function() {
         }
     });
     
-    pageSelect.innerHTML = '<option value="all">-- كل البيجات --</option>' + Array.from(pagesSet).map(p => `<option value="${p}">${p}</option>`).join('');
-    typeSelect.innerHTML = '<option value="all">-- كل الطلبات --</option>' + Array.from(typesSet).map(t => `<option value="${t}">${t}</option>`).join('');
+    document.getElementById('repPageFilter').innerHTML = '<option value="all">-- كل البيجات --</option>' + Array.from(pagesSet).map(p => `<option value="${p}">${p}</option>`).join('');
+    document.getElementById('repTypeFilter').innerHTML = '<option value="all">-- كل الطلبات --</option>' + Array.from(typesSet).map(t => `<option value="${t}">${t}</option>`).join('');
     
-    if (Array.from(pagesSet).includes(currentPageVal)) pageSelect.value = currentPageVal;
-    if (Array.from(typesSet).includes(currentTypeVal)) typeSelect.value = currentTypeVal;
-};
-
-window.openReports = async function() {
-    if (!loggedInUserCanReports) { alert("❌ ليس لديك صلاحية للوصول إلى التقارير."); return; }
-    document.getElementById('reportsModal').style.display = 'flex';
-    window.populateReportFilters();
     window.generateReports();
-};
+}
 
-window.closeReports = function() { document.getElementById('reportsModal').style.display = 'none'; };
+window.closeReports = function() { document.getElementById('reportsModal').style.display = 'none'; }
 
 window.switchReportTab = function(tabId, btn) { 
     document.querySelectorAll('#reportsModal .tab-btn').forEach(b => b.classList.remove('active')); 
     document.querySelectorAll('#reportsModal .tab-pane').forEach(p => p.classList.remove('active')); 
     btn.classList.add('active'); 
     document.getElementById(tabId).classList.add('active'); 
-};
+}
 
 window.generateReports = function() {
+    if(allCloudOrders.length === 0) return;
     const fromVal = document.getElementById('repDateFrom').value;
     const toVal = document.getElementById('repDateTo').value;
     
@@ -409,7 +321,7 @@ window.generateReports = function() {
 
     let targetOrders = allCloudOrders.filter(o => {
         if(fromDate || toDate) {
-            if(!o.timestamp || !o.timestamp.seconds) return false;
+            if(!o.timestamp?.seconds) return false;
             const orderDate = new Date(o.timestamp.seconds * 1000);
             if(fromDate && orderDate < fromDate) return false;
             if(toDate && orderDate > toDate) return false;
@@ -428,8 +340,8 @@ window.generateReports = function() {
             let qty = parseInt(o.qty) || 1;
             totalPageQty += qty; totalPageAmt += amt;
             
-            let safeType = (o.type || "غير محدد").split(' + ').map(item => `<span dir="ltr" style="display: inline-block; padding: 0 4px;">${item}</span>`).join(' <span style="font-weight:bold; color:inherit;">+</span> ');
-            pageTbodyHtml += `<tr><td style="color:var(--neon-gold); font-size: 13px; text-align: center;">${safeType}</td><td>${qty}</td><td>${amt.toLocaleString()}</td></tr>`;
+            let safeType = (o.type || "غير محدد").split(' + ').map(item => `<span dir="ltr" style="display: inline-block; padding: 0 5px;">${item}</span>`).join(' <span style="font-weight:bold; color:inherit;">+</span> ');
+            pageTbodyHtml += `<tr><td style="color:var(--neon-gold); font-size: 14px; text-align: center;">${safeType}</td><td>${qty}</td><td>${amt.toLocaleString()}</td></tr>`;
         });
     }
     
@@ -441,8 +353,10 @@ window.generateReports = function() {
     targetOrders.forEach(o => {
         if(o.type) {
             o.type.split('+').forEach(item => {
-                let match = item.match(/\[(.*?)\s\((\d+)\)/); if(match) { let code = match[1].trim(), qty = parseInt(match[2]) \vert{}\vert{} 1; typeStats[code] = (typeStats[code] \vert{}\vert{} 0) + qty; } else { let cleanItem = item.replace(/[\[\]]/g, '').trim();
-                    if(cleanItem) typeStats[cleanItem] = (typeStats[cleanItem] || 0) + (parseInt(o.qty) || 1);
+                let match = item.match(/\[(.*?)\s\((\d+)\)/);
+                if(match) { 
+                    let code = match[1].trim(), qty = parseInt(match[2]) || 1; 
+                    typeStats[code] = (typeStats[code] || 0) + qty; 
                 }
             });
         }
@@ -453,13 +367,13 @@ window.generateReports = function() {
     if(selType !== "all") filteredTypes = filteredTypes.filter(([tCode]) => tCode === selType);
 
     if(filteredTypes.length === 0) {
-        typeCardsHtml = '<div style="grid-column: 1 / -1; text-align:center; color:#ccc; padding:20px;">لا توجد بيانات</div>';
+        typeCardsHtml = '<div style="width:100%; text-align:center; color:#ccc; padding:20px;">لا توجد بيانات</div>';
     } else {
         filteredTypes.forEach(([tCode, tQty]) => {
             typeCardsHtml += `
-                <div class="report-card">
-                    <h4>${tCode}</h4>
-                    <div class="val">${tQty}</div>
+                <div class="report-card" style="width: 140px; border: 2px solid var(--neon-gold); background: rgba(0,0,0,0.5); padding: 20px 10px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+                    <h4 style="color: #fff; font-size: 15px; margin: 0 0 15px 0; border-bottom: 1px dashed rgba(255,215,0,0.5); padding-bottom: 10px;">${tCode}</h4>
+                    <div class="val" style="font-size: 32px; color: var(--neon-gold); font-weight: 900;">${tQty}</div>
                 </div>`;
         });
     }
@@ -468,8 +382,7 @@ window.generateReports = function() {
     let finCount = targetOrders.length, finQty = 0, finGross = 0, finDelivery = 0;
     targetOrders.forEach(o => {
         let amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0;
-        finQty += parseInt(o.qty) || 1; 
-        finGross += amt;
+        finQty += parseInt(o.qty) || 1; finGross += amt;
         finDelivery += (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther;
     });
     document.getElementById('finCount').innerText = finCount; 
@@ -477,7 +390,7 @@ window.generateReports = function() {
     document.getElementById('finGross').innerText = finGross.toLocaleString(); 
     document.getElementById('finDelivery').innerText = finDelivery.toLocaleString();
     document.getElementById('finNet').innerText = (finGross - finDelivery).toLocaleString();
-};
+}
 
 window.exportPageReportPDF = function() {
     const pageName = document.getElementById('repPageFilter').value;
@@ -504,7 +417,7 @@ window.exportPageReportPDF = function() {
     const cells = tableClone.querySelectorAll('th, td');
     cells.forEach(cell => {
         cell.style.border = '1px solid #333';
-        cell.style.padding = '10px';
+        cell.style.padding = '12px';
         cell.style.color = '#000';
         cell.style.textAlign = 'center';
         cell.style.background = '#fff';
@@ -530,97 +443,72 @@ window.exportPageReportPDF = function() {
     html2pdf().set(opt).from(tempDiv).save().then(() => {
         document.body.removeChild(tempDiv); 
     });
-};
+}
 
-window.openCloudOrders = function() {
+// =========================================
+// الأرشيف السحابي وتعديل الطلبات
+// =========================================
+
+window.openCloudOrders = async function() {
     document.getElementById('cloudOrdersModal').style.display = 'flex';
-    window.filterCloudOrders();
-};
-window.closeCloudOrders = function() { document.getElementById('cloudOrdersModal').style.display = 'none'; };
+    if(window.getCloudOrdersFromFirebase) {
+        allCloudOrders = await window.getCloudOrdersFromFirebase();
+        allCloudOrders.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+        filteredCloudOrders = [...allCloudOrders]; 
+        window.filterCloudOrders();
+    }
+}
+window.closeCloudOrders = function() { document.getElementById('cloudOrdersModal').style.display = 'none'; }
 
 window.filterCloudOrders = function() {
     const qt = document.getElementById('cloudSearchInput').value.toLowerCase();
     const pF = document.getElementById('cloudPageFilter').value;
-    const fromVal = document.getElementById('cloudDateFrom').value;
-    const toVal = document.getElementById('cloudDateTo').value;
-
-    let fromDate = fromVal ? new Date(fromVal) : null; if(fromDate) fromDate.setHours(0,0,0,0);
-    let toDate = toVal ? new Date(toVal) : null; if(toDate) toDate.setHours(23,59,59,999);
-
     const tb = document.getElementById('cloudOrdersTbody'); 
     tb.innerHTML = '';
     
-    filteredCloudOrders = allCloudOrders.filter(o => {
-        const matchText = (o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || (o.id||"").toString().includes(qt);
-        const matchPage = (pF === "" || (o.constant||"") === pF);
-        let matchDate = true;
-        if(fromDate || toDate) {
-            if(!o.timestamp || !o.timestamp.seconds) matchDate = false;
-            else {
-                const orderDate = new Date(o.timestamp.seconds * 1000);
-                if(fromDate && orderDate < fromDate) matchDate = false;
-                if(toDate && orderDate > toDate) matchDate = false;
-            }
-        }
-        return matchText && matchPage && matchDate;
-    });
+    filteredCloudOrders = allCloudOrders.filter(o => 
+        ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt)) && 
+        (pF === "" || (o.constant||"") === pF)
+    );
     
-    if (filteredCloudOrders.length === 0) {
-        tb.innerHTML = '<tr><td colspan="9" style="text-align:center;">لا توجد طلبات مطابقة</td></tr>';
-        return;
-    }
-
     filteredCloudOrders.forEach(o => {
         const tr = document.createElement('tr');
         
-        let actionsHtml = '<div style="display:flex; gap:5px; justify-content:center;">';
+        let actionsHtml = '';
         if (loggedInUserCanEdit) {
-            actionsHtml += `<button type="button" class="btn-parse" style="padding: 6px 10px; background: #3498db; border-radius:6px;" onclick="window.openEditModal('${o.id_doc}')" title="تعديل">✏️</button>`;
+            actionsHtml += `<button class="btn-parse" style="padding: 5px 10px; margin-left: 5px; background: #3498db; border-radius:6px;" onclick="openEditModal('${o.id_doc}')">✏️</button>`;
         }
         if (loggedInUserCanDelete) {
-            actionsHtml += `<button type="button" class="btn-danger" style="padding: 6px 10px; border-radius:6px;" onclick="window.deleteCloudOrder('${o.id_doc}')" title="حذف">🗑️</button>`;
+            actionsHtml += `<button class="btn-danger" style="padding: 5px 10px; border-radius:6px;" onclick="deleteCloudOrder('${o.id_doc}')">🗑️</button>`;
         }
-        actionsHtml += '</div>';
-        if (!loggedInUserCanEdit && !loggedInUserCanDelete) actionsHtml = '-';
+        if (!actionsHtml) actionsHtml = '-';
 
-        let amtFormatted = parseFloat((o.amount||"0").toString().replace(/[^0-9.-]+/g,"")) || 0;
-
-        tr.innerHTML = `
-            <td>${o.id||'-'}</td> 
-            <td style="color:var(--neon-gold); font-weight:bold;">${o.constant||'-'}</td> 
-            <td>${o.name||'-'}</td>
-            <td dir="ltr" style="font-size:12px;">${o.phone1||''}${o.phone2 ? '<br>'+o.phone2 : ''}</td> 
-            <td style="font-size:12px;">${o.gov||'-'}${o.area ? ' - '+o.area : ''}</td>
-            <td style="color:var(--neon-gold); font-size:12px;" dir="ltr">${o.type||'-'}</td> 
-            <td style="font-weight:bold;">${amtFormatted ? amtFormatted.toLocaleString() : (o.amount||'-')}</td> 
-            <td style="font-size:12px;">${o.addedBy||''}</td>
+        tr.innerHTML = `<td>${o.id||'-'}</td> <td style="color:var(--neon-gold);">${o.constant||'-'}</td> <td>${o.name||'-'}</td>
+            <td dir="ltr" style="font-size:12px;">${o.phone1}<br>${o.phone2||''}</td> <td style="font-size:12px;">${o.gov||'-'}</td>
+            <td style="color:var(--neon-gold); font-size:12px;">${o.type||'-'}</td> <td>${o.amount||'-'}</td> <td style="font-size:12px;">${o.addedBy||''}</td>
             <td>${actionsHtml}</td>`;
         tb.appendChild(tr);
     });
-};
+}
 
 window.deleteCloudOrder = function(docId) {
-    window.showConfirmDialog("تأكيد الحذف النهائي من السحابة؟", async function() {
+    window.showConfirmDialog("تأكيد الحذف النهائي؟", async function() {
         if(window.deleteOrderFromFirebase) { 
             await window.deleteOrderFromFirebase(docId); 
+            allCloudOrders = allCloudOrders.filter(o => o.id_doc !== docId); 
+            window.filterCloudOrders(); 
             window.showSuccessToast("تم حذف الطلب بنجاح!");
         }
     });
-};
+}
 
+// دالة فتح نافذة التعديل للطلب المختار
 window.openEditModal = function(docId) {
     let order = allCloudOrders.find(o => o.id_doc === docId);
     if(!order) return;
     
     currentEditDocId = docId;
-    
-    const editPageSelect = document.getElementById('editConstant');
-    editPageSelect.innerHTML = configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-    if (order.constant && !configuredPages.some(p => p.name === order.constant)) {
-        editPageSelect.innerHTML += `<option value="${order.constant}">${order.constant}</option>`;
-    }
-    editPageSelect.value = order.constant || '';
-
+    document.getElementById('editConstant').value = order.constant || '';
     document.getElementById('editName').value = order.name || '';
     document.getElementById('editPhone1').value = order.phone1 || '';
     document.getElementById('editPhone2').value = order.phone2 || '';
@@ -629,71 +517,68 @@ window.openEditModal = function(docId) {
     document.getElementById('editType').value = order.type || '';
     document.getElementById('editQty').value = order.qty || 1;
     document.getElementById('editAmount').value = order.amount || '';
-    document.getElementById('editNote').value = order.note || '';
     
     document.getElementById('editOrderModal').style.display = 'flex';
-};
+}
 
 window.closeEditModal = function() {
     document.getElementById('editOrderModal').style.display = 'none';
     currentEditDocId = null;
-};
+}
 
+// دالة حفظ التعديلات في السحابة
 window.saveEditedOrder = async function() {
     if(!currentEditDocId) return;
     
-    const amtInput = document.getElementById('editAmount');
-    window.formatAmount(amtInput);
-
     const newData = {
         constant: document.getElementById('editConstant').value,
-        name: document.getElementById('editName').value.trim(),
-        phone1: document.getElementById('editPhone1').value.trim(),
-        phone2: document.getElementById('editPhone2').value.trim(),
-        gov: document.getElementById('editGov').value.trim(),
-        area: document.getElementById('editArea').value.trim(),
-        type: document.getElementById('editType').value.trim(),
+        name: document.getElementById('editName').value,
+        phone1: document.getElementById('editPhone1').value,
+        phone2: document.getElementById('editPhone2').value,
+        gov: document.getElementById('editGov').value,
+        area: document.getElementById('editArea').value,
+        type: document.getElementById('editType').value,
         qty: parseInt(document.getElementById('editQty').value) || 1,
-        amount: amtInput.value.trim(),
-        note: document.getElementById('editNote').value.trim()
+        amount: document.getElementById('editAmount').value
     };
 
     if(window.updateOrderInFirebase) {
-        const btn = document.getElementById('saveEditBtn');
-        btn.disabled = true; btn.innerText = "جاري الحفظ... ⏳";
         try {
             await window.updateOrderInFirebase(currentEditDocId, newData);
+            
+            // تحديث المصفوفة المحلية حتى تظهر التغييرات فوراً دون إعادة التحميل
+            let idx = allCloudOrders.findIndex(o => o.id_doc === currentEditDocId);
+            if(idx > -1) {
+                allCloudOrders[idx] = { ...allCloudOrders[idx], ...newData };
+            }
+            
+            window.filterCloudOrders();
             window.closeEditModal();
-            window.showSuccessToast("تم حفظ التعديلات والمبلغ بنجاح! ✏️💾");
+            window.showSuccessToast("تم تعديل بيانات الطلب بنجاح! ✏️✨");
         } catch(e) {
             alert("حدث خطأ أثناء التعديل. تأكد من الاتصال بالإنترنت.");
         }
-        btn.disabled = false; btn.innerText = "حفظ التعديلات في السحابة 💾";
     }
-};
+}
 
 window.exportCloudToExcel = function() {
     if(filteredCloudOrders.length === 0) return;
     let exportData = filteredCloudOrders.map((o, i) => {
         const amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0;
         const del = (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther;
-        return { 
-            "ت": i+1, "البيج": o.constant||"", "اسم الزبون": o.name||"", 
-            "رقم الهاتف": o.phone1, "العنوان": (o.gov||"") + (o.area ? " - " + o.area : ""), 
-            "الطلب": o.type||"", "العدد": parseInt(o.qty)||1, 
-            "المبلغ الكلي": amt, "مبلغ التوصيل": del, "الصافي": amt-del, "ملاحظات": o.note||"" 
-        };
+        return { "ت": i+1, "البيج": o.constant||"", "اسم الزبون": o.name||"", "رقم الهاتف": o.phone1, "العنوان": o.gov||"", "العدد": parseInt(o.qty)||1, "المبلغ الكلي": amt, "مبلغ التوصيل": del, "الصافي": amt-del };
     });
     const wb = XLSX.utils.book_new(); 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exportData), "السحابة"); 
     XLSX.writeFile(wb, "أرشيف_السحابة.xlsx");
-};
+}
+
+// =========================================
+// الإعدادات وإدارة المستخدمين (المحدثة)
+// =========================================
 
 window.openSettings = function() {
     document.getElementById('settingsModal').style.display = 'flex'; 
-    document.getElementById('feeBaghdadInput').value = feeBaghdad;
-    document.getElementById('feeOtherInput').value = feeOther;
-
     if (loggedInUserCanSettings) { 
         document.getElementById('settingsAuthSection').style.display = 'none'; 
         document.getElementById('settingsManagerSection').style.display = 'block'; 
@@ -701,12 +586,9 @@ window.openSettings = function() {
     } else { 
         document.getElementById('settingsAuthSection').style.display = 'block'; 
         document.getElementById('settingsManagerSection').style.display = 'none'; 
-        document.getElementById('settingsPass').value = '';
-        document.getElementById('settings-error').style.display = 'none';
     }
-};
-window.closeSettings = function() { document.getElementById('settingsModal').style.display = 'none'; };
-
+}
+window.closeSettings = function() { document.getElementById('settingsModal').style.display = 'none'; }
 window.verifySettingsPass = function() { 
     if (document.getElementById('settingsPass').value === ADMIN_PASS) { 
         document.getElementById('settingsAuthSection').style.display = 'none'; 
@@ -715,83 +597,69 @@ window.verifySettingsPass = function() {
     } else { 
         document.getElementById('settings-error').style.display = 'block'; 
     } 
-};
-
+}
 window.switchTab = function(tabId, btn) { 
     document.querySelectorAll('#settingsModal .tab-btn').forEach(b => b.classList.remove('active')); 
     document.querySelectorAll('#settingsModal .tab-pane').forEach(p => p.classList.remove('active')); 
     btn.classList.add('active'); 
     document.getElementById(tabId).classList.add('active'); 
-};
+}
 
 window.addPageType = async function() { 
-    const input = document.getElementById('newPageName');
-    const val = input.value.trim(); 
+    const val = document.getElementById('newPageName').value.trim(); 
     if(val && window.addSystemPageToFirebase) { 
-        input.value = '';
-        await window.addSystemPageToFirebase({name: val}); 
-        window.showSuccessToast("تمت إضافة البيج بنجاح!");
+        const r = await window.addSystemPageToFirebase({name: val}); 
+        configuredPages.push({id: r.id, name: val}); 
+        window.renderPagesSettings(); window.updatePagesDropdown(); 
     } 
-};
-window.deletePageType = function(id) { 
-    window.showConfirmDialog("هل أنت متأكد من حذف هذا البيج؟", async function() { 
-        await window.deleteSystemPageFromFirebase(id); 
+}
+window.deletePageType = async function(idx) { 
+    window.showConfirmDialog("حذف البيج؟", async function() { 
+        await window.deleteSystemPageFromFirebase(configuredPages[idx].id); 
+        configuredPages.splice(idx, 1); 
+        window.renderPagesSettings(); window.updatePagesDropdown(); 
     }); 
-};
+}
 
 window.renderPagesSettings = function() { 
-    const el = document.getElementById("pagesListDisplay");
-    if(!el) return;
-    el.innerHTML = configuredPages.map(p => `
+    document.getElementById("pagesListDisplay").innerHTML = configuredPages.map((p, i) => `
         <li class="settings-list-item">
             <span class="item-text">${p.name}</span>
-            <button type="button" class="btn-danger" onclick="window.deletePageType('${p.id}')">حذف ❌</button>
+            <button class="btn-danger" onclick="deletePageType(${i})">حذف ❌</button>
         </li>
     `).join(''); 
-};
+}
 
 window.updatePagesDropdown = function() { 
-    const s1 = document.getElementById('constantField');
-    const s2 = document.getElementById('cloudPageFilter'); 
-    const v1 = s1 ? s1.value : '';
-    const v2 = s2 ? s2.value : '';
-
-    if (s1) {
-        s1.innerHTML = '<option value="">-- اختر البيج التابع له الطلب --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-        s1.value = v1;
-    }
-    if (s2) {
-        s2.innerHTML = '<option value="">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
-        s2.value = v2;
-    }
-};
+    const s1 = document.getElementById('constantField'), s2 = document.getElementById('cloudPageFilter'); 
+    s1.innerHTML = '<option value="">-- اختر البيج --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); 
+    s2.innerHTML = '<option value="">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); 
+}
 
 window.addOrderType = async function() { 
-    const nInput = document.getElementById('newOrderName');
-    const cInput = document.getElementById('newOrderCode');
-    const n = nInput.value.trim(), c = cInput.value.trim(); 
+    const n = document.getElementById('newOrderName').value.trim(), c = document.getElementById('newOrderCode').value.trim(); 
     if(n && c && window.addOrderTypeToFirebase) { 
-        nInput.value = ''; cInput.value = '';
-        await window.addOrderTypeToFirebase({name: n, code: c}); 
-        window.showSuccessToast("تمت إضافة نوع الطلب بنجاح!");
+        const r = await window.addOrderTypeToFirebase({name: n, code: c}); 
+        configuredOrderTypes.push({id: r.id, name: n, code: c}); 
+        window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); 
     } 
-};
-window.deleteOrderType = function(id) { 
-    window.showConfirmDialog("هل أنت متأكد من حذف نوع الطلب هذا؟", async function() { 
-        await window.deleteOrderTypeFromFirebase(id); 
+}
+window.deleteOrderType = async function(idx) { 
+    window.showConfirmDialog("حذف نوع الطلب؟", async function() { 
+        await window.deleteOrderTypeFromFirebase(configuredOrderTypes[idx].id); 
+        configuredOrderTypes.splice(idx, 1); 
+        window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); 
     }); 
-};
+}
 
 window.renderOrderTypesSettings = function() { 
-    const el = document.getElementById("orderTypesListDisplay");
-    if(!el) return;
-    el.innerHTML = configuredOrderTypes.map(t => `
+    document.getElementById("orderTypesListDisplay").innerHTML = configuredOrderTypes.map((t, i) => `
         <li class="settings-list-item">
             <span class="item-text">${t.name} <span style="color:var(--neon-gold); font-size: 14px;">(${t.code})</span></span>
-            <button type="button" class="btn-danger" onclick="window.deleteOrderType('${t.id}')">حذف ❌</button>
+            <button class="btn-danger" onclick="deleteOrderType(${i})">حذف ❌</button>
         </li>
     `).join(''); 
-};
+}
 
 window.updateOrderTypeSelects = function() { 
     document.querySelectorAll('.orderTypeSelect').forEach(s => { 
@@ -799,14 +667,12 @@ window.updateOrderTypeSelects = function() {
         s.innerHTML = '<option value="">-- اختر الطلب --</option>' + configuredOrderTypes.map(t => `<option value="${t.name}">${t.name}</option>`).join(''); 
         s.value = v; 
     }); 
-};
+}
 
 window.addUser = async function() {
-    const uInput = document.getElementById("new-user-name");
-    const pInput = document.getElementById("new-user-pass");
-    const u = uInput.value.trim(), p = pInput.value.trim();
-    if(u === "" || p === "" || u.toLowerCase() === ADMIN_USER.toLowerCase()) return;
-    
+    const u = document.getElementById("new-user-name").value.trim();
+    const p = document.getElementById("new-user-pass").value.trim();
+    if(u === "" || p === "" || u === ADMIN_USER) return;
     const data = { 
         username: u, password: p, 
         canDeleteCloud: document.getElementById("new-user-can-delete").checked, 
@@ -814,72 +680,71 @@ window.addUser = async function() {
         canAccessSettings: document.getElementById("new-user-can-settings").checked, 
         canAccessReports: document.getElementById("new-user-can-reports").checked 
     };
-    uInput.value = ''; pInput.value = '';
-    await window.addSystemUserToFirebase(data); 
-    window.showSuccessToast("تمت إضافة المستخدم بنجاح!");
-};
-
-window.deleteUser = function(id) { 
-    window.showConfirmDialog("هل أنت متأكد من حذف هذا المستخدم؟", async function() { 
-        await window.deleteSystemUserFromFirebase(id); 
+    const r = await window.addSystemUserToFirebase(data); 
+    additionalUsers.push({id: r.id, ...data}); 
+    window.renderUsers();
+}
+window.deleteUser = function(idx) { 
+    window.showConfirmDialog("حذف المستخدم؟", async function() { 
+        await window.deleteSystemUserFromFirebase(additionalUsers[idx].id); 
+        additionalUsers.splice(idx, 1); 
+        window.renderUsers(); 
     }); 
-};
-
-window.togglePermission = async function(id, field) { 
-    const u = additionalUsers.find(user => user.id === id); 
-    if(!u) return;
-    const newVal = !u[field];
-    await window.updateSystemUserInFirebase(id, {[field]: newVal}); 
-    window.showSuccessToast("تم تحديث الصلاحية فوراً! ⚡");
-};
+}
+window.togglePermission = async function(idx, field) { 
+    const u = additionalUsers[idx]; 
+    u[field] = !u[field]; 
+    await window.updateSystemUserInFirebase(u.id, {[field]: u[field]}); 
+    window.renderUsers(); 
+}
 
 window.renderUsers = function() {
-    const el = document.getElementById("users-list");
-    if(!el) return;
-    el.innerHTML = additionalUsers.map(u => `
+    document.getElementById("users-list").innerHTML = additionalUsers.map((u, i) => `
         <li class="settings-list-item user-list-item">
             <div class="user-list-header">
-                <span class="item-text" style="color: var(--neon-gold);">${u.username} <span style="font-size:13px; color:#aaa;">(${u.password})</span></span>
-                <button type="button" class="btn-danger" onclick="window.deleteUser('${u.id}')">حذف ❌</button>
+                <span class="item-text" style="color: var(--neon-gold);">${u.username} <span style="font-size:12px; color:#aaa;">(${u.password})</span></span>
+                <button class="btn-danger" onclick="deleteUser(${i})">حذف ❌</button>
             </div>
             <div class="user-permissions">
-                <span class="permission-badge" onclick="window.togglePermission('${u.id}', 'canDeleteCloud')">
+                <span class="permission-badge" onclick="togglePermission(${i}, 'canDeleteCloud')">
                     ${u.canDeleteCloud ? '🟢 مسح' : '🔴 مسح'}
                 </span>
-                <span class="permission-badge" onclick="window.togglePermission('${u.id}', 'canEditCloud')">
+                <span class="permission-badge" onclick="togglePermission(${i}, 'canEditCloud')">
                     ${u.canEditCloud ? '🟢 تعديل' : '🔴 تعديل'}
                 </span>
-                <span class="permission-badge" onclick="window.togglePermission('${u.id}', 'canAccessSettings')">
+                <span class="permission-badge" onclick="togglePermission(${i}, 'canAccessSettings')">
                     ${u.canAccessSettings ? '🟢 الإعدادات' : '🔴 الإعدادات'}
                 </span>
-                <span class="permission-badge" onclick="window.togglePermission('${u.id}', 'canAccessReports')">
+                <span class="permission-badge" onclick="togglePermission(${i}, 'canAccessReports')">
                     ${u.canAccessReports ? '🟢 التقارير' : '🔴 التقارير'}
                 </span>
             </div>
         </li>
     `).join('');
-};
+}
+
+// =========================================
+// معالجة وإضافة الطلبات من لوحة التحكم
+// =========================================
 
 window.addOrderItemRow = function() {
     const wr = document.getElementById('dynamicRowsWrapper');
     const r = document.createElement('div'); 
     r.className = 'order-item-row';
-    r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 100px;"> <div class="qty-controls" style="flex: 1; min-width: 120px;"><button type="button" class="qty-btn plus" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" min="1" style="width: 45px; text-align: center;"><button type="button" class="qty-btn minus" onclick="window.changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 8px 12px;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`;
+    r.innerHTML = `<div style="display:flex; flex: 2; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1;"> <div class="qty-controls"><button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" style="width: 40px; text-align: center;"><button type="button" class="qty-btn minus" onclick="changeQty(this, -1)">-</button><button type="button" class="btn-danger" onclick="this.closest('.order-item-row').remove()">❌</button></div>`;
     wr.appendChild(r); 
     window.updateOrderTypeSelects();
-};
-
+}
 window.resetItemsContainer = function() { 
-    document.getElementById('dynamicRowsWrapper').innerHTML = `<div class="order-item-row"><div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="اكتب نوع الطلب..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;"> <div class="qty-controls" style="flex: 1; min-width: 120px;"><label style="color:#ccc; font-size:12px; margin:0;">العدد:</label><button type="button" class="qty-btn plus" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center;"><button type="button" class="qty-btn minus" onclick="window.changeQty(this, -1)">-</button></div></div>`; 
+    document.getElementById('dynamicRowsWrapper').innerHTML = `<div class="order-item-row"><div style="display:flex; flex: 2; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1;"> <div class="qty-controls"><button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" style="width: 40px; text-align: center;"><button type="button" class="qty-btn minus" onclick="changeQty(this, -1)">-</button></div></div>`; 
     window.updateOrderTypeSelects(); 
-};
-
+}
 window.changeQty = function(btn, d) { 
     let i = btn.parentElement.querySelector('input[type="number"]'), v = parseInt(i.value)||1; 
     v += d; 
     if(v<1) v=1; 
     i.value = v; 
-};
+}
 
 window.extractValue = function(lines, keyword) {
     for (let i = 0; i < lines.length; i++) {
@@ -892,7 +757,7 @@ window.extractValue = function(lines, keyword) {
             }
         }
     } return "";
-};
+}
 
 window.parseText = function() {
     const txt = document.getElementById('pasteArea').value.trim(); if (!txt) return;
@@ -922,14 +787,12 @@ window.parseText = function() {
             ci.value = extType; 
         }
     }
-};
+}
 
 window.addToTable = async function() {
     const pg = document.getElementById('constantField').value; 
-    if (!pg) { alert("📌 يجب اختيار البيج أولاً!"); return; }
+    if (!pg) { alert("يجب اختيار البيج!"); return; }
     
-    window.formatAmount(document.getElementById('amount'));
-
     let arr = [], totQty = 0;
     document.querySelectorAll('.order-item-row').forEach(r => {
         let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim();
@@ -938,64 +801,49 @@ window.addToTable = async function() {
         if (tv !== "") { 
             let ft = configuredOrderTypes.find(t => t.name === tv); 
             let cd = ft ? ft.code : tv; 
-            arr.push(`[${cd} (${qv})${cv ? ' ' + cv : ''}]`); 
+            arr.push(`[${cd} (${qv}) ${cv}]`.trim()); 
             totQty += qv; 
         }
     });
     
     const data = { 
-        id: document.getElementById('custId').value.trim(), 
-        name: document.getElementById('custName').value.trim(), 
-        phone1: document.getElementById('phone1').value.trim(), 
-        phone2: document.getElementById('phone2').value.trim(), 
-        gov: document.getElementById('gov').value.trim(), 
-        area: document.getElementById('area').value.trim(), 
-        type: arr.join(' + '), 
-        qty: totQty || 1, 
-        amount: document.getElementById('amount').value.trim(), 
-        constant: pg, 
-        note: document.getElementById('note').value.trim(), 
-        addedBy: loggedInUser || 'مجهول', 
-        status: 'جديد' 
+        id: document.getElementById('custId').value, name: document.getElementById('custName').value, 
+        phone1: document.getElementById('phone1').value, phone2: document.getElementById('phone2').value, 
+        gov: document.getElementById('gov').value, area: document.getElementById('area').value, 
+        type: arr.join(' + '), qty: totQty, amount: document.getElementById('amount').value, 
+        constant: pg, note: document.getElementById('note').value, addedBy: loggedInUser || 'مجهول', status: 'جديد' 
     };
     
-    if (!data.id && !data.name && !data.phone1) {
-        alert("يرجى إدخال بيانات الطلب أولاً!");
-        return;
-    }
+    if (!data.id && !data.name) return;
 
     if (window.saveDataToFirebase) { 
-        const btn = document.getElementById("mainSaveBtn");
-        btn.disabled = true; btn.innerText = "جاري الحفظ... ⏳";
+        document.getElementById("mainSaveBtn").disabled = true; 
         await window.saveDataToFirebase(data); 
-        btn.disabled = false; btn.innerText = "إضافة إلى الجدول والحفظ سحابياً ➕";
+        document.getElementById("mainSaveBtn").disabled = false; 
     }
     
     const row = document.createElement('tr'); 
-    row.innerHTML = `<td>${data.id}</td> <td style="color:var(--neon-gold);">${data.constant}</td> <td>${data.name}</td> <td dir="ltr">${data.phone1}</td> <td dir="ltr">${data.phone2}</td> <td>${data.gov}</td> <td>${data.area}</td> <td style="color:var(--neon-gold);" dir="ltr">${data.type}</td> <td style="color:var(--neon-gold);">${data.qty}</td> <td>${data.amount}</td> <td>${data.note}</td> <td><button type="button" class="btn-danger" style="padding: 6px 10px;" onclick="this.closest('tr').remove(); window.updateOrdersCounter();">حذف ❌</button></td>`;
+    row.innerHTML = `<td>${data.id}</td> <td style="color:var(--neon-gold);">${data.constant}</td> <td>${data.name}</td> <td dir="ltr">${data.phone1}</td> <td dir="ltr">${data.phone2}</td> <td>${data.gov}</td> <td>${data.area}</td> <td style="color:var(--neon-gold);">${data.type}</td> <td style="color:var(--neon-gold);">${data.qty}</td> <td>${data.amount}</td> <td>${data.note}</td> <td><button class="btn-danger" onclick="this.closest('tr').remove(); updateOrdersCounter();">حذف ❌</button></td>`;
     document.getElementById('tableBody').appendChild(row); 
     window.updateOrdersCounter(); 
     window.clearForm(); 
     document.getElementById('pasteArea').value = '';
     
-    window.showSuccessToast("تمت إضافة الطلب وتخزينه سحابياً بنجاح! 🎉");
-};
+    window.showSuccessToast("تمت إضافة الطلب وتخزينه بنجاح! 🎉");
+}
 
 window.clearForm = function() { 
-    ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = '';
-    }); 
+    ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => document.getElementById(id).value = ''); 
     window.resetItemsContainer(); 
-};
+}
 window.clearAll = function() { 
     document.getElementById('pasteArea').value = ''; 
     document.getElementById('constantField').value = ''; 
     window.clearForm(); 
-};
+}
 window.updateOrdersCounter = function() { 
-    document.getElementById('ordersCounterBadge').innerText = `إجمالي الطلبات: ${document.getElementById('tableBody').rows.length}`; 
-};
+    document.getElementById('ordersCounterBadge').innerText = `الطلبات: ${document.getElementById('tableBody').rows.length}`; 
+}
 
 window.exportToExcel = function() {
     const trs = document.getElementById("tableBody").rows; if(trs.length === 0) return;
@@ -1004,33 +852,14 @@ window.exportToExcel = function() {
         const amt = parseFloat(r.cells[9].innerText.replace(/[^0-9.-]+/g,"")) || 0;
         const del = r.cells[5].innerText.includes("بغداد") ? feeBaghdad : feeOther;
         return { 
-            "ت": i+1, "البيج": r.cells[1].innerText, "رقم الوصل": r.cells[0].innerText || (i+1), "تاريخ": ds, 
+            "ت": i+1, "البيج": r.cells[1].innerText, "رقم الوصل": i+1, "تاريخ": ds, 
             "اسم الزبون": r.cells[2].innerText, "رقم الهاتف": r.cells[3].innerText, 
             "العنوان": r.cells[5].innerText, "العنوان منطقة": r.cells[6].innerText, 
             "العدد": parseInt(r.cells[8].innerText)||1, "المبلغ الكلي": amt, 
-            "مبلغ التوصيل": del, "المبلغ الصافي": amt-del, "ملاحظات": r.cells[7].innerText + (r.cells[10].innerText ? " - " + r.cells[10].innerText : "")
+            "مبلغ التوصيل": del, "المبلغ الصافي": amt-del, "ملاحظات": r.cells[7].innerText 
         };
     });
     const wb = XLSX.utils.book_new(); 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), "الجدول"); 
     XLSX.writeFile(wb, "طلبات_المندوب.xlsx");
-};
-
-// ربط إضافي مباشر للأزرار لضمان عملها 100% تحت أي ظرف
-document.addEventListener('DOMContentLoaded', function() {
-    window.createGoldDust();
-    
-    const passInput = document.getElementById('password');
-    if (passInput) {
-        passInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') window.login();
-        });
-    }
-    
-    const settingsPassInput = document.getElementById('settingsPass');
-    if (settingsPassInput) {
-        settingsPassInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') window.verifySettingsPass();
-        });
-    }
-});
+}
