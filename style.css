@@ -124,7 +124,7 @@ body::after { width: 250px; height: 250px; bottom: -50px; right: -50px; }
 .install-btn {
     background: var(--bg-color); color: var(--text-muted);
     box-shadow: var(--outer-shadow); padding: 12px 20px;
-    border-radius: 15px; font-weight: bold; flex: 1; font-size: 14px;
+    border-radius: 15px; font-weight: bold; flex: 1; font-size: 14px; border: none; cursor: pointer;
 }
 .install-btn:active { box-shadow: var(--inner-shadow); }
 
@@ -259,6 +259,7 @@ ul { padding: 0; margin: 0; width: 100%; list-style: none; }
     justify-content: flex-start;
 }
 
+/* شكل أزرار الصلاحيات (مع قابلية النقر) */
 .status-badge {
     background: var(--bg-color);
     box-shadow: var(--inner-shadow);
@@ -270,7 +271,19 @@ ul { padding: 0; margin: 0; width: 100%; list-style: none; }
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
 }
+.status-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--outer-shadow);
+}
+.status-badge:active {
+    transform: translateY(0);
+    box-shadow: var(--inner-shadow);
+}
+
 .status-badge.active::before { content: '🟢'; font-size: 10px; }
 .status-badge.inactive::before { content: '🔴'; font-size: 10px; }
 
