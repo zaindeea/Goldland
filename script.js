@@ -1,4 +1,3 @@
-// إعدادات Firebase القياسية (تعمل بدون أي قيود)
 const firebaseConfig = {
     apiKey: "AIzaSyA-2N_HZoej2Vv3vQa0P5hu0gvmwVs0R3o",
     authDomain: "gold-land2021.firebaseapp.com",
@@ -8,7 +7,6 @@ const firebaseConfig = {
     appId: "1:580003463235:web:4ebb43e8f3db552b3294f6"
 };
 
-// متغيرات النظام العامة
 const ADMIN_USER = "Zain"; 
 const ADMIN_PASS = "327798";
 let additionalUsers = [], configuredOrderTypes = [], configuredPages = [], allCloudOrders = [], filteredCloudOrders = [];
@@ -22,10 +20,9 @@ let feeOther = parseInt(safeGetStorage('feeOther', '8000')) || 8000;
 let currentConfirmAction = null;
 let currentEditDocId = null;
 
-// دالة تحديث صلاحيات المستخدم الحالي تلقائياً وبدون تسجيل خروج
 function refreshCurrentUserPermissions() {
     if (!loggedInUser) return;
-    if (loggedInUser === ADMIN_USER) {
+    if (loggedInUser.toLowerCase() === ADMIN_USER.toLowerCase()) {
         loggedInUserCanDelete = true;
         loggedInUserCanEdit = true;
         loggedInUserCanSettings = true;
@@ -39,48 +36,49 @@ function refreshCurrentUserPermissions() {
             loggedInUserCanReports = !!u.canAccessReports;
         }
     }
-    if (document.getElementById('cloudOrdersModal') && document.getElementById('cloudOrdersModal').style.display === 'flex') {
+    const cloudModal = document.getElementById('cloudOrdersModal');
+    if (cloudModal && cloudModal.style.display === 'flex') {
         window.filterCloudOrders();
     }
 }
 
-// تهيئة Firebase وتفعيل التحديث التلقائي المباشر (Real-time Listeners)
 try {
     if (typeof firebase !== 'undefined') {
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.firestore();
 
-        // 1. استماع مباشر لتغييرات المستخدمين والصلاحيات
         db.collection("system_users").onSnapshot((snap) => {
             additionalUsers = [];
             snap.forEach(d => additionalUsers.push({ id: d.id, ...d.data() }));
             refreshCurrentUserPermissions();
-            if (document.getElementById('settingsModal') && document.getElementById('settingsModal').style.display === 'flex') {
+            const setModal = document.getElementById('settingsModal');
+            if (setModal && setModal.style.display === 'flex') {
                 window.renderUsers();
             }
         });
 
-        // 2. استماع مباشر لتغييرات أنواع الطلبات
         db.collection("order_types").onSnapshot((snap) => {
             configuredOrderTypes = [];
             snap.forEach(d => configuredOrderTypes.push({ id: d.id, ...d.data() }));
             window.updateOrderTypeSelects();
-            if (document.getElementById('settingsModal') && document.getElementById('settingsModal').style.display === 'flex') {
+            const setModal = document.getElementById('settingsModal');
+            if (setModal && setModal.style.display === 'flex') {
                 window.renderOrderTypesSettings();
             }
         });
 
-        // 3. استماع مباشر لتغييرات البيجات
         db.collection("system_pages").onSnapshot((snap) => {
             configuredPages = [];
             snap.forEach(d => configuredPages.push({ id: d.id, ...d.data() }));
             window.updatePagesDropdown();
-            if (document.getElementById('settingsModal') && document.getElementById('settingsModal').style.display === 'flex') {
+            const setModal = document.getElementById('settingsModal');
+            if (setModal && setModal.style.display === 'flex') {
                 window.renderPagesSettings();
             }
         });
 
-        // 4. استماع مباشر لتغييرات أجور التوصيل في السحابة
         db.collection("system_config").doc("delivery_fees").onSnapshot((docSnap) => {
             if (docSnap.exists) {
                 const data = docSnap.data();
@@ -94,28 +92,33 @@ try {
                 if (baghdadInput) baghdadInput.value = feeBaghdad;
                 if (otherInput) otherInput.value = feeOther;
 
-                if (document.getElementById('reportsModal') && document.getElementById('reportsModal').style.display === 'flex') {
+                const repModal = document.getElementById('reportsModal');
+                if (repModal && repModal.style.display === 'flex') {
                     window.generateReports();
                 }
             }
         });
 
-        // 5. استماع مباشر للطلبات السحابية
         db.collection("orders").onSnapshot((snap) => {
             allCloudOrders = [];
             snap.forEach(d => allCloudOrders.push({ id_doc: d.id, ...d.data() }));
-            allCloudOrders.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+            allCloudOrders.sort((a, b) => {
+                const tA = (a.timestamp && a.timestamp.seconds) ? a.timestamp.seconds : 0;
+                const tB = (b.timestamp && b.timestamp.seconds) ? b.timestamp.seconds : 0;
+                return tB - tA;
+            });
             
-            if (document.getElementById('cloudOrdersModal') && document.getElementById('cloudOrdersModal').style.display === 'flex') {
+            const cloudModal = document.getElementById('cloudOrdersModal');
+            if (cloudModal && cloudModal.style.display === 'flex') {
                 window.filterCloudOrders();
             }
-            if (document.getElementById('reportsModal') && document.getElementById('reportsModal').style.display === 'flex') {
+            const repModal = document.getElementById('reportsModal');
+            if (repModal && repModal.style.display === 'flex') {
                 window.populateReportFilters();
                 window.generateReports();
             }
         });
 
-        // دوال العمليات على قاعدة البيانات
         window.saveDataToFirebase = async function(orderData) {
             try { 
                 orderData.timestamp = firebase.firestore.FieldValue.serverTimestamp(); 
@@ -153,10 +156,6 @@ try {
     console.warn("Firebase Init Error", e);
 }
 
-// =========================================
-// الحركات البصرية والإشعارات
-// =========================================
-
 window.createGoldDust = function() {
     const dustContainer = document.createElement('div');
     document.body.appendChild(dustContainer);
@@ -181,20 +180,10 @@ window.showSuccessToast = function(message) {
         toast.className = 'success-toast';
         document.body.appendChild(toast);
     }
-    toast.innerHTML = `✨ ${message}`;
+    toast.innerHTML = '✨ ' + message;
     toast.classList.add('show');
     setTimeout(() => { toast.classList.remove('show'); }, 3000);
 };
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', window.createGoldDust);
-} else {
-    window.createGoldDust();
-}
-
-// =========================================
-// المظهر والدوال الأساسية
-// =========================================
 
 let currentTheme = safeGetStorage('gl_theme', 'dark');
 window.applyTheme = function(theme) {
@@ -252,6 +241,7 @@ window.closeConfirmModal = function() {
 window.handleEnter = function(event) { if (event.key === "Enter") window.login(); };
 
 window.formatAmount = function(input) {
+    if (!input) return;
     let val = input.value.trim(); if (!val) return;
     let numericVal = parseFloat(val.replace(/[^0-9.-]+/g, ""));
     if (!isNaN(numericVal) && numericVal > 0 && numericVal < 1000) {
@@ -278,55 +268,69 @@ window.toggleOrderInput = function(btn) {
     }
 };
 
-// =========================================
-// تسجيل الدخول والخروج
-// =========================================
-
 window.login = async function() {
     try {
-        const user = document.getElementById("username").value.trim();
-        const pass = document.getElementById("password").value.trim();
+        const userEl = document.getElementById("username");
+        const passEl = document.getElementById("password");
         const errorMsg = document.getElementById("login-error");
         const btn = document.getElementById("loginBtn");
         
-        if(user === "" || pass === "") return;
+        const user = userEl ? userEl.value.trim() : "";
+        const pass = passEl ? passEl.value.trim() : "";
+        
+        if(user === "" || pass === "") {
+            alert("يرجى إدخال اسم المستخدم وكلمة المرور");
+            return;
+        }
 
-        btn.innerText = "جاري الدخول... ⏳"; btn.disabled = true;
+        if (btn) { btn.innerText = "جاري الدخول... ⏳"; btn.disabled = true; }
 
-        if (user === ADMIN_USER && pass === ADMIN_PASS) {
-            loggedInUser = user; 
+        if (user.toLowerCase() === ADMIN_USER.toLowerCase() && pass === ADMIN_PASS) {
+            loggedInUser = ADMIN_USER; 
             refreshCurrentUserPermissions();
-            document.getElementById('feeBaghdadInput').value = feeBaghdad; 
-            document.getElementById('feeOtherInput').value = feeOther;
+            const bIn = document.getElementById('feeBaghdadInput');
+            const oIn = document.getElementById('feeOtherInput');
+            if (bIn) bIn.value = feeBaghdad; 
+            if (oIn) oIn.value = feeOther;
             window.showDashboard(); 
-            errorMsg.style.display = "none";
-            btn.innerText = "تسجيل الدخول"; btn.disabled = false; 
+            if (errorMsg) errorMsg.style.display = "none";
+            if (btn) { btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
             return;
         }
 
         if (additionalUsers.length === 0 && window.loadSystemDataFromFirebase) {
-            const cloudData = await window.loadSystemDataFromFirebase();
-            additionalUsers = cloudData.users;
+            try {
+                const cloudData = await Promise.race([
+                    window.loadSystemDataFromFirebase(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 4000))
+                ]);
+                if (cloudData && cloudData.users) additionalUsers = cloudData.users;
+            } catch (e) {
+                console.warn("Firebase timeout or offline", e);
+            }
         }
 
-        btn.innerText = "تسجيل الدخول"; btn.disabled = false;
+        if (btn) { btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
 
         const isNormalUser = additionalUsers.find(u => u.username === user && u.password === pass);
         if (isNormalUser) { 
             loggedInUser = user; 
             refreshCurrentUserPermissions();
-            document.getElementById('feeBaghdadInput').value = feeBaghdad; 
-            document.getElementById('feeOtherInput').value = feeOther;
+            const bIn = document.getElementById('feeBaghdadInput');
+            const oIn = document.getElementById('feeOtherInput');
+            if (bIn) bIn.value = feeBaghdad; 
+            if (oIn) oIn.value = feeOther;
             window.showDashboard(); 
-            errorMsg.style.display = "none"; 
+            if (errorMsg) errorMsg.style.display = "none"; 
         } else { 
-            errorMsg.style.display = "block"; 
+            if (errorMsg) errorMsg.style.display = "block"; 
         }
 
     } catch (err) {
-        alert("تعذر الاتصال بقاعدة البيانات. تحقق من الإنترنت.");
-        document.getElementById("loginBtn").innerText = "تسجيل الدخول"; 
-        document.getElementById("loginBtn").disabled = false;
+        console.error(err);
+        alert("حدث خطأ أثناء تسجيل الدخول.");
+        const btn = document.getElementById("loginBtn");
+        if (btn) { btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
     }
 };
 
@@ -348,13 +352,11 @@ window.logout = function() {
     }); 
 };
 
-// =========================================
-// التقارير الشاملة
-// =========================================
-
 window.populateReportFilters = function() {
     const pageSelect = document.getElementById('repPageFilter');
     const typeSelect = document.getElementById('repTypeFilter');
+    if (!pageSelect || !typeSelect) return;
+
     const currentPageVal = pageSelect.value || 'all';
     const currentTypeVal = typeSelect.value || 'all';
 
@@ -407,14 +409,13 @@ window.generateReports = function() {
 
     let targetOrders = allCloudOrders.filter(o => {
         if(fromDate || toDate) {
-            if(!o.timestamp?.seconds) return false;
+            if(!o.timestamp || !o.timestamp.seconds) return false;
             const orderDate = new Date(o.timestamp.seconds * 1000);
             if(fromDate && orderDate < fromDate) return false;
             if(toDate && orderDate > toDate) return false;
         } return true;
     });
 
-    // 1. تقرير البيجات
     let pageTargetOrders = targetOrders;
     if(selPage !== "all") pageTargetOrders = targetOrders.filter(o => o.constant === selPage);
 
@@ -436,7 +437,6 @@ window.generateReports = function() {
     document.getElementById('totalPageQty').innerText = totalPageQty;
     document.getElementById('totalPageAmount').innerText = totalPageAmt.toLocaleString();
 
-    // 2. تقرير الطلبات (البطاقات)
     let typeStats = {};
     targetOrders.forEach(o => {
         if(o.type) {
@@ -465,7 +465,6 @@ window.generateReports = function() {
     }
     document.getElementById('repTypeCardsContainer').innerHTML = typeCardsHtml;
 
-    // 3. التقرير المالي
     let finCount = targetOrders.length, finQty = 0, finGross = 0, finDelivery = 0;
     targetOrders.forEach(o => {
         let amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0;
@@ -533,10 +532,6 @@ window.exportPageReportPDF = function() {
     });
 };
 
-// =========================================
-// الأرشيف السحابي وتعديل الطلبات
-// =========================================
-
 window.openCloudOrders = function() {
     document.getElementById('cloudOrdersModal').style.display = 'flex';
     window.filterCloudOrders();
@@ -560,7 +555,7 @@ window.filterCloudOrders = function() {
         const matchPage = (pF === "" || (o.constant||"") === pF);
         let matchDate = true;
         if(fromDate || toDate) {
-            if(!o.timestamp?.seconds) matchDate = false;
+            if(!o.timestamp || !o.timestamp.seconds) matchDate = false;
             else {
                 const orderDate = new Date(o.timestamp.seconds * 1000);
                 if(fromDate && orderDate < fromDate) matchDate = false;
@@ -580,10 +575,10 @@ window.filterCloudOrders = function() {
         
         let actionsHtml = '<div style="display:flex; gap:5px; justify-content:center;">';
         if (loggedInUserCanEdit) {
-            actionsHtml += `<button class="btn-parse" style="padding: 6px 10px; background: #3498db; border-radius:6px;" onclick="openEditModal('${o.id_doc}')" title="تعديل">✏️</button>`;
+            actionsHtml += `<button type="button" class="btn-parse" style="padding: 6px 10px; background: #3498db; border-radius:6px;" onclick="window.openEditModal('${o.id_doc}')" title="تعديل">✏️</button>`;
         }
         if (loggedInUserCanDelete) {
-            actionsHtml += `<button class="btn-danger" style="padding: 6px 10px; border-radius:6px;" onclick="deleteCloudOrder('${o.id_doc}')" title="حذف">🗑️</button>`;
+            actionsHtml += `<button type="button" class="btn-danger" style="padding: 6px 10px; border-radius:6px;" onclick="window.deleteCloudOrder('${o.id_doc}')" title="حذف">🗑️</button>`;
         }
         actionsHtml += '</div>';
         if (!loggedInUserCanEdit && !loggedInUserCanDelete) actionsHtml = '-';
@@ -694,10 +689,6 @@ window.exportCloudToExcel = function() {
     XLSX.writeFile(wb, "أرشيف_السحابة.xlsx");
 };
 
-// =========================================
-// الإعدادات وإدارة المستخدمين (تحديث مباشر)
-// =========================================
-
 window.openSettings = function() {
     document.getElementById('settingsModal').style.display = 'flex'; 
     document.getElementById('feeBaghdadInput').value = feeBaghdad;
@@ -754,7 +745,7 @@ window.renderPagesSettings = function() {
     el.innerHTML = configuredPages.map(p => `
         <li class="settings-list-item">
             <span class="item-text">${p.name}</span>
-            <button class="btn-danger" onclick="deletePageType('${p.id}')">حذف ❌</button>
+            <button type="button" class="btn-danger" onclick="window.deletePageType('${p.id}')">حذف ❌</button>
         </li>
     `).join(''); 
 };
@@ -797,7 +788,7 @@ window.renderOrderTypesSettings = function() {
     el.innerHTML = configuredOrderTypes.map(t => `
         <li class="settings-list-item">
             <span class="item-text">${t.name} <span style="color:var(--neon-gold); font-size: 14px;">(${t.code})</span></span>
-            <button class="btn-danger" onclick="deleteOrderType('${t.id}')">حذف ❌</button>
+            <button type="button" class="btn-danger" onclick="window.deleteOrderType('${t.id}')">حذف ❌</button>
         </li>
     `).join(''); 
 };
@@ -814,7 +805,7 @@ window.addUser = async function() {
     const uInput = document.getElementById("new-user-name");
     const pInput = document.getElementById("new-user-pass");
     const u = uInput.value.trim(), p = pInput.value.trim();
-    if(u === "" || p === "" || u === ADMIN_USER) return;
+    if(u === "" || p === "" || u.toLowerCase() === ADMIN_USER.toLowerCase()) return;
     
     const data = { 
         username: u, password: p, 
@@ -849,19 +840,19 @@ window.renderUsers = function() {
         <li class="settings-list-item user-list-item">
             <div class="user-list-header">
                 <span class="item-text" style="color: var(--neon-gold);">${u.username} <span style="font-size:13px; color:#aaa;">(${u.password})</span></span>
-                <button class="btn-danger" onclick="deleteUser('${u.id}')">حذف ❌</button>
+                <button type="button" class="btn-danger" onclick="window.deleteUser('${u.id}')">حذف ❌</button>
             </div>
             <div class="user-permissions">
-                <span class="permission-badge" onclick="togglePermission('${u.id}', 'canDeleteCloud')">
+                <span class="permission-badge" onclick="window.togglePermission('${u.id}', 'canDeleteCloud')">
                     ${u.canDeleteCloud ? '🟢 مسح' : '🔴 مسح'}
                 </span>
-                <span class="permission-badge" onclick="togglePermission('${u.id}', 'canEditCloud')">
+                <span class="permission-badge" onclick="window.togglePermission('${u.id}', 'canEditCloud')">
                     ${u.canEditCloud ? '🟢 تعديل' : '🔴 تعديل'}
                 </span>
-                <span class="permission-badge" onclick="togglePermission('${u.id}', 'canAccessSettings')">
+                <span class="permission-badge" onclick="window.togglePermission('${u.id}', 'canAccessSettings')">
                     ${u.canAccessSettings ? '🟢 الإعدادات' : '🔴 الإعدادات'}
                 </span>
-                <span class="permission-badge" onclick="togglePermission('${u.id}', 'canAccessReports')">
+                <span class="permission-badge" onclick="window.togglePermission('${u.id}', 'canAccessReports')">
                     ${u.canAccessReports ? '🟢 التقارير' : '🔴 التقارير'}
                 </span>
             </div>
@@ -869,21 +860,17 @@ window.renderUsers = function() {
     `).join('');
 };
 
-// =========================================
-// معالجة وإضافة الطلبات من لوحة التحكم
-// =========================================
-
 window.addOrderItemRow = function() {
     const wr = document.getElementById('dynamicRowsWrapper');
     const r = document.createElement('div'); 
     r.className = 'order-item-row';
-    r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 100px;"> <div class="qty-controls" style="flex: 1; min-width: 120px;"><button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" min="1" style="width: 45px; text-align: center;"><button type="button" class="qty-btn minus" onclick="changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 8px 12px;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`;
+    r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 100px;"> <div class="qty-controls" style="flex: 1; min-width: 120px;"><button type="button" class="qty-btn plus" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" min="1" style="width: 45px; text-align: center;"><button type="button" class="qty-btn minus" onclick="window.changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 8px 12px;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`;
     wr.appendChild(r); 
     window.updateOrderTypeSelects();
 };
 
 window.resetItemsContainer = function() { 
-    document.getElementById('dynamicRowsWrapper').innerHTML = `<div class="order-item-row"><div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="اكتب نوع الطلب..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;"> <div class="qty-controls" style="flex: 1; min-width: 120px;"><label style="color:#ccc; font-size:12px; margin:0;">العدد:</label><button type="button" class="qty-btn plus" onclick="changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center;"><button type="button" class="qty-btn minus" onclick="changeQty(this, -1)">-</button></div></div>`; 
+    document.getElementById('dynamicRowsWrapper').innerHTML = `<div class="order-item-row"><div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="اكتب نوع الطلب..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;"> <div class="qty-controls" style="flex: 1; min-width: 120px;"><label style="color:#ccc; font-size:12px; margin:0;">العدد:</label><button type="button" class="qty-btn plus" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" min="1" style="width: 50px; text-align: center;"><button type="button" class="qty-btn minus" onclick="window.changeQty(this, -1)">-</button></div></div>`; 
     window.updateOrderTypeSelects(); 
 };
 
@@ -985,7 +972,7 @@ window.addToTable = async function() {
     }
     
     const row = document.createElement('tr'); 
-    row.innerHTML = `<td>${data.id}</td> <td style="color:var(--neon-gold);">${data.constant}</td> <td>${data.name}</td> <td dir="ltr">${data.phone1}</td> <td dir="ltr">${data.phone2}</td> <td>${data.gov}</td> <td>${data.area}</td> <td style="color:var(--neon-gold);" dir="ltr">${data.type}</td> <td style="color:var(--neon-gold);">${data.qty}</td> <td>${data.amount}</td> <td>${data.note}</td> <td><button class="btn-danger" style="padding: 6px 10px;" onclick="this.closest('tr').remove(); updateOrdersCounter();">حذف ❌</button></td>`;
+    row.innerHTML = `<td>${data.id}</td> <td style="color:var(--neon-gold);">${data.constant}</td> <td>${data.name}</td> <td dir="ltr">${data.phone1}</td> <td dir="ltr">${data.phone2}</td> <td>${data.gov}</td> <td>${data.area}</td> <td style="color:var(--neon-gold);" dir="ltr">${data.type}</td> <td style="color:var(--neon-gold);">${data.qty}</td> <td>${data.amount}</td> <td>${data.note}</td> <td><button type="button" class="btn-danger" style="padding: 6px 10px;" onclick="this.closest('tr').remove(); window.updateOrdersCounter();">حذف ❌</button></td>`;
     document.getElementById('tableBody').appendChild(row); 
     window.updateOrdersCounter(); 
     window.clearForm(); 
@@ -995,7 +982,10 @@ window.addToTable = async function() {
 };
 
 window.clearForm = function() { 
-    ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => document.getElementById(id).value = ''); 
+    ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    }); 
     window.resetItemsContainer(); 
 };
 window.clearAll = function() { 
@@ -1025,3 +1015,22 @@ window.exportToExcel = function() {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), "الجدول"); 
     XLSX.writeFile(wb, "طلبات_المندوب.xlsx");
 };
+
+// ربط إضافي مباشر للأزرار لضمان عملها 100% تحت أي ظرف
+document.addEventListener('DOMContentLoaded', function() {
+    window.createGoldDust();
+    
+    const passInput = document.getElementById('password');
+    if (passInput) {
+        passInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') window.login();
+        });
+    }
+    
+    const settingsPassInput = document.getElementById('settingsPass');
+    if (settingsPassInput) {
+        settingsPassInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') window.verifySettingsPass();
+        });
+    }
+});
