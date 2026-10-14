@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Gold Land</title>
     
-    <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiR29sZCBMYW5kIiwic2hvcnRfbmFtZSI6IkdvbGQgTGFuZCIsInN0YXJ0X3VybCI6Ii4vIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBlMTUyMiIsInRoZW1lX2NvbG9yIjoiI2ZmZDcwMCIsImljb25zIjpbeyJzcmMiOiJkYXRhOmltYWdlL3N2Zyt4bWw7YmFzZTY0LFBITjJaeUI0Yld4dWN6MGlhSFIwY0RvdkwzZDNkeTUzTXk1dmNtY3ZNakF3TUM5emRtY2lJSFpwWlhkQ2IzZzlJakFnTUNBMU1USWdOVEV5SWo0OGNtVmpUQ0IzYVdSMGFEcGlOVEV5SWlCb1pXVnBaaDBQU0kxTVRJaUlHWnBiR3c5SXpBNU1HRXdaSWk2UEM5eFpXTjBQaTQ4ZEdWNGRDQjRQU0k1TUNVaUlHazlJakV3TUNVWUlHUnZiV2x1WVc1MExXSmhjMlZzYVc1bFBTSmpZWEprY21WbExDSWdZMlZ1ZEhKaGJDSWdkR1Y0ZEMxaGJtTm9iM0k5SW0xcFpHUnNaU0lnWm05dWRDMW1ZVzFwYkhrOUlraGxiM0puYVdFc0lITmxjbWxtSWlCbWIyNTBMWE5wZW1VOUlqSTBNQ0lnWm05dWRDMTNhV2xuYUhROUkySnZiR1FpSUdabWJHeDliRDBpZFhKc0tDTm5jbUZrS1NJK1IwdzgvdGV4dD48ZGVmcz48bGluZWFyZ3JhZGllbnQgaWQ9ImdyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiNmZmQ3MDAiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNiODg2MGIiLz48L2xpbmVhcmdyYWRpZW50PjwvZGVmcz48L3N2Zz4iLCJzaXplcyI6IjUxMng1MTIiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
+    <!-- ربط ملف الـ Manifest لتفعيل تثبيت التطبيق -->
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Gold Land">
@@ -43,7 +44,7 @@
             <div class="error-msg" id="login-error">بيانات الدخول غير صحيحة!</div>
             
             <div style="margin-top: 35px; padding-top: 20px; display: flex; gap: 10px; justify-content: center;">
-                <button onclick="showInstallInstructions('android')" class="install-btn">📱 تثبيت</button>
+                <button onclick="showInstallInstructions('android')" class="install-btn">📱 تثبيت التطبيق</button>
                 <button onclick="showInstallInstructions('ios')" class="install-btn">🍏 آيفون</button>
             </div>
         </div>
@@ -350,7 +351,7 @@
         </div>
     </div>
 
-    <!-- نافذة التقارير (تم تحديث الفلاتر) -->
+    <!-- نافذة التقارير -->
     <div class="modal-overlay" id="reportsModal">
         <div class="modal-content" style="max-width: 800px; height: 85vh; display: flex; flex-direction: column;">
             <span class="close-modal" onclick="closeReports()">&times;</span>
@@ -366,7 +367,6 @@
                 <button class="btn-parse" onclick="generateReports()" style="flex: 1; min-width:100px;">توليد 🔄</button>
             </div>
             <div style="flex: 1; overflow-y: auto; padding: 5px;">
-                <!-- تبويب البيجات والطلبات (جدول) -->
                 <div id="repPageTab" class="tab-pane active" style="text-align: right;">
                     <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
                         <select id="repPageFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;">
@@ -385,14 +385,12 @@
                         </table>
                     </div>
                 </div>
-                <!-- تبويب الإحصائيات (الكروت) -->
                 <div id="repTypeTab" class="tab-pane" style="text-align: right;">
                     <select id="repTypeFilter" onchange="generateReports()" style="width: 100%; margin-bottom: 20px;">
                         <option value="all">-- كل الطلبات --</option>
                     </select>
                     <div id="repTypeCardsContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;"></div>
                 </div>
-                <!-- تبويب المالي -->
                 <div id="repFinTab" class="tab-pane" style="text-align: right;">
                     <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
                         <select id="repFinPageFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;">
