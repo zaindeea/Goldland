@@ -27,15 +27,13 @@ body.dark-mode {
 }
 
 html { background-color: var(--bg-color); min-height: 100vh; transition: background-color 0.4s ease; }
-
-/* تم التعديل لجعل جميع العناصر أسفل بعضها بدلاً من التداخل */
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; width: 100%; color: var(--text-color); overflow-x: hidden; background-color: var(--bg-color); position: relative; z-index: 1; }
 
 body::before, body::after { content: ''; position: fixed; border-radius: 50%; z-index: -1; background: var(--bg-color); box-shadow: var(--outer-shadow); }
 body::before { width: 350px; height: 350px; top: -100px; left: -100px; }
 body::after { width: 250px; height: 250px; bottom: -50px; right: -50px; }
 
-/* شريط معلومات المستخدم والوقت (تم إزالة تأثير الفقاعة العائمة) */
+/* شريط معلومات المستخدم والوقت */
 .global-user-bar {
     width: 100%;
     max-width: 1200px;
@@ -44,20 +42,14 @@ body::after { width: 250px; height: 250px; bottom: -50px; right: -50px; }
     justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
-    padding-left: 80px; /* لترك مساحة لزر المظهر */
+    padding-left: 80px; 
     background: transparent;
     border-bottom: 2px solid var(--shadow-dark);
 }
-body.dark-mode .global-user-bar {
-    border-bottom: 2px solid rgba(255,255,255,0.05);
-}
+body.dark-mode .global-user-bar { border-bottom: 2px solid rgba(255,255,255,0.05); }
 .global-user-bar span { font-weight: bold; color: var(--text-color); font-size: 14px; }
-@media(max-width: 600px) { 
-    .global-user-bar { padding-left: 65px; } 
-    .global-user-bar span { font-size: 12px; } 
-}
+@media(max-width: 600px) { .global-user-bar { padding-left: 65px; } .global-user-bar span { font-size: 12px; } }
 
-/* زر التبديل الدائري للمظهر (ثابت) */
 .login-theme-toggle { position: fixed; top: 10px; left: 15px; z-index: 1001; }
 .theme-toggle-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--bg-color); box-shadow: var(--outer-shadow); border: none; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 20px; color: var(--text-color); transition: all 0.3s ease; }
 .theme-toggle-btn:active { box-shadow: var(--inner-shadow); transform: scale(0.95); }
