@@ -57,6 +57,39 @@ try {
     window.deleteSystemPageFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_pages", docId)); };
 } catch(e) { console.warn("Firebase Init Error", e); }
 
+
+// =========================================
+// نظام التثبيت والـ Service Worker (PWA)
+// =========================================
+let deferredPrompt; 
+
+window.addEventListener('beforeinstallprompt', (e) => { 
+    e.preventDefault(); 
+    deferredPrompt = e; 
+});
+
+window.showInstallInstructions = async function(os) { 
+    if (deferredPrompt && os !== 'ios') { 
+        deferredPrompt.prompt(); 
+        await deferredPrompt.userChoice; 
+        deferredPrompt = null; 
+    } else { 
+        if(os === 'ios') {
+            alert("🍏 لتثبيت التطبيق على الآيفون:\n\n1. اضغط على زر 'المشاركة' أسفل المتصفح.\n2. اختر 'إضافة إلى الصفحة الرئيسية'."); 
+        } else {
+            alert("📱 التطبيق جاهز للتثبيت! \n\nاضغط على النقاط الثلاث (خيارات المتصفح) واختر 'إضافة إلى الشاشة الرئيسية' أو 'Install App'."); 
+        }
+    } 
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => {
+            console.log('SW registration failed: ', err);
+        });
+    });
+}
+
 // =========================================
 // التخزين وتغيير المظهر والساعة الحية
 // =========================================
@@ -101,9 +134,6 @@ window.saveDeliveryFees = function() { feeBaghdad = parseInt(document.getElement
 let allCloudOrders = [], filteredCloudOrders = []; 
 let currentConfirmAction = null;
 let currentEditDocId = null;
-
-let deferredPrompt; window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
-window.showInstallInstructions = async function(os) { if (deferredPrompt && os !== 'ios') { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } else { if(os === 'ios') alert("🍏 لتثبيت التطبيق على الآيفون:\n\n1. اضغط على زر 'المشاركة' أسفل المتصفح.\n2. اختر 'إضافة إلى الصفحة الرئيسية'."); else alert("📱 التطبيق مثبت بالفعل، أو قم بإضافته من خيارات المتصفح."); } }
 
 window.showConfirmDialog = function(msg, callback) { document.getElementById('confirmMessage').innerText = msg; currentConfirmAction = callback; document.getElementById('confirmModal').style.display = 'flex'; document.getElementById('confirmYesBtn').onclick = function() { if(currentConfirmAction) currentConfirmAction(); window.closeConfirmModal(); }; }
 window.closeConfirmModal = function() { document.getElementById('confirmModal').style.display = 'none'; currentConfirmAction = null; }
@@ -357,12 +387,7 @@ window.addEditOrderItemRow = function(tName = "", tQty = 1, tColor = "") {
     
     if (tName) {
         let exists = Array.from(sel.options).some(o => o.value === tName);
-        if (exists) {
-            sel.value = tName;
-        } else {
-            window.toggleOrderInput(tb);
-            ci.value = tName;
-        }
+        if (exists) { sel.value = tName; } else { window.toggleOrderInput(tb); ci.value = tName; }
     }
 }
 
@@ -385,19 +410,13 @@ window.openEditModal = function(docId) {
         items.forEach(itemStr => {
             let match = itemStr.match(/\[([^)]+)\s\((\d+)\)\s*([^\]]*)\]/);
             if(match) {
-                let code = match[1].trim();
-                let qty = parseInt(match[2]) || 1;
-                let color = match[3] ? match[3].trim() : "";
-                
+                let code = match[1].trim(); let qty = parseInt(match[2]) || 1; let color = match[3] ? match[3].trim() : "";
                 let typeObj = configuredOrderTypes.find(t => t.code === code);
                 let typeName = typeObj ? typeObj.name : code; 
                 window.addEditOrderItemRow(typeName, qty, color);
-            } else {
-                window.addEditOrderItemRow(itemStr.replace(/\[\vert{}\]/g, ''), 1, "");
-            }
+            } else { window.addEditOrderItemRow(itemStr.replace(/\[\vert{}\]/g, ''), 1, ""); }
         });
     }
-
     document.getElementById('editOrderModal').style.display = 'flex'; 
 }
 
@@ -405,19 +424,15 @@ window.closeEditModal = function() { document.getElementById('editOrderModal').s
 
 window.saveEditedOrder = async function() { 
     if(!currentEditDocId) return; 
-    
     let arr = [], totQty = 0; 
     document.querySelectorAll('#editDynamicRowsWrapper .order-item-row').forEach(r => { 
         let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim(); 
         let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim(); 
         let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1; 
-        
         if (tv !== "") { 
             let ft = configuredOrderTypes.find(t => t.name === tv); 
-            let cd = ft ? ft.code : tv; 
-            let colorText = cv ? ` ${cv}` : "";
-            arr.push(`[${cd} (${qv})${colorText}]`); 
-            totQty += qv; 
+            let cd = ft ? ft.code : tv; let colorText = cv ? ` ${cv}` : "";
+            arr.push(`[${cd} (${qv})${colorText}]`); totQty += qv; 
         } 
     }); 
     
@@ -438,9 +453,7 @@ window.saveEditedOrder = async function() {
             await window.updateOrderInFirebase(currentEditDocId, newData); 
             let idx = allCloudOrders.findIndex(o => o.id_doc === currentEditDocId); 
             if(idx > -1) { allCloudOrders[idx] = { ...allCloudOrders[idx], ...newData }; } 
-            window.filterCloudOrders(); 
-            window.closeEditModal(); 
-            window.showSuccessToast("تم التعديل بنجاح! ✏️"); 
+            window.filterCloudOrders(); window.closeEditModal(); window.showSuccessToast("تم التعديل بنجاح! ✏️"); 
         } catch(e) { alert("حدث خطأ أثناء التعديل."); } 
     } 
 }
@@ -489,7 +502,6 @@ window.generateReports = function() {
         } return true; 
     }); 
 
-    // تبويب البيجات والجدول
     const selPage = document.getElementById('repPageFilter').value;
     const selPageType = document.getElementById('repPageTypeFilter').value;
     
@@ -512,7 +524,6 @@ window.generateReports = function() {
     document.getElementById('totalPageQty').innerText = totalPageQty; 
     document.getElementById('totalPageAmount').innerText = totalPageAmt.toLocaleString(); 
 
-    // تبويب إحصائيات الأصناف
     const selType = document.getElementById('repTypeFilter').value; 
     let typeStats = {}; 
     targetOrders.forEach(o => { 
@@ -541,7 +552,6 @@ window.generateReports = function() {
     } 
     document.getElementById('repTypeCardsContainer').innerHTML = typeCardsHtml; 
 
-    // تبويب المالي
     const selFinPage = document.getElementById('repFinPageFilter').value;
     let finTargetOrders = targetOrders;
     if(selFinPage !== "all") finTargetOrders = finTargetOrders.filter(o => o.constant === selFinPage);
@@ -570,18 +580,9 @@ window.exportPageReportPDF = function() {
     titleStr += (pageName === 'all' ? 'جميع البيجات' : pageName);
     if(typeName !== 'all') titleStr += ' | صنف: ' + typeName;
 
-    const title = document.createElement('h2'); 
-    title.innerText = titleStr; 
-    title.style.textAlign = 'center'; title.style.marginBottom = '25px'; 
-    tempDiv.appendChild(title); 
-    
-    const tableClone = document.getElementById('pageReportTable').cloneNode(true); 
-    tableClone.style.width = '100%'; tableClone.style.borderCollapse = 'collapse'; 
-    tableClone.querySelectorAll('th, td').forEach(cell => { cell.style.border = '1px solid #ccc'; cell.style.padding = '12px'; cell.style.textAlign = 'center'; cell.style.color = '#000'; cell.style.background = '#fff';}); 
-    tempDiv.appendChild(tableClone); document.body.appendChild(tempDiv); 
-    
-    const opt = { margin: 10, filename: `تقرير_المبيعات.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }; 
-    html2pdf().set(opt).from(tempDiv).save().then(() => { document.body.removeChild(tempDiv); }); 
+    const title = document.createElement('h2'); title.innerText = titleStr; title.style.textAlign = 'center'; title.style.marginBottom = '25px'; tempDiv.appendChild(title); 
+    const tableClone = document.getElementById('pageReportTable').cloneNode(true); tableClone.style.width = '100%'; tableClone.style.borderCollapse = 'collapse'; tableClone.querySelectorAll('th, td').forEach(cell => { cell.style.border = '1px solid #ccc'; cell.style.padding = '12px'; cell.style.textAlign = 'center'; cell.style.color = '#000'; cell.style.background = '#fff';}); tempDiv.appendChild(tableClone); document.body.appendChild(tempDiv); 
+    const opt = { margin: 10, filename: `تقرير_المبيعات.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }; html2pdf().set(opt).from(tempDiv).save().then(() => { document.body.removeChild(tempDiv); }); 
 }
 
 window.deleteCloudOrder = function(docId) { window.showConfirmDialog("تأكيد الحذف النهائي؟", async function() { if(window.deleteOrderFromFirebase) { await window.deleteOrderFromFirebase(docId); allCloudOrders = allCloudOrders.filter(o => o.id_doc !== docId); window.filterCloudOrders(); window.showSuccessToast("تم حذف الطلب بنجاح!"); } }); }
