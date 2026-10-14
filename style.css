@@ -33,22 +33,11 @@ body::before, body::after { content: ''; position: fixed; border-radius: 50%; z-
 body::before { width: 350px; height: 350px; top: -100px; left: -100px; }
 body::after { width: 250px; height: 250px; bottom: -50px; right: -50px; }
 
-/* شريط معلومات المستخدم والوقت */
-.global-user-bar {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    padding-left: 80px; 
-    background: transparent;
-    border-bottom: 2px solid var(--shadow-dark);
-}
+/* شريط معلومات المستخدم والوقت موسط تماماً */
+.global-user-bar { width: 100%; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; padding: 15px 20px; padding-left: 80px; background: transparent; border-bottom: 2px solid var(--shadow-dark); position: relative; }
 body.dark-mode .global-user-bar { border-bottom: 2px solid rgba(255,255,255,0.05); }
 .global-user-bar span { font-weight: bold; color: var(--text-color); font-size: 14px; }
-@media(max-width: 600px) { .global-user-bar { padding-left: 65px; } .global-user-bar span { font-size: 12px; } }
+@media(max-width: 600px) { .global-user-bar { padding-left: 65px; } .global-user-bar span { font-size: 12px; } #globalTime { width:100%; font-size: 10px !important; } }
 
 .login-theme-toggle { position: fixed; top: 10px; left: 15px; z-index: 1001; }
 .theme-toggle-btn { width: 45px; height: 45px; border-radius: 50%; background: var(--bg-color); box-shadow: var(--outer-shadow); border: none; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 20px; color: var(--text-color); transition: all 0.3s ease; }
@@ -84,7 +73,7 @@ body.dark-mode .menu-glass-card { background: rgba(30, 30, 40, 0.6); border: 2px
 .menu-btn.btn-blue { background: linear-gradient(135deg, #70a1ff, #1e90ff); color: #fff; box-shadow: 0 10px 20px rgba(30, 144, 255, 0.3); }
 .menu-btn.btn-blue:active { box-shadow: inset 5px 5px 10px rgba(0,0,0,0.2); }
 .menu-btn .icon { font-size: 24px; }
-.menu-btn .badge { position: absolute; top: -5px; right: -10px; background: #ff4757; color: white; font-size: 11px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid white; }
+.menu-btn .badge { position: absolute; top: -5px; right: -10px; background: #ff4757; color: white; font-size: 11px; font-weight: bold; width: 18px; height: 18px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid white; box-shadow: 0 2px 5px rgba(255,0,0,0.5); }
 .menu-btn-logout { display: flex; justify-content: space-between; align-items: center; flex-direction: row-reverse; width: 100%; padding: 15px 25px; margin-top: 40px; background: transparent; border: none; color: #ff4b2b; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; }
 .menu-btn-logout:hover { transform: translateX(-5px); }
 
@@ -165,7 +154,7 @@ ul { padding: 0; margin: 0; width: 100%; list-style: none; }
 .success-toast { position: fixed; top: -100px; left: 50%; transform: translateX(-50%); background: var(--bg-color); color: #2ecc71; padding: 15px 30px; border-radius: 30px; font-weight: bold; font-size: 14px; box-shadow: var(--outer-shadow); z-index: 99999; display: flex; align-items: center; gap: 10px; transition: top 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
 .success-toast.show { top: 20px; }
 
-/* نظام الدردشة */
+/* نظام الدردشة والإشعارات */
 .chat-container { display: flex; height: calc(100vh - 120px); gap: 20px; border-radius: 25px; overflow: hidden; }
 .chat-sidebar { width: 300px; background: var(--bg-color); border-radius: 25px; box-shadow: var(--outer-shadow); display: flex; flex-direction: column; padding: 20px; flex-shrink: 0; }
 .chat-area { flex: 1; background: var(--bg-color); border-radius: 25px; box-shadow: var(--outer-shadow); display: flex; flex-direction: column; overflow: hidden; position: relative; }
@@ -175,12 +164,20 @@ ul { padding: 0; margin: 0; width: 100%; list-style: none; }
 .chat-list { flex: 1; overflow-y: auto; padding-right: 5px; }
 .chat-list::-webkit-scrollbar { width: 6px; }
 .chat-list::-webkit-scrollbar-thumb { background-color: var(--shadow-dark); border-radius: 10px; }
-.chat-list-item { display: flex; align-items: center; gap: 15px; padding: 15px; border-radius: 20px; cursor: pointer; margin-bottom: 12px; background: var(--bg-color); box-shadow: var(--outer-shadow); transition: 0.3s; }
+
+.chat-list-item { display: flex; align-items: center; gap: 15px; padding: 15px; border-radius: 20px; cursor: pointer; margin-bottom: 12px; background: var(--bg-color); box-shadow: var(--outer-shadow); transition: 0.3s; position: relative; }
 .chat-list-item:active { box-shadow: var(--inner-shadow); transform: scale(0.98); }
 .chat-list-item.active { box-shadow: var(--inner-shadow); border: 1px solid rgba(64,123,255,0.1); }
 .chat-avatar { width: 50px; height: 50px; border-radius: 50%; background: var(--button-gradient); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; box-shadow: var(--outer-shadow); flex-shrink: 0;}
-.chat-info h4 { margin: 0 0 5px 0; font-size: 15px; text-align: right; color: var(--text-color); }
+.chat-info h4 { margin: 0 0 5px 0; font-size: 15px; text-align: right; color: var(--text-color); display: flex; align-items: center; }
 .chat-info p { margin: 0; font-size: 12px; color: var(--text-muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+
+/* إشعار عدد الرسائل غير المقروءة فوق/بجانب الاسم مباشرة */
+.chat-unread-badge {
+    background: #ff4757; color: white; border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: bold;
+    margin-right: 8px; box-shadow: 0 2px 5px rgba(255,0,0,0.5); display: inline-flex; align-items: center; justify-content: center;
+}
+
 .chat-header { padding: 20px; background: var(--bg-color); box-shadow: 0 5px 15px rgba(0,0,0,0.03); display: flex; align-items: center; border-bottom: 1px solid var(--shadow-dark); z-index: 10; gap: 15px; }
 .chat-header h3 { margin: 0; font-size: 18px; color: var(--text-color); }
 .mobile-back-btn { display: none; padding: 10px 15px; background: var(--button-gradient); color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; }
@@ -208,4 +205,32 @@ ul { padding: 0; margin: 0; width: 100%; list-style: none; }
     .chat-sidebar.hidden { transform: translateX(110%); }
     .mobile-back-btn { display: block; }
     .chat-area { border-radius: 15px; }
+}
+
+/* تنسيقات الطباعة المجمعة على ورق A5 بدقة */
+.print-only { display: none; }
+@media print {
+    .no-print { display: none !important; }
+    body, html { background: white !important; margin: 0; padding: 0; width: 148mm; height: 210mm; display: block; }
+    @page { size: A5 portrait; margin: 0; }
+    
+    .print-only { 
+        display: block; 
+        width: 148mm; 
+        background: white; 
+        color: black; 
+        font-family: Arial, sans-serif; 
+    }
+    .receipt-page {
+        width: 148mm;
+        height: 200mm;
+        padding: 20px;
+        page-break-after: always;
+        box-sizing: border-box;
+        margin: 0 auto;
+    }
+    /* إخفاء الخط الفاصل في الصفحة الأخيرة */
+    .receipt-page:last-child {
+        page-break-after: auto;
+    }
 }
