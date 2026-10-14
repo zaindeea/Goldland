@@ -17,10 +17,17 @@
 </head>
 <body>
 
+    <!-- شريط معلومات المستخدم والوقت (يظهر بعد تسجيل الدخول) -->
+    <div id="globalUserBar" class="global-user-bar" style="display:none;">
+        <span id="globalUserName" style="color: var(--primary-blue);">👤 المستخدم</span>
+        <span id="globalTime" style="font-size: 11px;">🕒 00:00 - 📅 0/0/0</span>
+    </div>
+
+    <!-- زر المظهر العائم (موجود دائماً) -->
+    <button class="theme-toggle-btn login-theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">🌙</button>
+
     <!-- تسجيل الدخول -->
     <div class="login-wrapper" id="login-section">
-        <button class="theme-toggle-btn login-theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">🌙</button>
-
         <div class="login-box">
             <div class="css-logo main-logo"><div class="logo-inner">GL</div></div>
             <h2 class="login-title">Gold Land</h2>
@@ -44,10 +51,8 @@
         </div>
     </div>
 
-    <!-- القائمة الرئيسية الجديدة -->
+    <!-- القائمة الرئيسية -->
     <div class="menu-wrapper" id="main-menu-section" style="display: none;">
-        <button class="theme-toggle-btn login-theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">🌙</button>
-
         <div class="menu-glass-card">
             <div class="css-logo main-logo menu-logo"><div class="logo-inner">GL</div></div>
             
@@ -56,8 +61,8 @@
                     <span class="icon">📄</span> <span>إضافة الطلبات</span>
                 </button>
                 
-                <button class="menu-btn" onclick="comingSoon('الدردشة')">
-                    <span class="icon" style="position:relative;">💬<span class="badge">1</span></span> <span>الدردشة</span>
+                <button class="menu-btn" onclick="openChatSection()">
+                    <span class="icon" style="position:relative;">💬<span class="badge" id="chatBadge" style="display:none;">!</span></span> <span>الدردشة</span>
                 </button>
                 
                 <button class="menu-btn" onclick="openCloudOrders()">
@@ -84,8 +89,8 @@
     </div>
 
     <!-- لوحة التحكم الرئيسية (إضافة الطلبات) -->
-    <div class="container" id="dashboard-section" style="display: none;">
-       <div class="header-dash">
+    <div class="container" id="dashboard-section" style="display: none; margin-top: 40px;">
+        <div class="header-dash">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <div class="css-logo dash-logo"><div class="logo-inner">GL</div></div>
                 <h2 style="margin: 0; font-size: 22px; color: var(--text-color);">التوزيع الذكي</h2>
@@ -171,6 +176,113 @@
         </div>
     </div>
 
+    <!-- قسم الدردشة التفاعلية -->
+    <div class="container" id="chat-section" style="display: none; height: 100vh; padding: 15px; padding-top: 60px; max-width: 1200px; flex-direction: column;">
+        <div class="header-dash" style="margin-bottom: 15px;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="css-logo dash-logo"><div class="logo-inner">GL</div></div>
+                <h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الدردشة</h2>
+            </div>
+            <div>
+                <button class="btn-outline" onclick="backToMainMenuFromChat()" style="padding: 10px 15px;">🔙 القائمة</button>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <!-- القائمة الجانبية -->
+            <div class="chat-sidebar" id="chatSidebar">
+                <div class="chat-tabs">
+                    <button class="chat-tab active" id="tabGeneral" onclick="switchChatTab('general')">عام</button>
+                    <button class="chat-tab" id="tabPrivate" onclick="switchChatTab('private')">خاص</button>
+                    <button class="chat-tab" id="tabGroups" onclick="switchChatTab('groups')">مجموعات</button>
+                </div>
+                
+                <div class="chat-list" id="chatListGeneral">
+                    <div class="chat-list-item active" id="chatItem_general" onclick="openChat('general', 'الدردشة العامة')">
+                        <div class="chat-avatar" style="background: linear-gradient(135deg, #ffd700, #b8860b);">🌍</div>
+                        <div class="chat-info"><h4>الدردشة العامة</h4><p>مساحة للجميع</p></div>
+                    </div>
+                </div>
+                
+                <div class="chat-list" id="chatListPrivate" style="display: none;"></div>
+                
+                <div class="chat-list" id="chatListGroups" style="display: none;">
+                    <button class="btn-outline" onclick="showCreateGroupModal()" style="width: 100%; margin-bottom: 15px; font-size: 13px; padding: 10px;">➕ إنشاء مجموعة</button>
+                    <div id="groupsListContainer"></div>
+                </div>
+            </div>
+
+            <!-- منطقة الدردشة -->
+            <div class="chat-area" id="chatAreaWindow">
+                <div class="chat-header">
+                    <button class="mobile-back-btn" onclick="showChatSidebar()">☰ رجوع</button>
+                    <h3 id="currentChatTitle">الدردشة العامة</h3>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div style="text-align:center; margin-top: 50px; color: var(--text-muted);">اختر محادثة للبدء...</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="chatInput" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button class="btn-parse send-btn" onclick="sendMessage()">إرسال ✈️</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة الأرشيف السحابي مع الإكسل -->
+    <div class="modal-overlay" id="cloudOrdersModal">
+        <div class="modal-content" style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; padding: 25px;">
+            <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
+            <h3 style="margin-bottom: 20px;">☁️ الأرشيف السحابي</h3>
+            
+            <!-- أداة استيراد الإكسل -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--inner-shadow); justify-content: center; align-items: center;">
+                <h4 style="margin: 0 0 10px 0; width: 100%; text-align: right; color: var(--text-color);">📥 استيراد بيانات (إكسل)</h4>
+                <button class="btn-outline" onclick="downloadExcelTemplate()" style="flex: 1; min-width: 150px; font-size: 14px; padding: 12px;">⬇️ تحميل نموذج فارغ</button>
+                <label class="btn-parse" style="flex: 1; min-width: 150px; text-align: center; cursor: pointer; padding: 12px; border-radius: 50px; font-size: 14px; font-weight: bold; color: white;">
+                    📤 رفع ملف إكسل
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile(event)">
+                </label>
+            </div>
+
+            <!-- فلاتر البحث -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف..." onkeyup="filterCloudOrders()" style="flex: 1; min-width: 150px;">
+                <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل البيجات --</option></select>
+                <div class="date-wrapper"><label>من:</label><input type="date" id="cloudDateFrom" onchange="filterCloudOrders()" dir="ltr"></div>
+                <div class="date-wrapper"><label>إلى:</label><input type="date" id="cloudDateTo" onchange="filterCloudOrders()" dir="ltr"></div>
+            </div>
+            
+            <!-- جدول الأرشيف -->
+            <div style="overflow-y: auto; flex: 1;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>التسلسل</th> <th>البيج</th> <th>الزبون</th> <th>الهواتف</th> <th>المحافظة</th> 
+                            <th>الطلب</th> <th>المبلغ</th> <th>المستخدم</th> <th>التاريخ</th> <th>إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cloudOrdersTbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إنشاء مجموعة دردشة -->
+    <div class="modal-overlay" id="createGroupModal" style="z-index: 12000;">
+        <div class="modal-content" style="max-width: 400px; text-align: right;">
+            <span class="close-modal" onclick="closeCreateGroupModal()">&times;</span>
+            <h3 style="text-align: center; margin-bottom: 20px;">👥 مجموعة جديدة</h3>
+            <div class="form-group"><label>اسم المجموعة</label><input type="text" id="newGroupName" placeholder="مثال: فريق المبيعات"></div>
+            <div class="form-group"><label>اختر الأعضاء</label>
+                <div id="groupMembersSelection" style="max-height: 180px; overflow-y: auto; background: var(--bg-color); box-shadow: var(--inner-shadow); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 10px;">
+                </div>
+            </div>
+            <button class="btn-parse" onclick="createChatGroup()" style="width: 100%; margin-top: 15px;">إنشاء المجموعة ➕</button>
+        </div>
+    </div>
+
+    <!-- باقي النوافذ -->
     <!-- نافذة الإعدادات -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-content">
@@ -276,26 +388,6 @@
                         <div class="report-card"><h4>الصافي</h4><div class="val" id="finNet" style="color:#2ecc71;">0</div></div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- نافذة الأرشيف السحابي -->
-    <div class="modal-overlay" id="cloudOrdersModal">
-        <div class="modal-content" style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; padding: 25px;">
-            <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
-            <h3 style="margin-bottom: 20px;">☁️ الأرشيف السحابي</h3>
-            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف..." onkeyup="filterCloudOrders()" style="flex: 1; min-width: 150px;">
-                <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل البيجات --</option></select>
-                <div class="date-wrapper"><label>من:</label><input type="date" id="cloudDateFrom" onchange="filterCloudOrders()" dir="ltr"></div>
-                <div class="date-wrapper"><label>إلى:</label><input type="date" id="cloudDateTo" onchange="filterCloudOrders()" dir="ltr"></div>
-            </div>
-            <div style="overflow-y: auto; flex: 1;">
-                <table>
-                    <thead><tr><th>التسلسل</th> <th>البيج</th> <th>الزبون</th> <th>الهواتف</th> <th>المحافظة</th> <th>الطلب</th> <th>المبلغ</th> <th>التاريخ</th> <th>إجراء</th></tr></thead>
-                    <tbody id="cloudOrdersTbody"></tbody>
-                </table>
             </div>
         </div>
     </div>
