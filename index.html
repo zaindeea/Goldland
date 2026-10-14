@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gold Land</title>
+    <title>Gold Land ERP</title>
     
-    <!-- ربط ملف الـ Manifest لتفعيل تثبيت التطبيق -->
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,36 +12,34 @@
 
     <link rel="stylesheet" href="style.css">
 
+    <!-- المكتبات الخارجية: إكسل، PDF، الرسوم البيانية، والباركود -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
 
-    <button class="theme-toggle-btn login-theme-toggle" onclick="toggleTheme()" title="تغيير المظهر">🌙</button>
+    <!-- قسم طباعة الوصل الحراري (مخفي ويظهر فقط عند الطباعة المجمعة) -->
+    <div id="printReceipt" class="print-only"></div>
 
-    <div id="globalUserBar" class="global-user-bar" style="display:none;">
+    <button class="theme-toggle-btn login-theme-toggle no-print" onclick="toggleTheme()" title="تغيير المظهر">🌙</button>
+
+    <!-- شريط معلومات المستخدم والوقت (محدث للوسط) -->
+    <div id="globalUserBar" class="global-user-bar no-print" style="display:none; position:relative;">
         <span id="globalUserName" style="color: var(--primary-blue);">👤 المستخدم</span>
-        <span id="globalTime" style="font-size: 13px; font-weight: bold; color: var(--text-muted);">🕒 00:00 - 📅 0/0/0</span>
+        <span id="globalTime" style="font-size: 13px; font-weight: bold; color: var(--text-muted); position:absolute; left:50%; transform:translateX(-50%); text-align:center;">🕒 00:00 - 📅 0/0/0</span>
     </div>
 
     <!-- تسجيل الدخول -->
-    <div class="login-wrapper" id="login-section">
+    <div class="login-wrapper no-print" id="login-section">
         <div class="login-box">
             <div class="css-logo main-logo"><div class="logo-inner">GL</div></div>
             <h2 class="login-title">Gold Land</h2>
-            
-            <div class="login-input-group">
-                <input type="text" id="username" placeholder="اسم المستخدم">
-            </div>
-            <div class="login-input-group">
-                <input type="password" id="password" placeholder="كلمة المرور" onkeypress="handleEnter(event)">
-            </div>
-            
-            <div style="display: flex; gap: 15px; margin-top: 25px;">
-                <button id="loginBtn" onclick="login()" style="flex: 2; padding: 18px; border-radius: 50px;">تسجيل الدخول</button>
-            </div>
+            <div class="login-input-group"><input type="text" id="username" placeholder="اسم المستخدم"></div>
+            <div class="login-input-group"><input type="password" id="password" placeholder="كلمة المرور" onkeypress="handleEnter(event)"></div>
+            <div style="display: flex; gap: 15px; margin-top: 25px;"><button id="loginBtn" onclick="login()" style="flex: 2; padding: 18px; border-radius: 50px;">تسجيل الدخول</button></div>
             <div class="error-msg" id="login-error">بيانات الدخول غير صحيحة!</div>
-            
             <div style="margin-top: 35px; padding-top: 20px; display: flex; gap: 10px; justify-content: center;">
                 <button onclick="showInstallInstructions('android')" class="install-btn">📱 تثبيت التطبيق</button>
                 <button onclick="showInstallInstructions('ios')" class="install-btn">🍏 آيفون</button>
@@ -51,57 +48,31 @@
     </div>
 
     <!-- القائمة الرئيسية -->
-    <div class="menu-wrapper" id="main-menu-section" style="display: none;">
+    <div class="menu-wrapper no-print" id="main-menu-section" style="display: none;">
         <div class="menu-glass-card">
             <div class="css-logo main-logo menu-logo"><div class="logo-inner">GL</div></div>
-            
             <div class="menu-items">
-                <button class="menu-btn btn-blue" onclick="openDistribution()">
-                    <span class="icon">📄</span> <span>إضافة الطلبات</span>
-                </button>
-                
-                <button class="menu-btn" onclick="openChatSection()">
-                    <span class="icon" style="position:relative;">💬<span class="badge" id="chatBadge" style="display:none;">!</span></span> <span>الدردشة</span>
-                </button>
-                
-                <button class="menu-btn" onclick="openCloudOrders()">
-                    <span class="icon">🗃️</span> <span>الأرشيف</span>
-                </button>
-                
-                <button class="menu-btn" onclick="openReports()">
-                    <span class="icon">📊</span> <span>التقارير</span>
-                </button>
-                
-                <button class="menu-btn" onclick="openSettings()">
-                    <span class="icon">⚙️</span> <span>الإعدادات</span>
-                </button>
-                
-                <button class="menu-btn" onclick="comingSoon('حول التطبيق')">
-                    <span class="icon">ℹ️</span> <span>حول التطبيق</span>
-                </button>
+                <button class="menu-btn btn-blue" onclick="openDistribution()"><span class="icon">📄</span> <span>إضافة الطلبات</span></button>
+                <button class="menu-btn" onclick="openChatSection()"><span class="icon" style="position:relative;">💬<span class="badge" id="chatBadge" style="display:none;">0</span></span> <span>الدردشة</span></button>
+                <button class="menu-btn" onclick="openCloudOrders()"><span class="icon">🗃️</span> <span>الأرشيف والمتابعة</span></button>
+                <button class="menu-btn" onclick="openReports()"><span class="icon">📊</span> <span>التقارير والإحصائيات</span></button>
+                <button class="menu-btn" onclick="openSettings()"><span class="icon">⚙️</span> <span>الإعدادات</span></button>
             </div>
-            
-            <button class="menu-btn-logout" onclick="logout()">
-                <span class="icon">🚪</span> <span>خروج</span>
-            </button>
+            <button class="menu-btn-logout" onclick="logout()"><span class="icon">🚪</span> <span>خروج</span></button>
         </div>
     </div>
 
-    <!-- لوحة التحكم الرئيسية (إضافة الطلبات) -->
-    <div class="container" id="dashboard-section" style="display: none;">
+    <!-- التوزيع الذكي -->
+    <div class="container no-print" id="dashboard-section" style="display: none;">
         <div class="header-dash">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div class="css-logo dash-logo"><div class="logo-inner">GL</div></div>
-                <h2 style="margin: 0; font-size: 22px; color: var(--text-color);">التوزيع الذكي</h2>
-            </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                <button class="btn-outline" onclick="backToMainMenu()" style="padding: 10px 15px;">🔙 القائمة</button>
-            </div>
+            <div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">التوزيع الذكي</h2></div>
+            <div><button class="btn-outline" onclick="backToMainMenu()" style="padding: 10px 15px; position:relative; z-index:100;">🔙 القائمة</button></div>
         </div>
 
         <div class="card">
             <label>قم بلصق النص هنا لاستخراج البيانات:</label>
             <textarea id="pasteArea" placeholder="الصق رسالة الطلب هنا..."></textarea>
+            <div id="customerHistoryAlert" class="hidden" style="margin-top: 15px; padding: 10px 15px; border-radius: 15px; font-weight: bold; text-align: center;"></div>
             <div class="button-group">
                 <button class="btn-parse" onclick="parseText()">توزيع البيانات 🔄</button>
                 <button class="btn-clear" onclick="clearAll()">مسح الكل 🗑️</button>
@@ -111,313 +82,153 @@
         <div class="card">
             <h3 style="text-align: right; margin-bottom: 20px;">تفاصيل الطلب:</h3>
             <div class="form-grid">
-                <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 5px;">
-                    <label style="color: #b8860b; font-size: 16px;">📌 اختر البيج (إلزامي):</label>
-                    <select id="constantField" style="font-weight: bold;">
-                        <option value="">-- اختر البيج التابع له الطلب --</option>
-                    </select>
-                </div>
-
+                <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 5px;"><label style="color: #b8860b; font-size: 16px;">📌 اختر البيج (إلزامي):</label><select id="constantField" style="font-weight: bold;"><option value="">-- اختر البيج --</option></select></div>
                 <div class="form-group"><label>تسلسل الزبون</label><input type="text" id="custId"></div>
                 <div class="form-group"><label>اسم الزبون</label><input type="text" id="custName"></div>
                 <div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="phone1" dir="ltr" style="text-align: right;"></div>
                 <div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="phone2" dir="ltr" style="text-align: right;"></div>
                 <div class="form-group"><label>المحافظة</label><input type="text" id="gov"></div>
                 <div class="form-group"><label>المنطقة</label><input type="text" id="area"></div>
-                
                 <div class="items-container" id="itemsContainer">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                        <label style="margin:0;">📦 الطلبات والعدد</label>
-                        <button type="button" class="btn-outline" onclick="addOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button>
-                    </div>
-                    <div id="dynamicRowsWrapper">
-                        <div class="order-item-row">
-                            <div style="display:flex; flex: 2; min-width: 140px; gap:5px;">
-                                <select class="orderTypeSelect" style="flex: 1;"></select>
-                                <input type="text" class="orderTypeCustomInput" placeholder="اكتب نوع الطلب..." style="display:none; flex: 1;">
-                                <button type="button" class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)" style="padding: 0 10px;" title="كتابة يدوية">✍️</button>
-                            </div>
-                            <input type="text" class="orderColorInput" placeholder="اللون (اختياري)" style="flex: 1; min-width: 100px;">
-                            <div class="qty-controls" style="flex: 1; min-width: 110px;">
-                                <button type="button" class="qty-btn" onclick="changeQty(this, 1)">+</button>
-                                <input type="number" class="orderQtyInput" value="1" min="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;">
-                                <button type="button" class="qty-btn" onclick="changeQty(this, -1)">-</button>
-                            </div>
-                        </div>
-                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><button type="button" class="btn-outline" onclick="addOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></div>
+                    <div id="dynamicRowsWrapper"></div>
                 </div>
-                
                 <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="amount" onblur="formatAmount(this)"></div>
                 <div class="form-group"><label>ملاحظة مهمة</label><input type="text" id="note"></div>
             </div>
-            <div class="button-group" style="margin-top: 30px;">
-                <button id="mainSaveBtn" onclick="addToTable()" style="width: 100%; padding: 18px; font-size: 18px;">إضافة إلى الجدول والحفظ سحابياً ➕</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap:10px; margin-bottom: 20px;">
-                <h3 style="margin: 0;">سجل الطلبات <span id="ordersCounterBadge" style="font-size:14px; color: #b8860b;">(0)</span></h3>
-                <button class="btn-export" onclick="exportToExcel()" style="padding: 10px 20px;">تصدير XLSX 📊</button>
-            </div>
-            <div style="overflow-x: auto; padding-bottom: 10px;">
-                <table id="dataTable">
-                    <thead>
-                        <tr>
-                            <th>ت</th> <th>البيج</th> <th>الزبون</th> <th>الهاتف الأول</th> <th>الهاتف الثاني</th>
-                            <th>المحافظة</th> <th>المنطقة</th> <th>رمز الطلب</th>
-                            <th>العدد</th> <th>المبلغ</th> <th>الملاحظات</th> <th>إجراء</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
+            <div class="button-group" style="margin-top: 30px;"><button id="mainSaveBtn" onclick="addToTable()" style="width: 100%; padding: 18px; font-size: 18px;">حفظ الطلب ➕</button></div>
         </div>
     </div>
 
     <!-- قسم الدردشة التفاعلية -->
-    <div class="container" id="chat-section" style="display: none; height: calc(100vh - 80px); padding: 15px; max-width: 1200px; flex-direction: column;">
-        <div class="header-dash" style="margin-bottom: 15px;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <div class="css-logo dash-logo"><div class="logo-inner">GL</div></div>
-                <h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الدردشة</h2>
-            </div>
-            <div>
-                <button class="btn-outline" onclick="backToMainMenuFromChat()" style="padding: 10px 15px;">🔙 القائمة</button>
-            </div>
-        </div>
-
+    <div class="container no-print" id="chat-section" style="display: none; height: calc(100vh - 80px); padding: 15px; max-width: 1200px; flex-direction: column;">
+        <div class="header-dash" style="margin-bottom: 15px;"><div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الدردشة</h2></div><div><button class="btn-outline" onclick="backToMainMenuFromChat()" style="padding: 10px 15px; position:relative; z-index:100;">🔙 القائمة</button></div></div>
         <div class="chat-container">
             <div class="chat-sidebar" id="chatSidebar">
-                <div class="chat-tabs">
-                    <button class="chat-tab active" id="tabGeneral" onclick="switchChatTab('general')">عام</button>
-                    <button class="chat-tab" id="tabPrivate" onclick="switchChatTab('private')">خاص</button>
-                    <button class="chat-tab" id="tabGroups" onclick="switchChatTab('groups')">مجموعات</button>
-                </div>
-                
+                <div class="chat-tabs"><button class="chat-tab active" id="tabGeneral" onclick="switchChatTab('general')">عام</button><button class="chat-tab" id="tabPrivate" onclick="switchChatTab('private')">خاص</button><button class="chat-tab" id="tabGroups" onclick="switchChatTab('groups')">مجموعات</button></div>
                 <div class="chat-list" id="chatListGeneral">
                     <div class="chat-list-item active" id="chatItem_general" onclick="openChat('general', 'الدردشة العامة')">
                         <div class="chat-avatar" style="background: linear-gradient(135deg, #ffd700, #b8860b);">🌍</div>
-                        <div class="chat-info"><h4>الدردشة العامة</h4><p>مساحة للجميع</p></div>
+                        <div class="chat-info">
+                            <h4>الدردشة العامة <span class="chat-unread-badge" id="badge_general" style="display:none;">0</span></h4>
+                            <p>مساحة للجميع</p>
+                        </div>
                     </div>
                 </div>
                 <div class="chat-list" id="chatListPrivate" style="display: none;"></div>
-                <div class="chat-list" id="chatListGroups" style="display: none;">
-                    <button class="btn-outline" onclick="showCreateGroupModal()" style="width: 100%; margin-bottom: 15px; font-size: 13px; padding: 10px;">➕ إنشاء مجموعة</button>
-                    <div id="groupsListContainer"></div>
-                </div>
+                <div class="chat-list" id="chatListGroups" style="display: none;"><button class="btn-outline" onclick="showCreateGroupModal()" style="width: 100%; margin-bottom: 15px; font-size: 13px; padding: 10px;">➕ إنشاء مجموعة</button><div id="groupsListContainer"></div></div>
             </div>
-
             <div class="chat-area" id="chatAreaWindow">
-                <div class="chat-header">
-                    <button class="mobile-back-btn" onclick="showChatSidebar()">☰ رجوع</button>
-                    <h3 id="currentChatTitle">الدردشة العامة</h3>
-                </div>
-                <div class="chat-messages" id="chatMessages">
-                    <div style="text-align:center; margin-top: 50px; color: var(--text-muted);">اختر محادثة للبدء...</div>
-                </div>
-                <div class="chat-input-area">
-                    <input type="text" id="chatInput" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key==='Enter') sendMessage()">
-                    <button class="btn-parse send-btn" onclick="sendMessage()">إرسال ✈️</button>
-                </div>
+                <div class="chat-header"><button class="mobile-back-btn" onclick="showChatSidebar()">☰ رجوع</button><h3 id="currentChatTitle">الدردشة العامة</h3></div>
+                <div class="chat-messages" id="chatMessages"><div style="text-align:center; margin-top: 50px; color: var(--text-muted);">اختر محادثة للبدء...</div></div>
+                <div class="chat-input-area"><input type="text" id="chatInput" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key==='Enter') sendMessage()"><button class="btn-parse send-btn" onclick="sendMessage()">إرسال ✈️</button></div>
             </div>
         </div>
     </div>
 
-    <!-- نافذة الأرشيف السحابي -->
-    <div class="modal-overlay" id="cloudOrdersModal">
-        <div class="modal-content" style="max-width: 95%; height: 90vh; display: flex; flex-direction: column; padding: 25px;">
+    <!-- الأرشيف السحابي ومتابعة الطلبات -->
+    <div class="modal-overlay no-print" id="cloudOrdersModal">
+        <div class="modal-content" style="max-width: 98%; height: 90vh; display: flex; flex-direction: column; padding: 20px;">
             <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
-            <h3 style="margin-bottom: 20px;">☁️ الأرشيف السحابي</h3>
+            <h3 style="margin-bottom: 15px;">☁️ الأرشيف ومتابعة الطلبات</h3>
             
-            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--inner-shadow); justify-content: center; align-items: center;">
-                <h4 style="margin: 0 0 10px 0; width: 100%; text-align: right; color: var(--text-color);">📥 استيراد بيانات (إكسل)</h4>
-                <button class="btn-outline" onclick="downloadExcelTemplate()" style="flex: 1; min-width: 150px; font-size: 14px; padding: 12px;">⬇️ تحميل نموذج فارغ</button>
-                <label class="btn-parse" style="flex: 1; min-width: 150px; text-align: center; cursor: pointer; padding: 12px; border-radius: 50px; font-size: 14px; font-weight: bold; color: white;">
-                    📤 رفع ملف إكسل
-                    <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile(event)">
-                </label>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: var(--bg-color); padding: 10px; border-radius: 15px; box-shadow: var(--inner-shadow);">
+                <button class="btn-outline" onclick="downloadExcelTemplate()" style="flex: 1; min-width: 150px; font-size: 13px;">⬇️ نموذج فارغ</button>
+                <label class="btn-parse" style="flex: 1; min-width: 150px; text-align: center; cursor: pointer; padding: 12px; border-radius: 50px; font-size: 13px; font-weight: bold; color: white;">📤 رفع إكسل<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile(event)"></label>
+                <button class="btn-export" onclick="exportCloudToExcel()" style="flex: 1; min-width: 150px; font-size: 13px;">تصدير XLSX 📊</button>
+            </div>
+            
+            <!-- أزرار المهام المجمعة (الحالة، الطباعة A5، التصدير PDF، والحذف) -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: rgba(64,123,255,0.05); padding: 10px; border-radius: 15px;">
+                <strong style="width: 100%; color: var(--primary-blue); margin-bottom: 5px;">✅ إجراءات للطلبات المحددة:</strong>
+                <button class="btn-outline" onclick="showBulkStatusModal()" style="flex: 1; min-width: 120px; font-size: 13px; border-radius: 10px; background: white;">🔄 تغيير الحالة</button>
+                <button class="btn-outline" onclick="bulkPrintOrders()" style="flex: 1; min-width: 120px; font-size: 13px; border-radius: 10px; background: white; color: #b8860b;">🖨️ طباعة A5</button>
+                <button class="btn-outline" onclick="bulkExportPDF()" style="flex: 1; min-width: 120px; font-size: 13px; border-radius: 10px; background: white; color: #2ecc71;">📄 تصدير PDF</button>
+                <button class="btn-outline" onclick="bulkDeleteOrders()" id="bulkDeleteBtn" style="flex: 1; min-width: 120px; font-size: 13px; border-radius: 10px; background: white; color: #e74c3c;">🗑️ حذف المحدد</button>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف..." onkeyup="filterCloudOrders()" style="flex: 1; min-width: 150px;">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، التسلسل..." onkeyup="filterCloudOrders()" style="flex: 1; min-width: 150px;">
+                <select id="cloudStatusFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل الحالات --</option><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select>
                 <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل البيجات --</option></select>
-                <div class="date-wrapper"><label>من:</label><input type="date" id="cloudDateFrom" onchange="filterCloudOrders()" dir="ltr"></div>
-                <div class="date-wrapper"><label>إلى:</label><input type="date" id="cloudDateTo" onchange="filterCloudOrders()" dir="ltr"></div>
             </div>
-            
             <div style="overflow-y: auto; flex: 1;">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>التسلسل</th> <th>البيج</th> <th>الزبون</th> <th>الهواتف</th> <th>المحافظة</th> 
-                            <th>الطلب</th> <th>المبلغ</th> <th>المستخدم</th> <th>التاريخ</th> <th>إجراء</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllCb" onclick="toggleAllOrders(this)" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></th><th>التسلسل</th><th>الحالة</th><th>البيج</th><th>الزبون</th><th>الواتساب</th><th>المحافظة</th><th>الطلب</th><th>المبلغ الكلي</th><th>المستخدم</th><th>التاريخ</th><th>تعديل</th></tr></thead>
                     <tbody id="cloudOrdersTbody"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- نافذة تعديل طلب سحابي -->
-    <div class="modal-overlay" id="editOrderModal" style="z-index: 11000;">
+    <!-- نافذة تعديل طلب مفرد -->
+    <div class="modal-overlay no-print" id="editOrderModal" style="z-index: 11000;">
         <div class="modal-content" style="max-width: 600px; text-align: right;">
             <span class="close-modal" onclick="closeEditModal()">&times;</span>
-            <h3 style="margin-bottom: 20px; text-align: center;">✏️ تعديل الطلب</h3>
-            <div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div>
-            <div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div>
-            <div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr" style="text-align:right;"></div>
-            <div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr" style="text-align:right;"></div>
-            <div class="form-group"><label>المحافظة</label><input type="text" id="editGov"></div>
-            <div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div>
-            
-            <div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <label style="margin:0;">📦 الطلبات والعدد</label>
-                    <button type="button" class="btn-outline" onclick="addEditOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button>
-                </div>
-                <div id="editDynamicRowsWrapper"></div>
+            <h3 style="margin-bottom: 20px; text-align: center;">✏️ تحديث الطلب</h3>
+            <div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;">
+                <label style="color: var(--primary-blue);">حالة الطلب</label>
+                <select id="editStatus" style="font-weight: bold;"><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select>
             </div>
-
+            <div class="form-grid">
+                <div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div>
+                <div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div>
+                <div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr"></div>
+                <div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr"></div>
+                <div class="form-group"><label>المحافظة</label><input type="text" id="editGov"></div>
+                <div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div>
+            </div>
+            <div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><button type="button" class="btn-outline" onclick="addEditOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></div><div id="editDynamicRowsWrapper"></div></div>
             <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount"></div>
-            <button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التعديلات 💾</button>
+            <button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التحديثات 💾</button>
         </div>
     </div>
 
-    <!-- نافذة إنشاء مجموعة دردشة -->
-    <div class="modal-overlay" id="createGroupModal" style="z-index: 12000;">
-        <div class="modal-content" style="max-width: 400px; text-align: right;">
-            <span class="close-modal" onclick="closeCreateGroupModal()">&times;</span>
-            <h3 style="text-align: center; margin-bottom: 20px;">👥 مجموعة جديدة</h3>
-            <div class="form-group"><label>اسم المجموعة</label><input type="text" id="newGroupName" placeholder="مثال: فريق المبيعات"></div>
-            <div class="form-group"><label>اختر الأعضاء</label>
-                <div id="groupMembersSelection" style="max-height: 180px; overflow-y: auto; background: var(--bg-color); box-shadow: var(--inner-shadow); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 10px;"></div>
+    <!-- نافذة تغيير الحالة المجمعة -->
+    <div class="modal-overlay no-print" id="bulkStatusModal" style="z-index: 12500;">
+        <div class="modal-content" style="max-width: 350px; text-align: center;">
+            <span class="close-modal" onclick="closeBulkStatusModal()">&times;</span>
+            <h3 style="margin-bottom: 15px;">تغيير حالة الطلبات المحددة</h3>
+            <select id="bulkStatusSelect" style="margin-bottom: 25px; width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ccc;">
+                <option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option>
+            </select>
+            <button class="btn-parse" onclick="saveBulkStatus()" style="width: 100%;">تطبيق على الكل 💾</button>
+        </div>
+    </div>
+
+    <!-- نافذة التقارير والرسوم البيانية -->
+    <div class="modal-overlay no-print" id="reportsModal">
+        <div class="modal-content" style="max-width: 900px; height: 90vh; display: flex; flex-direction: column;">
+            <span class="close-modal" onclick="closeReports()">&times;</span>
+            <h3 style="margin-bottom: 15px;">📊 التقارير الذكية</h3>
+            <div class="settings-tabs"><button class="tab-btn active" onclick="switchReportTab('repPageTab', this)">جدول المبيعات</button><button class="tab-btn" onclick="switchReportTab('repTypeTab', this)">أداء الأصناف</button><button class="tab-btn" onclick="switchReportTab('repChartsTab', this)">الرسوم البيانية 📈</button><button class="tab-btn" onclick="switchReportTab('repFinTab', this)">المالي</button></div>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;"><div class="date-wrapper"><label>من:</label><input type="date" id="repDateFrom" dir="ltr"></div><div class="date-wrapper"><label>إلى:</label><input type="date" id="repDateTo" dir="ltr"></div><button class="btn-parse" onclick="generateReports()" style="flex: 1; min-width:100px;">توليد 🔄</button></div>
+            <div style="flex: 1; overflow-y: auto; padding: 5px;">
+                <div id="repPageTab" class="tab-pane active" style="text-align: right;"><div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;"><select id="repPageFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;"></select><select id="repPageTypeFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;"></select><button class="btn-export" onclick="exportPageReportPDF()" style="padding: 15px;">PDF 📄</button></div><div style="overflow-x: auto;"><table id="pageReportTable"><thead><tr><th>نوع الطلب</th><th>العدد</th><th>المبلغ</th></tr></thead><tbody id="repPageTbody"></tbody><tfoot><tr><td>المجموع الكلي</td><td id="totalPageQty">0</td><td id="totalPageAmount">0</td></tr></tfoot></table></div></div>
+                <div id="repTypeTab" class="tab-pane" style="text-align: right;"><select id="repTypeFilter" onchange="generateReports()" style="width: 100%; margin-bottom: 20px;"></select><div id="repTypeCardsContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;"></div></div>
+                <div id="repChartsTab" class="tab-pane" style="text-align: center;"><div style="display:flex; flex-wrap: wrap; gap:20px;"><div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);"><h4>المبيعات (المالية)</h4><canvas id="financialChart"></canvas></div><div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);"><h4>أكثر الأصناف مبيعاً (القطع)</h4><canvas id="itemsPieChart"></canvas></div></div></div>
+                <div id="repFinTab" class="tab-pane" style="text-align: right;"><div style="display: flex; gap: 10px; margin-bottom: 15px;"><select id="repFinPageFilter" onchange="generateReports()" style="flex: 1;"></select></div><div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;" id="repFinCards"><div class="report-card"><h4>الطلبات المكتملة</h4><div class="val" id="finCount">0</div></div><div class="report-card"><h4>القطع المباعة</h4><div class="val" id="finQty">0</div></div><div class="report-card"><h4>الإجمالي</h4><div class="val" id="finGross">0</div></div><div class="report-card"><h4>أجور المندوب</h4><div class="val" id="finDelivery" style="color:#ff4757;">0</div></div><div class="report-card"><h4>الصافي</h4><div class="val" id="finNet" style="color:#2ecc71;">0</div></div></div></div>
             </div>
-            <button class="btn-parse" onclick="createChatGroup()" style="width: 100%; margin-top: 15px;">إنشاء المجموعة ➕</button>
         </div>
     </div>
 
-    <!-- نافذة الإعدادات -->
-    <div class="modal-overlay" id="settingsModal">
+    <!-- نوافذ الإعدادات والإنشاء -->
+    <div class="modal-overlay no-print" id="createGroupModal" style="z-index: 12000;"><div class="modal-content" style="max-width: 400px; text-align: right;"><span class="close-modal" onclick="closeCreateGroupModal()">&times;</span><h3 style="text-align: center; margin-bottom: 20px;">👥 مجموعة جديدة</h3><div class="form-group"><label>اسم المجموعة</label><input type="text" id="newGroupName" placeholder="مثال: فريق المبيعات"></div><div class="form-group"><label>اختر الأعضاء</label><div id="groupMembersSelection" style="max-height: 180px; overflow-y: auto; background: var(--bg-color); box-shadow: var(--inner-shadow); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 10px;"></div></div><button class="btn-parse" onclick="createChatGroup()" style="width: 100%; margin-top: 15px;">إنشاء المجموعة ➕</button></div></div>
+    <div class="modal-overlay no-print" id="confirmModal" style="z-index: 13000;"><div class="modal-content" style="max-width: 350px; padding-top: 40px; text-align: center;"><div style="font-size: 50px; margin-bottom: 15px;">⚠️</div><h3 style="color: #ff4757; margin-bottom: 10px;">تأكيد الإجراء</h3><p id="confirmMessage" style="color: var(--text-muted); margin-bottom: 30px;">هل أنت متأكد؟</p><div style="display: flex; gap: 15px; justify-content: center;"><button id="confirmYesBtn" class="btn-danger" style="width: 50%;">نعم</button><button onclick="closeConfirmModal()" class="btn-outline" style="width: 50%;">إلغاء</button></div></div></div>
+    
+    <div class="modal-overlay no-print" id="settingsModal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeSettings()">&times;</span>
-            <div id="settingsAuthSection">
-                <h3>🔒 إعدادات النظام</h3>
-                <div class="form-group"><input type="password" id="settingsPass" placeholder="الرقم السري للمدير" onkeypress="if(event.key==='Enter') verifySettingsPass()"></div>
-                <button onclick="verifySettingsPass()" style="width: 100%;">دخول 🔑</button>
-                <div class="error-msg" id="settings-error">الرقم السري غير صحيح!</div>
-            </div>
-            
+            <div id="settingsAuthSection"><h3>🔒 إعدادات النظام</h3><div class="form-group"><input type="password" id="settingsPass" placeholder="الرقم السري للمدير" onkeypress="if(event.key==='Enter') verifySettingsPass()"></div><button onclick="verifySettingsPass()" style="width: 100%;">دخول 🔑</button><div class="error-msg" id="settings-error">الرقم السري غير صحيح!</div></div>
             <div id="settingsManagerSection" style="display: none;">
                 <h3 style="margin-bottom: 20px;">⚙️ الإعدادات</h3>
-                <div class="settings-tabs">
-                    <button class="tab-btn active" onclick="switchTab('pagesTab', this)">البيجات</button>
-                    <button class="tab-btn" onclick="switchTab('typesTab', this)">الطلبات</button>
-                    <button class="tab-btn" onclick="switchTab('usersTab', this)">المستخدمين</button>
-                    <button class="tab-btn" onclick="switchTab('deliveryTab', this)">التوصيل</button>
-                </div>
+                <div class="settings-tabs"><button class="tab-btn active" onclick="switchTab('pagesTab', this)">البيجات</button><button class="tab-btn" onclick="switchTab('typesTab', this)">الطلبات</button><button class="tab-btn" onclick="switchTab('usersTab', this)">المستخدمين</button><button class="tab-btn" onclick="switchTab('deliveryTab', this)">التوصيل</button></div>
                 <div class="tab-content">
-                    <div id="pagesTab" class="tab-pane active" style="text-align: right;">
-                        <input type="text" id="newPageName" placeholder="اسم البيج" style="width:100%; margin-bottom:15px;">
-                        <button onclick="addPageType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button>
-                        <ul id="pagesListDisplay"></ul>
-                    </div>
-                    <div id="typesTab" class="tab-pane" style="text-align: right;">
-                        <input type="text" id="newOrderName" placeholder="اسم الطلب" style="width:100%; margin-bottom:15px;">
-                        <input type="text" id="newOrderCode" placeholder="الرمز" style="width:100%; margin-bottom:15px;">
-                        <button onclick="addOrderType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button>
-                        <ul id="orderTypesListDisplay"></ul>
-                    </div>
-                    <div id="usersTab" class="tab-pane" style="text-align: right;">
-                        <input type="text" id="new-user-name" placeholder="المستخدم" style="width:100%; margin-bottom:15px;">
-                        <input type="password" id="new-user-pass" placeholder="كلمة المرور" style="width:100%; margin-bottom:15px;">
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; justify-content: center;">
-                            <label class="permission-badge"><input type="checkbox" id="new-user-can-delete"> حذف</label>
-                            <label class="permission-badge"><input type="checkbox" id="new-user-can-edit"> تعديل</label>
-                            <label class="permission-badge"><input type="checkbox" id="new-user-can-settings"> إعدادات</label>
-                            <label class="permission-badge"><input type="checkbox" id="new-user-can-reports"> تقارير</label>
-                        </div>
-                        <button onclick="addUser()" style="width: 100%; margin-bottom: 20px;">إضافة مستخدم ☁️</button>
-                        <ul id="users-list"></ul>
-                    </div>
-                    <div id="deliveryTab" class="tab-pane" style="text-align: right;">
-                        <label>توصيل بغداد</label><input type="number" id="feeBaghdadInput" style="margin-bottom:15px;">
-                        <label>توصيل المحافظات</label><input type="number" id="feeOtherInput" style="margin-bottom:20px;">
-                        <button onclick="saveDeliveryFees()" style="width: 100%;">حفظ 💾</button>
-                    </div>
+                    <div id="pagesTab" class="tab-pane active" style="text-align: right;"><input type="text" id="newPageName" placeholder="اسم البيج" style="width:100%; margin-bottom:15px;"><button onclick="addPageType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button><ul id="pagesListDisplay"></ul></div>
+                    <div id="typesTab" class="tab-pane" style="text-align: right;"><input type="text" id="newOrderName" placeholder="اسم الطلب" style="width:100%; margin-bottom:15px;"><input type="text" id="newOrderCode" placeholder="الرمز" style="width:100%; margin-bottom:15px;"><button onclick="addOrderType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button><ul id="orderTypesListDisplay"></ul></div>
+                    <div id="usersTab" class="tab-pane" style="text-align: right;"><input type="text" id="new-user-name" placeholder="المستخدم" style="width:100%; margin-bottom:15px;"><input type="password" id="new-user-pass" placeholder="كلمة المرور" style="width:100%; margin-bottom:15px;"><div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; justify-content: center;"><label class="permission-badge"><input type="checkbox" id="new-user-can-delete"> حذف</label><label class="permission-badge"><input type="checkbox" id="new-user-can-edit"> تعديل</label><label class="permission-badge"><input type="checkbox" id="new-user-can-settings"> إعدادات</label><label class="permission-badge"><input type="checkbox" id="new-user-can-reports"> تقارير</label></div><button onclick="addUser()" style="width: 100%; margin-bottom: 20px;">إضافة مستخدم ☁️</button><ul id="users-list"></ul></div>
+                    <div id="deliveryTab" class="tab-pane" style="text-align: right;"><label>توصيل بغداد</label><input type="number" id="feeBaghdadInput" style="margin-bottom:15px;"><label>توصيل المحافظات</label><input type="number" id="feeOtherInput" style="margin-bottom:20px;"><button onclick="saveDeliveryFees()" style="width: 100%;">حفظ 💾</button></div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- نافذة التقارير -->
-    <div class="modal-overlay" id="reportsModal">
-        <div class="modal-content" style="max-width: 800px; height: 85vh; display: flex; flex-direction: column;">
-            <span class="close-modal" onclick="closeReports()">&times;</span>
-            <h3 style="margin-bottom: 20px;">📊 التقارير</h3>
-            <div class="settings-tabs">
-                <button class="tab-btn active" onclick="switchReportTab('repPageTab', this)">البيجات والطلبات</button>
-                <button class="tab-btn" onclick="switchReportTab('repTypeTab', this)">إحصائيات الأصناف</button>
-                <button class="tab-btn" onclick="switchReportTab('repFinTab', this)">المالي</button>
-            </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                <div class="date-wrapper"><label>من:</label><input type="date" id="repDateFrom" dir="ltr"></div>
-                <div class="date-wrapper"><label>إلى:</label><input type="date" id="repDateTo" dir="ltr"></div>
-                <button class="btn-parse" onclick="generateReports()" style="flex: 1; min-width:100px;">توليد 🔄</button>
-            </div>
-            <div style="flex: 1; overflow-y: auto; padding: 5px;">
-                <div id="repPageTab" class="tab-pane active" style="text-align: right;">
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
-                        <select id="repPageFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;">
-                            <option value="all">-- كل البيجات --</option>
-                        </select>
-                        <select id="repPageTypeFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;">
-                            <option value="all">-- كل الطلبات --</option>
-                        </select>
-                        <button class="btn-export" onclick="exportPageReportPDF()" style="padding: 15px;">PDF 📄</button>
-                    </div>
-                    <div style="overflow-x: auto;">
-                        <table id="pageReportTable">
-                            <thead><tr><th>نوع الطلب</th><th>العدد</th><th>المبلغ</th></tr></thead>
-                            <tbody id="repPageTbody"></tbody>
-                            <tfoot><tr><td>المجموع الكلي</td><td id="totalPageQty">0</td><td id="totalPageAmount">0</td></tr></tfoot>
-                        </table>
-                    </div>
-                </div>
-                <div id="repTypeTab" class="tab-pane" style="text-align: right;">
-                    <select id="repTypeFilter" onchange="generateReports()" style="width: 100%; margin-bottom: 20px;">
-                        <option value="all">-- كل الطلبات --</option>
-                    </select>
-                    <div id="repTypeCardsContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;"></div>
-                </div>
-                <div id="repFinTab" class="tab-pane" style="text-align: right;">
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
-                        <select id="repFinPageFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;">
-                            <option value="all">-- كل البيجات --</option>
-                        </select>
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;" id="repFinCards">
-                        <div class="report-card"><h4>الطلبات</h4><div class="val" id="finCount">0</div></div>
-                        <div class="report-card"><h4>القطع</h4><div class="val" id="finQty">0</div></div>
-                        <div class="report-card"><h4>المبلغ الكلي</h4><div class="val" id="finGross">0</div></div>
-                        <div class="report-card"><h4>التوصيل</h4><div class="val" id="finDelivery" style="color:#ff4757;">0</div></div>
-                        <div class="report-card"><h4>الصافي</h4><div class="val" id="finNet" style="color:#2ecc71;">0</div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- نافذة التأكيد -->
-    <div class="modal-overlay" id="confirmModal" style="z-index: 13000;">
-        <div class="modal-content" style="max-width: 350px; padding-top: 40px; text-align: center;">
-            <div style="font-size: 50px; margin-bottom: 15px;">⚠️</div>
-            <h3 style="color: #ff4757; margin-bottom: 10px;">تأكيد الإجراء</h3>
-            <p id="confirmMessage" style="color: var(--text-muted); margin-bottom: 30px;">هل أنت متأكد؟</p>
-            <div style="display: flex; gap: 15px; justify-content: center;">
-                <button id="confirmYesBtn" class="btn-danger" style="width: 50%;">نعم</button>
-                <button onclick="closeConfirmModal()" class="btn-outline" style="width: 50%;">إلغاء</button>
             </div>
         </div>
     </div>
