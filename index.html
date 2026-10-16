@@ -3,17 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Gold Land ERP</title>
+    <title>Gold Land Zain</title>
     
     <link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Gold Land">
 
     <link rel="apple-touch-icon" href="gl.png">
     <link rel="stylesheet" href="style.css">
 
-    <!-- المكتبات الخارجية: إكسل، PDF، الرسوم البيانية، والباركود -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -21,12 +19,8 @@
 </head>
 <body>
 
-    <!-- قسم طباعة الوصل الحراري (مخفي ويظهر فقط عند الطباعة المجمعة) -->
     <div id="printReceipt" class="print-only"></div>
 
-    <button class="theme-toggle-btn login-theme-toggle no-print" onclick="toggleTheme()" title="تغيير المظهر">🌙</button>
-
-    <!-- شريط معلومات المستخدم والوقت (محدث للوسط) -->
     <div id="globalUserBar" class="global-user-bar no-print" style="display:none; position:relative;">
         <span id="globalUserName" style="color: var(--primary-blue);">👤 المستخدم</span>
         <span id="globalTime" style="font-size: 13px; font-weight: bold; color: var(--text-muted); position:absolute; left:50%; transform:translateX(-50%); text-align:center;">🕒 00:00 - 📅 0/0/0</span>
@@ -58,8 +52,35 @@
                 <button class="menu-btn" onclick="openCloudOrders()"><span class="icon">🗃️</span> <span>الأرشيف والمتابعة</span></button>
                 <button class="menu-btn" onclick="openReports()"><span class="icon">📊</span> <span>التقارير والإحصائيات</span></button>
                 <button class="menu-btn" onclick="openSettings()"><span class="icon">⚙️</span> <span>الإعدادات</span></button>
+                <button class="menu-btn" onclick="openProfile()"><span class="icon">👤</span> <span>الملف الشخصي</span></button>
             </div>
             <button class="menu-btn-logout" onclick="logout()"><span class="icon">🚪</span> <span>خروج</span></button>
+        </div>
+    </div>
+
+    <!-- الملف الشخصي للمستخدم الحالي -->
+    <div class="modal-overlay no-print" id="profileModal" style="z-index: 15000;">
+        <div class="modal-content" style="max-width: 400px; text-align: center; background: #f9f9f9;">
+            <span class="close-modal" onclick="closeProfile()">&times;</span>
+            <div id="profileAvatar" class="employee-avatar" style="margin: 0 auto 15px auto; width: 90px; height: 90px; font-size: 50px;">👤</div>
+            <h2 id="profileUsername" style="color: #000; margin-bottom: 5px; font-size: 22px;">اسم المستخدم</h2>
+            <div id="profileJob" style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">الوظيفة</div>
+            
+            <div class="employee-details-box" style="text-align: right;">
+                <p><strong>مكان العمل:</strong> <span id="profileLocation">-</span></p>
+                <p><strong>الجنس:</strong> <span id="profileGender">-</span></p>
+                <p><strong>رقم الهاتف:</strong> <span id="profilePhone" dir="ltr">-</span></p>
+            </div>
+            
+            <div style="background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); margin-bottom: 20px;">
+                <p style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 13px;"><strong>الصلاحيات الممنوحة:</strong></p>
+                <div id="profilePermissions" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;"></div>
+            </div>
+            
+            <div class="report-card" style="background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+                <h4 style="font-size: 13px;">إجمالي الطلبات المُدخلة (هذا الشهر)</h4>
+                <div class="val" id="profileOrderCount" style="color: #2ecc71;">0</div>
+            </div>
         </div>
     </div>
 
@@ -71,7 +92,7 @@
         </div>
 
         <div class="card">
-            <label>قم بلصق النص هنا لاستخراج البيانات:</label>
+            <label>قم بلصق النص هنا لاستخراج البيانات بذكاء:</label>
             <textarea id="pasteArea" placeholder="الصق رسالة الطلب هنا..."></textarea>
             <div id="customerHistoryAlert" class="hidden" style="margin-top: 15px; padding: 10px 15px; border-radius: 15px; font-weight: bold; text-align: center;"></div>
             <div class="button-group">
@@ -101,45 +122,44 @@
         </div>
     </div>
 
-    <!-- قسم الدردشة التفاعلية -->
+    <!-- قسم الدردشة -->
     <div class="container no-print" id="chat-section" style="display: none; height: calc(100vh - 80px); padding: 15px; max-width: 1200px; flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;"><div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الدردشة</h2></div><div><button class="btn-outline" onclick="backToMainMenuFromChat()" style="padding: 10px 15px; position:relative; z-index:100;">🔙 القائمة</button></div></div>
         <div class="chat-container">
             <div class="chat-sidebar" id="chatSidebar">
                 <div class="chat-tabs"><button class="chat-tab active" id="tabGeneral" onclick="switchChatTab('general')">عام</button><button class="chat-tab" id="tabPrivate" onclick="switchChatTab('private')">خاص</button><button class="chat-tab" id="tabGroups" onclick="switchChatTab('groups')">مجموعات</button></div>
-                <div class="chat-list" id="chatListGeneral">
-                    <div class="chat-list-item active" id="chatItem_general" onclick="openChat('general', 'الدردشة العامة')">
-                        <div class="chat-avatar" style="background: linear-gradient(135deg, #ffd700, #b8860b);">🌍</div>
-                        <div class="chat-info">
-                            <h4>الدردشة العامة <span class="chat-unread-badge" id="badge_general" style="display:none;">0</span></h4>
-                            <p>مساحة للجميع</p>
-                        </div>
-                    </div>
-                </div>
+                <div class="chat-list" id="chatListGeneral"><div class="chat-list-item active" id="chatItem_general" onclick="openChat('general', 'الدردشة العامة')"><div class="chat-avatar" style="background: linear-gradient(135deg, #ffd700, #b8860b);">🌍</div><div class="chat-info"><h4>الدردشة العامة <span class="chat-unread-badge" id="badge_general" style="display:none;">0</span></h4><p>مساحة للجميع</p></div></div></div>
                 <div class="chat-list" id="chatListPrivate" style="display: none;"></div>
                 <div class="chat-list" id="chatListGroups" style="display: none;"><button class="btn-outline" onclick="showCreateGroupModal()" style="width: 100%; margin-bottom: 15px; font-size: 13px; padding: 10px;">➕ إنشاء مجموعة</button><div id="groupsListContainer"></div></div>
             </div>
             <div class="chat-area" id="chatAreaWindow">
-                <div class="chat-header"><button class="mobile-back-btn" onclick="showChatSidebar()">☰ رجوع</button><h3 id="currentChatTitle">الدردشة العامة</h3></div>
-                <div class="chat-messages" id="chatMessages"><div style="text-align:center; margin-top: 50px; color: var(--text-muted);">اختر محادثة للبدء...</div></div>
+                <div class="chat-header"><button class="mobile-back-btn" onclick="showChatSidebar()">☰ خيارات</button><h3 id="currentChatTitle">الدردشة العامة</h3></div>
+                <div class="chat-messages" id="chatMessages"></div>
                 <div class="chat-input-area"><input type="text" id="chatInput" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key==='Enter') sendMessage()"><button class="btn-parse send-btn" onclick="sendMessage()">إرسال ✈️</button></div>
             </div>
         </div>
     </div>
 
-    <!-- الأرشيف السحابي ومتابعة الطلبات -->
+    <!-- الأرشيف السحابي -->
     <div class="modal-overlay no-print" id="cloudOrdersModal">
         <div class="modal-content" style="max-width: 98%; height: 90vh; display: flex; flex-direction: column; padding: 20px;">
             <span class="close-modal" onclick="closeCloudOrders()">&times;</span>
-            <h3 style="margin-bottom: 15px;">☁️ الأرشيف ومتابعة الطلبات</h3>
+            <h3 style="margin-bottom: 15px;">☁️ الأرشيف والمتابعة</h3>
             
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px; box-shadow: var(--inner-shadow);">
+                <strong style="width: 100%; color: var(--primary-blue); margin-bottom: 5px;">🕰️ جلب الطلبات القديمة (الأرشيف):</strong>
+                <div class="date-wrapper"><label>من:</label><input type="date" id="oldOrdersFrom" dir="ltr"></div>
+                <div class="date-wrapper"><label>إلى:</label><input type="date" id="oldOrdersTo" dir="ltr"></div>
+                <button class="btn-parse" onclick="fetchOldOrders()" style="flex: 1; min-width: 120px;">بحث وجلب 🔍</button>
+                <button class="btn-outline" onclick="reloadCurrentMonth()" style="flex: 1; min-width: 120px;">📅 طلبات الشهر الحالي</button>
+            </div>
+
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: var(--bg-color); padding: 10px; border-radius: 15px; box-shadow: var(--inner-shadow);">
                 <button class="btn-outline" onclick="downloadExcelTemplate()" style="flex: 1; min-width: 150px; font-size: 13px;">⬇️ نموذج فارغ</button>
                 <label class="btn-parse" style="flex: 1; min-width: 150px; text-align: center; cursor: pointer; padding: 12px; border-radius: 50px; font-size: 13px; font-weight: bold; color: white;">📤 رفع إكسل<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile(event)"></label>
                 <button class="btn-export" onclick="exportCloudToExcel()" style="flex: 1; min-width: 150px; font-size: 13px;">تصدير XLSX 📊</button>
             </div>
             
-            <!-- أزرار المهام المجمعة (الحالة، الطباعة A5، التصدير PDF، والحذف) -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: rgba(64,123,255,0.05); padding: 10px; border-radius: 15px;">
                 <strong style="width: 100%; color: var(--primary-blue); margin-bottom: 5px;">✅ إجراءات للطلبات المحددة:</strong>
                 <button class="btn-outline" onclick="showBulkStatusModal()" style="flex: 1; min-width: 120px; font-size: 13px; border-radius: 10px; background: white;">🔄 تغيير الحالة</button>
@@ -162,73 +182,156 @@
         </div>
     </div>
 
-    <!-- نافذة تعديل طلب مفرد -->
-    <div class="modal-overlay no-print" id="editOrderModal" style="z-index: 11000;">
-        <div class="modal-content" style="max-width: 600px; text-align: right;">
-            <span class="close-modal" onclick="closeEditModal()">&times;</span>
-            <h3 style="margin-bottom: 20px; text-align: center;">✏️ تحديث الطلب</h3>
-            <div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;">
-                <label style="color: var(--primary-blue);">حالة الطلب</label>
-                <select id="editStatus" style="font-weight: bold;"><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select>
-            </div>
-            <div class="form-grid">
-                <div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div>
-                <div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div>
-                <div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr"></div>
-                <div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr"></div>
-                <div class="form-group"><label>المحافظة</label><input type="text" id="editGov"></div>
-                <div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div>
-            </div>
-            <div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><button type="button" class="btn-outline" onclick="addEditOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></div><div id="editDynamicRowsWrapper"></div></div>
-            <div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount"></div>
-            <button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التحديثات 💾</button>
-        </div>
-    </div>
-
-    <!-- نافذة تغيير الحالة المجمعة -->
-    <div class="modal-overlay no-print" id="bulkStatusModal" style="z-index: 12500;">
-        <div class="modal-content" style="max-width: 350px; text-align: center;">
-            <span class="close-modal" onclick="closeBulkStatusModal()">&times;</span>
-            <h3 style="margin-bottom: 15px;">تغيير حالة الطلبات المحددة</h3>
-            <select id="bulkStatusSelect" style="margin-bottom: 25px; width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ccc;">
-                <option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option>
-            </select>
-            <button class="btn-parse" onclick="saveBulkStatus()" style="width: 100%;">تطبيق على الكل 💾</button>
-        </div>
-    </div>
-
-    <!-- نافذة التقارير والرسوم البيانية -->
-    <div class="modal-overlay no-print" id="reportsModal">
-        <div class="modal-content" style="max-width: 900px; height: 90vh; display: flex; flex-direction: column;">
-            <span class="close-modal" onclick="closeReports()">&times;</span>
-            <h3 style="margin-bottom: 15px;">📊 التقارير الذكية</h3>
-            <div class="settings-tabs"><button class="tab-btn active" onclick="switchReportTab('repPageTab', this)">جدول المبيعات</button><button class="tab-btn" onclick="switchReportTab('repTypeTab', this)">أداء الأصناف</button><button class="tab-btn" onclick="switchReportTab('repChartsTab', this)">الرسوم البيانية 📈</button><button class="tab-btn" onclick="switchReportTab('repFinTab', this)">المالي</button></div>
-            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;"><div class="date-wrapper"><label>من:</label><input type="date" id="repDateFrom" dir="ltr"></div><div class="date-wrapper"><label>إلى:</label><input type="date" id="repDateTo" dir="ltr"></div><button class="btn-parse" onclick="generateReports()" style="flex: 1; min-width:100px;">توليد 🔄</button></div>
-            <div style="flex: 1; overflow-y: auto; padding: 5px;">
-                <div id="repPageTab" class="tab-pane active" style="text-align: right;"><div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;"><select id="repPageFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;"></select><select id="repPageTypeFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;"></select><button class="btn-export" onclick="exportPageReportPDF()" style="padding: 15px;">PDF 📄</button></div><div style="overflow-x: auto;"><table id="pageReportTable"><thead><tr><th>نوع الطلب</th><th>العدد</th><th>المبلغ</th></tr></thead><tbody id="repPageTbody"></tbody><tfoot><tr><td>المجموع الكلي</td><td id="totalPageQty">0</td><td id="totalPageAmount">0</td></tr></tfoot></table></div></div>
-                <div id="repTypeTab" class="tab-pane" style="text-align: right;"><select id="repTypeFilter" onchange="generateReports()" style="width: 100%; margin-bottom: 20px;"></select><div id="repTypeCardsContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;"></div></div>
-                <div id="repChartsTab" class="tab-pane" style="text-align: center;"><div style="display:flex; flex-wrap: wrap; gap:20px;"><div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);"><h4>المبيعات (المالية)</h4><canvas id="financialChart"></canvas></div><div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);"><h4>أكثر الأصناف مبيعاً (القطع)</h4><canvas id="itemsPieChart"></canvas></div></div></div>
-                <div id="repFinTab" class="tab-pane" style="text-align: right;"><div style="display: flex; gap: 10px; margin-bottom: 15px;"><select id="repFinPageFilter" onchange="generateReports()" style="flex: 1;"></select></div><div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;" id="repFinCards"><div class="report-card"><h4>الطلبات المكتملة</h4><div class="val" id="finCount">0</div></div><div class="report-card"><h4>القطع المباعة</h4><div class="val" id="finQty">0</div></div><div class="report-card"><h4>الإجمالي</h4><div class="val" id="finGross">0</div></div><div class="report-card"><h4>أجور المندوب</h4><div class="val" id="finDelivery" style="color:#ff4757;">0</div></div><div class="report-card"><h4>الصافي</h4><div class="val" id="finNet" style="color:#2ecc71;">0</div></div></div></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- نوافذ الإعدادات والإنشاء -->
-    <div class="modal-overlay no-print" id="createGroupModal" style="z-index: 12000;"><div class="modal-content" style="max-width: 400px; text-align: right;"><span class="close-modal" onclick="closeCreateGroupModal()">&times;</span><h3 style="text-align: center; margin-bottom: 20px;">👥 مجموعة جديدة</h3><div class="form-group"><label>اسم المجموعة</label><input type="text" id="newGroupName" placeholder="مثال: فريق المبيعات"></div><div class="form-group"><label>اختر الأعضاء</label><div id="groupMembersSelection" style="max-height: 180px; overflow-y: auto; background: var(--bg-color); box-shadow: var(--inner-shadow); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 10px;"></div></div><button class="btn-parse" onclick="createChatGroup()" style="width: 100%; margin-top: 15px;">إنشاء المجموعة ➕</button></div></div>
-    <div class="modal-overlay no-print" id="confirmModal" style="z-index: 13000;"><div class="modal-content" style="max-width: 350px; padding-top: 40px; text-align: center;"><div style="font-size: 50px; margin-bottom: 15px;">⚠️</div><h3 style="color: #ff4757; margin-bottom: 10px;">تأكيد الإجراء</h3><p id="confirmMessage" style="color: var(--text-muted); margin-bottom: 30px;">هل أنت متأكد؟</p><div style="display: flex; gap: 15px; justify-content: center;"><button id="confirmYesBtn" class="btn-danger" style="width: 50%;">نعم</button><button onclick="closeConfirmModal()" class="btn-outline" style="width: 50%;">إلغاء</button></div></div></div>
+    <!-- نوافذ إضافية -->
+    <div class="modal-overlay no-print" id="editOrderModal" style="z-index: 11000;"><div class="modal-content" style="max-width: 600px; text-align: right;"><span class="close-modal" onclick="closeEditModal()">&times;</span><h3 style="margin-bottom: 20px; text-align: center;">✏️ تحديث الطلب</h3><div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;"><label style="color: var(--primary-blue);">حالة الطلب</label><select id="editStatus" style="font-weight: bold;"><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select></div><div class="form-grid"><div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div><div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div><div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr"></div><div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr"></div><div class="form-group"><label>المحافظة</label><input type="text" id="editGov"></div><div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div></div><div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><button type="button" class="btn-outline" onclick="addEditOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></div><div id="editDynamicRowsWrapper"></div></div><div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount"></div><button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التحديثات 💾</button></div></div>
     
+    <div class="modal-overlay no-print" id="bulkStatusModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 350px; text-align: center;"><span class="close-modal" onclick="closeBulkStatusModal()">&times;</span><h3 style="margin-bottom: 15px;">تغيير حالة الطلبات المحددة</h3><select id="bulkStatusSelect" style="margin-bottom: 25px; width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ccc;"><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select><button class="btn-parse" onclick="saveBulkStatus()" style="width: 100%;">تطبيق على الكل 💾</button></div></div>
+
+    <!-- التقارير -->
+    <div class="modal-overlay no-print" id="reportsModal"><div class="modal-content" style="max-width: 900px; height: 90vh; display: flex; flex-direction: column;"><span class="close-modal" onclick="closeReports()">&times;</span><h3 style="margin-bottom: 15px;">📊 التقارير الذكية</h3><div class="settings-tabs"><button class="tab-btn active" onclick="switchReportTab('repPageTab', this)">جدول المبيعات</button><button class="tab-btn" onclick="switchReportTab('repTypeTab', this)">أداء الأصناف</button><button class="tab-btn" onclick="switchReportTab('repChartsTab', this)">الرسوم البيانية 📈</button><button class="tab-btn" onclick="switchReportTab('repFinTab', this)">المالي</button></div><div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;"><div class="date-wrapper"><label>من:</label><input type="date" id="repDateFrom" dir="ltr"></div><div class="date-wrapper"><label>إلى:</label><input type="date" id="repDateTo" dir="ltr"></div><button class="btn-parse" onclick="generateReports()" style="flex: 1; min-width:100px;">توليد 🔄</button></div><div style="flex: 1; overflow-y: auto; padding: 5px;"><div id="repPageTab" class="tab-pane active" style="text-align: right;"><div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;"><select id="repPageFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;"></select><select id="repPageTypeFilter" onchange="generateReports()" style="flex: 1; min-width: 150px;"></select><button class="btn-export" onclick="exportPageReportPDF()" style="padding: 15px;">PDF 📄</button></div><div style="overflow-x: auto;"><table id="pageReportTable"><thead><tr><th>نوع الطلب</th><th>العدد</th><th>المبلغ</th></tr></thead><tbody id="repPageTbody"></tbody><tfoot><tr><td>المجموع الكلي</td><td id="totalPageQty">0</td><td id="totalPageAmount">0</td></tr></tfoot></table></div></div><div id="repTypeTab" class="tab-pane" style="text-align: right;"><select id="repTypeFilter" onchange="generateReports()" style="width: 100%; margin-bottom: 20px;"></select><div id="repTypeCardsContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;"></div></div><div style="display:flex; flex-wrap: wrap; gap:20px;"><div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);"><h4>المبيعات (المالية)</h4><canvas id="financialChart"></canvas></div><div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);"><h4>أكثر الأصناف مبيعاً (القطع)</h4><canvas id="itemsPieChart"></canvas></div></div></div><div id="repFinTab" class="tab-pane" style="text-align: right;"><div style="display: flex; gap: 10px; margin-bottom: 15px;"><select id="repFinPageFilter" onchange="generateReports()" style="flex: 1;"></select></div><div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;" id="repFinCards"><div class="report-card"><h4>الطلبات المكتملة</h4><div class="val" id="finCount">0</div></div><div class="report-card"><h4>القطع المباعة</h4><div class="val" id="finQty">0</div></div><div class="report-card"><h4>الإجمالي</h4><div class="val" id="finGross">0</div></div><div class="report-card"><h4>أجور المندوب</h4><div class="val" id="finDelivery" style="color:#ff4757;">0</div></div><div class="report-card"><h4>الصافي</h4><div class="val" id="finNet" style="color:#2ecc71;">0</div></div></div></div></div></div></div>
+<div id="repChartsTab" class="tab-pane" style="text-align: center;">
+    <!-- القائمة المنسدلة الجديدة للبيجات -->
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <select id="repChartsPageFilter" onchange="generateReports()" style="flex: 1; padding: 15px; border-radius: 15px; border: none; font-weight: bold; box-shadow: var(--inner-shadow); background: var(--bg-color); color: var(--text-color);"></select>
+    </div>
+    <div style="display:flex; flex-wrap: wrap; gap:20px;">
+        <div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);">
+            <h4>المبيعات (المالية)</h4>
+            <canvas id="financialChart"></canvas>
+        </div>
+        <div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);">
+            <h4>أكثر الأصناف مبيعاً (القطع)</h4>
+            <canvas id="itemsPieChart"></canvas>
+        </div>
+    </div>
+</div>    <div class="modal-overlay no-print" id="createGroupModal" style="z-index: 12000;"><div class="modal-content" style="max-width: 400px; text-align: right;"><span class="close-modal" onclick="closeCreateGroupModal()">&times;</span><h3 style="text-align: center; margin-bottom: 20px;">👥 مجموعة جديدة</h3><div class="form-group"><label>اسم المجموعة</label><input type="text" id="newGroupName" placeholder="مثال: فريق المبيعات"></div><div class="form-group"><label>اختر الأعضاء</label><div id="groupMembersSelection" style="max-height: 180px; overflow-y: auto; background: var(--bg-color); box-shadow: var(--inner-shadow); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 10px;"></div></div><button class="btn-parse" onclick="createChatGroup()" style="width: 100%; margin-top: 15px;">إنشاء المجموعة ➕</button></div></div>
+    
+    <div class="modal-overlay no-print" id="confirmModal" style="z-index: 13000;"><div class="modal-content" style="max-width: 350px; padding-top: 40px; text-align: center;"><div style="font-size: 50px; margin-bottom: 15px;">⚠️</div><h3 style="color: #ff4757; margin-bottom: 10px;">تأكيد الإجراء</h3><p id="confirmMessage" style="color: var(--text-muted); margin-bottom: 30px;">هل أنت متأكد؟</p><div style="display: flex; gap: 15px; justify-content: center;"><button id="confirmYesBtn" class="btn-danger" style="width: 50%;">نعم</button><button onclick="closeConfirmModal()" class="btn-outline" style="width: 50%;">إلغاء</button></div></div></div>
+
+    <!-- نافذة عرض بروفايل الموظف (للمدير) الجديدة -->
+    <div class="modal-overlay no-print" id="employeeProfileModal" style="z-index: 14000;">
+        <div class="modal-content" style="max-width: 400px; padding: 0; background: transparent; box-shadow: none;">
+            <div class="employee-card" style="margin-top: 50px;">
+                <span class="close-modal" onclick="closeEmployeeProfileModal()" style="top: 15px; left: 15px; z-index: 10; background: var(--bg-color);">&times;</span>
+                <div id="view-emp-avatar" class="employee-avatar">👩</div>
+                <h3 id="view-emp-name" class="employee-name">الاسم</h3>
+                <div id="view-emp-job" class="employee-job">الوظيفة</div>
+                
+                <div class="employee-details-box">
+                    <p><strong>مكان العمل:</strong> <span id="view-emp-location">-</span></p>
+                    <p><strong>الجنس:</strong> <span id="view-emp-gender">-</span></p>
+                    <p><strong>رقم الهاتف:</strong> <span id="view-emp-phone" dir="ltr">-</span></p>
+                </div>
+                
+                <div id="view-emp-wa"></div>
+                
+                <div class="employee-perms-box">
+                    <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color:var(--primary-blue);">الصلاحيات:</div>
+                    <div id="view-emp-perms" style="display:flex; flex-wrap:wrap; gap:5px; justify-content:center;"></div>
+                </div>
+
+                <div class="employee-pass-box">
+                    <strong>كلمة المرور:</strong>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="password" id="view-emp-pass" value="" readonly style="border:none; background:transparent; width:80px; text-align:left; outline:none; font-weight:bold; color:var(--text-color); box-shadow:none; padding:0;">
+                        <button class="pass-eye-btn" onclick="window.togglePasswordVisibility('view-emp-pass')">👁️</button>
+                    </div>
+                </div>
+
+                <div class="employee-actions">
+                    <button id="view-emp-edit-btn" class="btn-outline" style="flex:1; padding: 10px; border-radius: 10px; font-size: 13px;">تعديل ✏️</button>
+                    <button id="view-emp-del-btn" class="btn-danger" style="flex:1; padding: 10px; border-radius: 10px; font-size: 13px; box-shadow:none;">حذف 🗑️</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- نافذة الإعدادات والمظهر -->
     <div class="modal-overlay no-print" id="settingsModal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeSettings()">&times;</span>
-            <div id="settingsAuthSection"><h3>🔒 إعدادات النظام</h3><div class="form-group"><input type="password" id="settingsPass" placeholder="الرقم السري للمدير" onkeypress="if(event.key==='Enter') verifySettingsPass()"></div><button onclick="verifySettingsPass()" style="width: 100%;">دخول 🔑</button><div class="error-msg" id="settings-error">الرقم السري غير صحيح!</div></div>
+            
+            <div style="background: var(--bg-color); padding: 20px; border-radius: 20px; box-shadow: var(--inner-shadow); margin-bottom: 25px; text-align: center;">
+                <h4 style="margin-top: 0; margin-bottom: 15px; color: var(--primary-blue);">إعدادات المظهر</h4>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <button id="theme-btn-light" class="theme-btn btn-outline" onclick="applyThemeMode('light')" style="flex:1; padding: 12px; min-width: 90px;">☀️ فاتح</button>
+                    <button id="theme-btn-auto" class="theme-btn btn-outline" onclick="applyThemeMode('auto')" style="flex:1; padding: 12px; min-width: 90px;">🌓 تلقائي</button>
+                    <button id="theme-btn-dark" class="theme-btn btn-outline" onclick="applyThemeMode('dark')" style="flex:1; padding: 12px; min-width: 90px;">🌙 داكن</button>
+                </div>
+            </div>
+
+            <div id="settingsAuthSection">
+                <h3>🔒 إعدادات النظام (للمدير)</h3>
+                <div class="form-group"><input type="password" id="settingsPass" placeholder="الرقم السري للمدير" onkeypress="if(event.key==='Enter') verifySettingsPass()"></div>
+                <button onclick="verifySettingsPass()" style="width: 100%;">دخول 🔑</button>
+                <div class="error-msg" id="settings-error">الرقم السري غير صحيح!</div>
+            </div>
+
             <div id="settingsManagerSection" style="display: none;">
-                <h3 style="margin-bottom: 20px;">⚙️ الإعدادات</h3>
-                <div class="settings-tabs"><button class="tab-btn active" onclick="switchTab('pagesTab', this)">البيجات</button><button class="tab-btn" onclick="switchTab('typesTab', this)">الطلبات</button><button class="tab-btn" onclick="switchTab('usersTab', this)">المستخدمين</button><button class="tab-btn" onclick="switchTab('deliveryTab', this)">التوصيل</button></div>
+                <h3 style="margin-bottom: 20px;">⚙️ الإعدادات المتقدمة</h3>
+                <div class="settings-tabs">
+                    <button class="tab-btn active" onclick="switchTab('pagesTab', this)">البيجات</button>
+                    <button class="tab-btn" onclick="switchTab('typesTab', this)">الطلبات</button>
+                    <button class="tab-btn" onclick="switchTab('usersTab', this)">المستخدمين</button>
+                    <button class="tab-btn" onclick="switchTab('deliveryTab', this)">التوصيل</button>
+                </div>
+                
                 <div class="tab-content">
-                    <div id="pagesTab" class="tab-pane active" style="text-align: right;"><input type="text" id="newPageName" placeholder="اسم البيج" style="width:100%; margin-bottom:15px;"><button onclick="addPageType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button><ul id="pagesListDisplay"></ul></div>
-                    <div id="typesTab" class="tab-pane" style="text-align: right;"><input type="text" id="newOrderName" placeholder="اسم الطلب" style="width:100%; margin-bottom:15px;"><input type="text" id="newOrderCode" placeholder="الرمز" style="width:100%; margin-bottom:15px;"><button onclick="addOrderType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button><ul id="orderTypesListDisplay"></ul></div>
-                    <div id="usersTab" class="tab-pane" style="text-align: right;"><input type="text" id="new-user-name" placeholder="المستخدم" style="width:100%; margin-bottom:15px;"><input type="password" id="new-user-pass" placeholder="كلمة المرور" style="width:100%; margin-bottom:15px;"><div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; justify-content: center;"><label class="permission-badge"><input type="checkbox" id="new-user-can-delete"> حذف</label><label class="permission-badge"><input type="checkbox" id="new-user-can-edit"> تعديل</label><label class="permission-badge"><input type="checkbox" id="new-user-can-settings"> إعدادات</label><label class="permission-badge"><input type="checkbox" id="new-user-can-reports"> تقارير</label></div><button onclick="addUser()" style="width: 100%; margin-bottom: 20px;">إضافة مستخدم ☁️</button><ul id="users-list"></ul></div>
-                    <div id="deliveryTab" class="tab-pane" style="text-align: right;"><label>توصيل بغداد</label><input type="number" id="feeBaghdadInput" style="margin-bottom:15px;"><label>توصيل المحافظات</label><input type="number" id="feeOtherInput" style="margin-bottom:20px;"><button onclick="saveDeliveryFees()" style="width: 100%;">حفظ 💾</button></div>
+                    <div id="pagesTab" class="tab-pane active" style="text-align: right;">
+                        <input type="text" id="newPageName" placeholder="اسم البيج" style="width:100%; margin-bottom:15px;">
+                        <button onclick="addPageType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button>
+                        <ul id="pagesListDisplay"></ul>
+                    </div>
+                    
+                    <div id="typesTab" class="tab-pane" style="text-align: right;">
+                        <input type="text" id="newOrderName" placeholder="اسم الطلب" style="width:100%; margin-bottom:15px;">
+                        <input type="text" id="newOrderCode" placeholder="الرمز" style="width:100%; margin-bottom:15px;">
+                        <button onclick="addOrderType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button>
+                        <ul id="orderTypesListDisplay"></ul>
+                    </div>
+                    
+                    <div id="usersTab" class="tab-pane" style="text-align: right;">
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px; background: rgba(64,123,255,0.05); padding: 5px; border-radius: 15px;">
+                            <button id="btn-sec-list" onclick="toggleEmployeeSection('list')" style="flex: 1; padding: 12px; font-size: 14px; border-radius: 12px; background: var(--button-gradient); color: white;">قائمة الموظفين 👥</button>
+                            <button id="btn-sec-add" onclick="toggleEmployeeSection('add')" style="flex: 1; padding: 12px; font-size: 14px; border-radius: 12px; background: transparent; color: var(--text-muted); box-shadow: none;">إضافة موظف ➕</button>
+                        </div>
+
+                        <div id="add-employee-sec" style="display: none; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03);">
+                            <input type="hidden" id="emp-edit-id" value="">
+                            <h4 id="emp-form-title" style="text-align: center; color: var(--primary-blue); margin-bottom: 20px; margin-top: 0;">إضافة موظف جديد</h4>
+                            
+                            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="form-group" style="margin-bottom: 10px;"><label>الاسم</label><input type="text" id="emp-name" placeholder="اسم الموظف"></div>
+                                <div class="form-group" style="margin-bottom: 10px;"><label>الجنس</label><select id="emp-gender"><option value="ذكر">ذكر 👨</option><option value="أنثى">أنثى 👩</option></select></div>
+                                <div class="form-group" style="margin-bottom: 10px;"><label>رقم الهاتف</label><input type="text" id="emp-phone" dir="ltr" placeholder="07..."></div>
+                                <div class="form-group" style="margin-bottom: 10px;"><label>مكان العمل</label><input type="text" id="emp-location" placeholder="مثال: مقر كولد لاند"></div>
+                                <div class="form-group" style="margin-bottom: 10px; grid-column: 1 / -1;"><label>الوظيفة</label><input type="text" id="emp-job" placeholder="مثال: مندوبة إدخال طلبات"></div>
+                                <div class="form-group" style="margin-bottom: 15px; grid-column: 1 / -1;"><label>كلمة المرور</label><input type="text" id="emp-pass" placeholder="كلمة المرور للدخول"></div>
+                            </div>
+
+                            <label>الصلاحيات:</label>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; justify-content: center; background: var(--bg-color); padding: 15px; border-radius: 15px;">
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-delete"> حذف</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-edit"> تعديل</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-settings"> إعدادات</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-reports"> تقارير</label>
+                            </div>
+                            <button id="save-emp-btn" onclick="saveEmployee()" style="width: 100%;">حفظ الموظف 💾</button>
+                        </div>
+
+                        <!-- قسم عرض قائمة الموظفين كأزرار بسيطة -->
+                        <div id="list-employee-sec">
+                            <div id="employee-cards-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="deliveryTab" class="tab-pane" style="text-align: right;">
+                        <label>توصيل بغداد</label>
+                        <input type="number" id="feeBaghdadInput" style="margin-bottom:15px;">
+                        <label>توصيل المحافظات</label>
+                        <input type="number" id="feeOtherInput" style="margin-bottom:20px;">
+                        <button onclick="saveDeliveryFees()" style="width: 100%;">حفظ 💾</button>
+                    </div>
                 </div>
             </div>
         </div>
