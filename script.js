@@ -58,7 +58,8 @@ try {
                 }
             });
             isFirstLoad = false;
-            if(document.getElementById('cloudOrdersModal').style.display === 'flex') window.filterCloudOrders();
+            // تحديث إذا كنا في قسم الأرشيف
+            if(document.getElementById('archive-section').style.display === 'flex') window.filterCloudOrders();
         }, (error) => { console.error("Listener error:", error); });
     };
 
@@ -89,7 +90,7 @@ try {
 } catch(e) { console.warn("Firebase Init Error", e); }
 
 // =========================================
-// إعدادات PWA وتثبيت التطبيق
+// PWA
 // =========================================
 let deferredPrompt; 
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
@@ -107,7 +108,7 @@ function safeGetStorage(key, def) { try { return localStorage.getItem(key) || de
 function safeSetStorage(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
 
 // =========================================
-// نظام المظهر الذكي (تلقائي، فاتح، داكن)
+// المظهر
 // =========================================
 let currentThemeMode = safeGetStorage('gl_theme_mode', 'auto');
 
@@ -199,7 +200,7 @@ window.startSessionTracking = async function() {
 setInterval(async () => { if(currentSessionId) { try { await updateDoc(doc(db, "user_sessions", currentSessionId), { lastActive: Date.now() }); } catch(e){} } }, 60000);
 
 // =========================================
-// تسجيل الدخول
+// الدخول والتنقل (Navigation)
 // =========================================
 window.login = async function() {
     const user = document.getElementById("username").value.trim(), pass = document.getElementById("password").value.trim(), errorMsg = document.getElementById("login-error"), btn = document.getElementById("loginBtn");
@@ -226,25 +227,33 @@ window.login = async function() {
     } catch (err) { console.error(err); alert("خطأ بالاتصال"); btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
 }
 
-window.showDashboard = function() { document.getElementById("login-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("chat-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
+window.showDashboard = function() { document.getElementById("login-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
 window.openDistribution = function() { document.getElementById("main-menu-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "block"; }
-window.backToMainMenu = function() { document.getElementById("dashboard-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
-window.backToMainMenuFromChat = function() { currentChatId = null; document.getElementById("chat-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
+
+// دالة موحدة للعودة للقائمة من الصفحات الكاملة
+window.backToMainMenuFrom = function(sectionId) {
+    document.getElementById(sectionId).style.display = "none";
+    document.getElementById("main-menu-section").style.display = "flex";
+}
+window.backToMainMenuFromChat = function() { currentChatId = null; window.backToMainMenuFrom('chat-section'); }
+
 window.logout = function() { 
     window.showConfirmDialog("تأكيد تسجيل الخروج؟", function() { 
         currentSessionId = null; loggedInUser = ""; allCloudOrders = []; 
         document.getElementById('globalUserBar').style.display = 'none'; 
         document.getElementById("dashboard-section").style.display = "none"; 
+        document.getElementById("archive-section").style.display = "none"; 
+        document.getElementById("reports-section").style.display = "none"; 
+        document.getElementById("settings-section").style.display = "none"; 
         document.getElementById("main-menu-section").style.display = "none"; 
         document.getElementById("chat-section").style.display = "none"; 
         document.getElementById("login-section").style.display = "flex"; 
         window.clearForm(); 
-        if (document.getElementById('tableBody')) { document.getElementById('tableBody').innerHTML = ""; }
     }); 
 }
 
 // =========================================
-// بروفايل المستخدم الحالي
+// بروفايل المستخدم
 // =========================================
 window.openProfile = function() {
     let currentUserData = additionalUsers.find(u => u.username === loggedInUser) || {};
@@ -371,7 +380,7 @@ window.addToTable = async function() {
 }
 
 // =========================================
-// نظام الدردشة
+// الدردشة
 // =========================================
 let chatUnsubscribe = null;
 window.initGlobalChatListener = function() {
@@ -551,11 +560,15 @@ window.loadChatGroups = async function() {
 // الأرشيف والمتابعة
 // =========================================
 window.openCloudOrders = function() { 
-    document.getElementById('cloudOrdersModal').style.display = 'flex'; 
-    document.getElementById('bulkDeleteBtn').style.display = loggedInUserCanDelete ? 'inline-block' : 'none'; 
+    document.getElementById("main-menu-section").style.display = "none";
+    document.getElementById("archive-section").style.display = "flex";
+    document.getElementById('bulkDeleteBtn').style.display = loggedInUserCanDelete ? 'inline-flex' : 'none'; 
     window.filterCloudOrders(); 
 }
-window.closeCloudOrders = function() { document.getElementById('cloudOrdersModal').style.display = 'none'; }
+
+window.openArchiveFetchModal = function() { document.getElementById('archiveFetchModal').style.display = 'flex'; }
+window.closeArchiveFetchModal = function() { document.getElementById('archiveFetchModal').style.display = 'none'; }
+
 window.toggleAllOrders = function(source) { document.querySelectorAll('.order-cb').forEach(cb => cb.checked = source.checked); }
 
 window.updateSingleOrderStatus = async function(docId, newStatus) {
@@ -579,6 +592,7 @@ window.fetchOldOrders = async function() {
         allCloudOrders = []; 
         snap.forEach(doc => { allCloudOrders.push({ id_doc: doc.id, ...doc.data() }); });
         window.filterCloudOrders();
+        window.closeArchiveFetchModal();
         window.showSuccessToast(`تم جلب ${snap.size} طلب من الأرشيف بنجاح!`);
     } catch(e) { 
         console.error("Error fetching old orders:", e); 
@@ -589,6 +603,7 @@ window.fetchOldOrders = async function() {
 
 window.reloadCurrentMonth = function() {
     window.listenToCloudOrders(); 
+    window.closeArchiveFetchModal();
     window.showSuccessToast("تم العودة لطلبات الشهر الحالي 📅");
 }
 
@@ -774,11 +789,13 @@ window.saveEditedOrder = async function() {
 // =========================================
 window.openReports = async function() { 
     if (!loggedInUserCanReports) { alert("❌ ليس لديك صلاحية."); return; } 
-    document.getElementById('reportsModal').style.display = 'flex'; 
+    document.getElementById("main-menu-section").style.display = "none";
+    document.getElementById("reports-section").style.display = "flex";
+    
     let pagesHtml = '<option value="all">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); 
     document.getElementById('repPageFilter').innerHTML = pagesHtml; 
     document.getElementById('repFinPageFilter').innerHTML = pagesHtml; 
-    document.getElementById('repChartsPageFilter').innerHTML = pagesHtml; // الإضافة الجديدة
+    document.getElementById('repChartsPageFilter').innerHTML = pagesHtml;
     let typesHtml = '<option value="all">-- كل الطلبات --</option>' + configuredOrderTypes.map(t => `<option value="${t.code}">${t.name} (${t.code})</option>`).join(''); 
     document.getElementById('repTypeFilter').innerHTML = typesHtml; 
     document.getElementById('repPageTypeFilter').innerHTML = typesHtml; 
@@ -786,14 +803,14 @@ window.openReports = async function() {
     window.generateReports(); 
 }
 
-window.closeReports = function() { document.getElementById('reportsModal').style.display = 'none'; }
 window.switchReportTab = function(tabId, btn) { 
-    document.querySelectorAll('#reportsModal .tab-btn').forEach(b => b.classList.remove('active')); 
-    document.querySelectorAll('#reportsModal .tab-pane').forEach(p => p.classList.remove('active')); 
+    document.querySelectorAll('#reports-section .tab-btn').forEach(b => b.classList.remove('active')); 
+    document.querySelectorAll('#reports-section .tab-pane').forEach(p => p.classList.remove('active')); 
     btn.classList.add('active'); 
     document.getElementById(tabId).classList.add('active'); 
     if (tabId === 'repChartsTab') { window.generateReports(); }
 }
+
 window.generateReports = function() { 
     if(allCloudOrders.length === 0) return; 
     const fromVal = document.getElementById('repDateFrom').value, toVal = document.getElementById('repDateTo').value; 
@@ -808,7 +825,6 @@ window.generateReports = function() {
     const selFinPage = document.getElementById('repFinPageFilter').value; let finTargetOrders = targetOrders.filter(o => o.status === 'تم التوصيل'); if(selFinPage !== "all") finTargetOrders = finTargetOrders.filter(o => o.constant === selFinPage); let finCount = finTargetOrders.length, finQty = 0, finGross = 0, finDelivery = 0; finTargetOrders.forEach(o => { let amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0; finQty += parseInt(o.qty) || 1; finGross += amt; finDelivery += (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther; }); document.getElementById('finCount').innerText = finCount; document.getElementById('finQty').innerText = finQty; document.getElementById('finGross').innerText = finGross.toLocaleString(); document.getElementById('finDelivery').innerText = finDelivery.toLocaleString(); document.getElementById('finNet').innerText = (finGross - finDelivery).toLocaleString(); 
 
     if(window.renderCharts) {
-        // الإضافة هنا: قراءة فلتر الرسوم البيانية وتطبيقه
         let chartsSelPage = document.getElementById('repChartsPageFilter').value;
         let chartsTargetOrders = targetOrders;
         if(chartsSelPage && chartsSelPage !== "all") {
@@ -823,7 +839,6 @@ window.renderCharts = function(orders) {
     
     completed.forEach(o => { 
         let net = (parseFloat((o.amount||"0").toString().replace(/[^0-9.-]+/g,"")) || 0) - ((o.gov || "").includes("بغداد") ? feeBaghdad : feeOther);
-        // التعديل هنا: معالجة الطلبات التي لا تحتوي على اسم بيج
         let pageName = o.constant ? o.constant : "غير محدد";
         pageRevenues[pageName] = (pageRevenues[pageName] || 0) + net;
     });
@@ -840,7 +855,7 @@ window.renderCharts = function(orders) {
                     data: Object.values(pageRevenues), 
                     backgroundColor: '#407bff', 
                     borderRadius: 5,
-                    maxBarThickness: 60 // التعديل هنا: منع العمود من التمدد بشكل زائد
+                    maxBarThickness: 60
                 }] 
             }, 
             options: { 
@@ -886,7 +901,9 @@ window.exportCloudToExcel = function() { const qt = document.getElementById('clo
 // الإعدادات وإدارة النظام
 // =========================================
 window.openSettings = function() { 
-    document.getElementById('settingsModal').style.display = 'flex'; 
+    document.getElementById("main-menu-section").style.display = "none";
+    document.getElementById("settings-section").style.display = "flex";
+    
     if (loggedInUserCanSettings) { 
         document.getElementById('settingsAuthSection').style.display = 'none'; 
         document.getElementById('settingsManagerSection').style.display = 'block'; 
@@ -896,7 +913,7 @@ window.openSettings = function() {
         document.getElementById('settingsManagerSection').style.display = 'none'; 
     } 
 }
-window.closeSettings = function() { document.getElementById('settingsModal').style.display = 'none'; }
+
 window.verifySettingsPass = function() { 
     if (document.getElementById('settingsPass').value === ADMIN_PASS) { 
         document.getElementById('settingsAuthSection').style.display = 'none'; 
@@ -905,8 +922,8 @@ window.verifySettingsPass = function() {
     } else { document.getElementById('settings-error').style.display = 'block'; } 
 }
 window.switchTab = function(tabId, btn) { 
-    document.querySelectorAll('#settingsModal .tab-btn').forEach(b => b.classList.remove('active')); 
-    document.querySelectorAll('#settingsModal .tab-pane').forEach(p => p.classList.remove('active')); 
+    document.querySelectorAll('#settings-section .tab-btn').forEach(b => b.classList.remove('active')); 
+    document.querySelectorAll('#settings-section .tab-pane').forEach(p => p.classList.remove('active')); 
     btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); 
 }
 
@@ -923,7 +940,7 @@ window.deleteOrderType = async function(idx) { window.showConfirmDialog("حذف 
 window.renderOrderTypesSettings = function() { document.getElementById("orderTypesListDisplay").innerHTML = configuredOrderTypes.map((t, i) => `<li class="settings-list-item"><span class="item-text">${t.name} <span style="color:var(--primary-blue); font-size: 13px;">(${t.code})</span> ${t.price ? ' - '+t.price+' د.ع' : ''}</span><button class="btn-danger" onclick="window.deleteOrderType(${i})">حذف</button></li>`).join(''); }
 
 // =========================================
-// نظام إدارة الموظفين المتطور (أزرار القائمة + البطاقات المنبثقة)
+// الموظفين
 // =========================================
 window.toggleEmployeeSection = function(sec) {
     document.getElementById('add-employee-sec').style.display = (sec === 'add') ? 'block' : 'none';
@@ -1014,7 +1031,6 @@ window.togglePasswordVisibility = function(inputId) {
     if(input.type === "password") { input.type = "text"; } else { input.type = "password"; }
 }
 
-// عرض نافذة البروفايل الخاصة بالموظف المحدد من القائمة
 window.viewEmployeeProfile = function(idx) {
     const u = additionalUsers[idx];
     let avatarIcon = (u.gender === 'أنثى') ? '👩' : '👨';
@@ -1048,7 +1064,6 @@ window.viewEmployeeProfile = function(idx) {
 
 window.closeEmployeeProfileModal = function() { document.getElementById('employeeProfileModal').style.display = 'none'; }
 
-// عرض الموظفين كقائمة أزرار منسدلة بسيطة
 window.renderUsers = function() { 
     let html = '';
     additionalUsers.forEach((u, i) => {
