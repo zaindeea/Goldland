@@ -127,8 +127,20 @@ window.backToMainMenuFromChat = function() {
 }
 
 window.comingSoon = function(feature) { alert("ميزة " + feature + " سيتم إضافتها لاحقاً ⏳"); }
-window.logout = function() { window.showConfirmDialog("تأكيد تسجيل الخروج؟", function() { loggedInUser = ""; allCloudOrders = []; document.getElementById('globalUserBar').style.display = 'none'; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "none"; document.getElementById("chat-section").style.display = "none"; document.getElementById("login-section").style.display = "flex"; window.clearForm(); document.getElementById('tableBody').innerHTML = ""; }); }
-
+window.logout = function() { 
+    currentSessionId = null; 
+    loggedInUser = ""; 
+    allCloudOrders = []; 
+    document.getElementById('globalUserBar').style.display = 'none'; 
+    document.getElementById("dashboard-section").style.display = "none"; 
+    document.getElementById("main-menu-section").style.display = "none"; 
+    document.getElementById("chat-section").style.display = "none"; 
+    document.getElementById("login-section").style.display = "flex"; 
+    window.clearForm(); 
+    if (document.getElementById('tableBody')) {
+        document.getElementById('tableBody').innerHTML = "";
+    }
+}
 // =========================================
 // التوزيع الذكي
 // =========================================
