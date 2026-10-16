@@ -134,8 +134,23 @@ window.openDistribution = function() { document.getElementById("main-menu-sectio
 window.backToMainMenu = function() { document.getElementById("dashboard-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
 window.backToMainMenuFromChat = function() { currentChatId = null; document.getElementById("chat-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
 window.comingSoon = function(feature) { alert("ميزة " + feature + " سيتم إضافتها لاحقاً ⏳"); }
-window.logout = function() { window.showConfirmDialog("تأكيد تسجيل الخروج؟", function() { currentSessionId = null; loggedInUser = ""; allCloudOrders = []; document.getElementById('globalUserBar').style.display = 'none'; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "none"; document.getElementById("chat-section").style.display = "none"; document.getElementById("login-section").style.display = "flex"; window.clearForm(); document.getElementById('tableBody').innerHTML = ""; }); }
-
+window.logout = function() { 
+    window.showConfirmDialog("تأكيد تسجيل الخروج؟", function() { 
+        currentSessionId = null; 
+        loggedInUser = ""; 
+        allCloudOrders = []; 
+        document.getElementById('globalUserBar').style.display = 'none'; 
+        document.getElementById("dashboard-section").style.display = "none"; 
+        document.getElementById("main-menu-section").style.display = "none"; 
+        document.getElementById("chat-section").style.display = "none"; 
+        document.getElementById("login-section").style.display = "flex"; 
+        window.clearForm(); 
+        // الشرط لحماية الكود من الانهيار
+        if (document.getElementById('tableBody')) {
+            document.getElementById('tableBody').innerHTML = ""; 
+        }
+    }); 
+}
 window.checkCustomerHistory = function(phone1, phone2) {
     let alertBox = document.getElementById('customerHistoryAlert'); if(!phone1 && !phone2) { alertBox.className = 'hidden'; return; }
     let history = allCloudOrders.filter(o => o.phone1 === phone1 || (phone2 && o.phone2 === phone2)); let total = history.length;
