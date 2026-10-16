@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gold-land-v2'; // تم تغيير الإصدار إلى v2
+const CACHE_NAME = 'gold-land-v2';
 const urlsToCache = [
   './',
   './index.html',
