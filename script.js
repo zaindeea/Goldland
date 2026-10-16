@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, deleteDoc, doc, updateDoc, onSnapshot, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, deleteDoc, doc, updateDoc, onSnapshot, where, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA-2N_HZoej2Vv3vQa0P5hu0gvmwVs0R3o",
@@ -19,7 +19,6 @@ try {
     window.deleteOrderFromFirebase = async function(docId) { await deleteDoc(doc(db, "orders", docId)); };
     window.updateOrderInFirebase = async function(docId, newData) { await updateDoc(doc(db, "orders", docId), newData); };
     
-    // المزامنة الحية للطلبات (الأرشيف)
     window.listenToCloudOrders = function() {
         const q = query(collection(db, "orders"));
         let isFirstLoad = true;
@@ -47,13 +46,21 @@ try {
     };
 
     window.loadSystemDataFromFirebase = async function() {
-        try { let users = [], types = [], pages = []; const [uSnap, tSnap, pSnap] = await Promise.all([ getDocs(collection(db, "system_users")), getDocs(collection(db, "order_types")), getDocs(collection(db, "system_pages")) ]); uSnap.forEach(d => users.push({ id: d.id, ...d.data() })); tSnap.forEach(d => types.push({ id: d.id, ...d.data() })); pSnap.forEach(d => pages.push({ id: d.id, ...d.data() })); return { users, types, pages }; } catch (e) { return { users: [], types: [], pages: [] }; }
+        try { 
+            let users = [], types = [], pages = []; 
+            const [uSnap, tSnap, pSnap, delivSnap] = await Promise.all([ getDocs(collection(db, "system_users")), getDocs(collection(db, "order_types")), getDocs(collection(db, "system_pages")), getDoc(doc(db, "system_settings", "delivery")) ]); 
+            uSnap.forEach(d => users.push({ id: d.id, ...d.data() })); 
+            tSnap.forEach(d => types.push({ id: d.id, ...d.data() })); 
+            pSnap.forEach(d => pages.push({ id: d.id, ...d.data() })); 
+            if(delivSnap.exists()) { feeBaghdad = delivSnap.data().feeBaghdad || 5000; feeOther = delivSnap.data().feeOther || 8000; }
+            return { users, types, pages }; 
+        } catch (e) { return { users: [], types: [], pages: [] }; }
     };
     window.addSystemUserToFirebase = async function(data) { return await addDoc(collection(db, "system_users"), data); }; window.deleteSystemUserFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_users", docId)); }; window.updateSystemUserInFirebase = async function(docId, data) { await updateDoc(doc(db, "system_users", docId), data); }; window.addOrderTypeToFirebase = async function(data) { return await addDoc(collection(db, "order_types"), data); }; window.deleteOrderTypeFromFirebase = async function(docId) { await deleteDoc(doc(db, "order_types", docId)); }; window.addSystemPageToFirebase = async function(data) { return await addDoc(collection(db, "system_pages"), data); }; window.deleteSystemPageFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_pages", docId)); };
 } catch(e) { console.warn("Firebase Init Error", e); }
 
 let deferredPrompt; window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
-window.showInstallInstructions = async function(os) { if (deferredPrompt && os !== 'ios') { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } else { if(os === 'ios') alert("🍏 لتثبيت التطبيق على الآيفون:\n\n1. اضغط على زر 'المشاركة' أسفل المتصفح.\n2. اختر 'إضافة إلى الصفحة الرئيسية'."); else alert("📱 التطبيق جاهز للتثبيت! \n\nاضغط على النقاط الثلاث (خيارات المتصفح) واختر 'إضافة إلى الشاشة الرئيسية'."); } }
+window.showInstallInstructions = async function(os) { if (deferredPrompt && os !== 'ios') { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } else { if(os === 'ios') alert("🍏 لتثبيت التطبيق على الآيفون:\n\n1. اضغط على زر 'المشاركة' أسفل المتصفح.\n2. اختر 'إضافة إلى الصفحة الرئيسية'."); else alert("📱 التطبيق جاهز للتثبيت! \n\nاضغط على النقاط الثلاث واختر 'إضافة إلى الشاشة الرئيسية'."); } }
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error', err)); }); }
 
 function safeGetStorage(key, def) { try { return localStorage.getItem(key) || def; } catch(e) { return def; } }
@@ -65,7 +72,6 @@ window.toggleTheme = function() { currentTheme = (currentTheme === 'light') ? 'd
 window.applyTheme(currentTheme);
 
 setInterval(() => { const timeEl = document.getElementById('globalTime'); if(timeEl) { const now = new Date(); timeEl.innerText = `🕒 ${now.toLocaleTimeString('ar-IQ')} - 📅 ${now.toLocaleDateString('ar-IQ')}`; } }, 1000);
-
 window.showSuccessToast = function(message) { let toast = document.getElementById('success-toast-alert'); if (!toast) { toast = document.createElement('div'); toast.id = 'success-toast-alert'; toast.className = 'success-toast'; document.body.appendChild(toast); } toast.innerHTML = `✨ ${message}`; toast.classList.add('show'); setTimeout(() => { toast.classList.remove('show'); }, 4000); };
 
 const audioBeep = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU9vT18A"); 
@@ -74,14 +80,21 @@ window.playAudioNotification = function() { try { audioBeep.play(); } catch(e){}
 const ADMIN_USER = "Zain"; const ADMIN_PASS = "327798";
 let additionalUsers = [], configuredOrderTypes = [], configuredPages = [];
 let loggedInUser = "", loggedInUserCanDelete = false, loggedInUserCanEdit = false, loggedInUserCanSettings = false, loggedInUserCanReports = false; 
-let feeBaghdad = parseInt(safeGetStorage('feeBaghdad', '5000')) || 5000;
-let feeOther = parseInt(safeGetStorage('feeOther', '8000')) || 8000;
+let feeBaghdad = 5000, feeOther = 8000; let currentSessionId = null;
 
-window.saveDeliveryFees = function() { feeBaghdad = parseInt(document.getElementById('feeBaghdadInput').value) || 0; feeOther = parseInt(document.getElementById('feeOtherInput').value) || 0; safeSetStorage('feeBaghdad', feeBaghdad); safeSetStorage('feeOther', feeOther); alert("تم الحفظ!"); }
-
+// =========================================
+// المتغيرات المفقودة التي سببت المشكلة (تم إرجاعها)
+// =========================================
+let currentChatId = null; 
+let allSystemUsersList = []; 
+let allChatMessages = [];
 let allCloudOrders = []; 
-let currentConfirmAction = null; let currentEditDocId = null;
-let financialChartInstance = null; let itemsPieChartInstance = null;
+let currentConfirmAction = null; 
+let currentEditDocId = null;
+let financialChartInstance = null; 
+let itemsPieChartInstance = null;
+
+window.saveDeliveryFees = async function() { feeBaghdad = parseInt(document.getElementById('feeBaghdadInput').value) || 0; feeOther = parseInt(document.getElementById('feeOtherInput').value) || 0; try { await setDoc(doc(db, "system_settings", "delivery"), { feeBaghdad, feeOther }); window.showSuccessToast("تم حفظ التوصيل سحابياً!"); } catch(e){} }
 
 window.showConfirmDialog = function(msg, callback) { document.getElementById('confirmMessage').innerText = msg; currentConfirmAction = callback; document.getElementById('confirmModal').style.display = 'flex'; document.getElementById('confirmYesBtn').onclick = function() { if(currentConfirmAction) currentConfirmAction(); window.closeConfirmModal(); }; }
 window.closeConfirmModal = function() { document.getElementById('confirmModal').style.display = 'none'; currentConfirmAction = null; }
@@ -89,9 +102,9 @@ window.handleEnter = function(event) { if (event.key === "Enter") window.login()
 window.formatAmount = function(input) { let val = input.value.trim(); if (!val) return; let num = parseFloat(val.replace(/[^0-9.-]+/g, "")); if (!isNaN(num) && num > 0 && num < 1000) input.value = (num * 1000).toString(); }
 window.toggleOrderInput = function(btn) { let c = btn.parentElement, s = c.querySelector('.orderTypeSelect'), i = c.querySelector('.orderTypeCustomInput'); if(s.style.display !== 'none') { s.style.display = 'none'; i.style.display = 'block'; i.focus(); btn.innerHTML = '📋'; } else { i.style.display = 'none'; i.value = ''; s.style.display = 'block'; btn.innerHTML = '✍️'; } }
 
-// =========================================
-// الدخول والتنقل
-// =========================================
+window.startSessionTracking = async function() { try { const loginTimestamp = Date.now(); const docRef = await addDoc(collection(db, "user_sessions"), { username: loggedInUser, loginTime: loginTimestamp, lastActive: loginTimestamp, dateStr: new Date().toLocaleDateString('en-CA') }); currentSessionId = docRef.id; } catch(e) {} };
+setInterval(async () => { if(currentSessionId) { try { await updateDoc(doc(db, "user_sessions", currentSessionId), { lastActive: Date.now() }); } catch(e){} } }, 60000);
+
 window.login = async function() {
     const user = document.getElementById("username").value.trim(), pass = document.getElementById("password").value.trim(), errorMsg = document.getElementById("login-error"), btn = document.getElementById("loginBtn");
     if(!user || !pass) return; let isManager = (user === ADMIN_USER && pass === ADMIN_PASS); btn.innerText = "جاري التحقق... ⏳"; btn.disabled = true;
@@ -100,6 +113,7 @@ window.login = async function() {
         document.getElementById('globalUserBar').style.display = 'flex'; document.getElementById('globalUserName').innerText = '👤 ' + loggedInUser;
         window.listenToCloudOrders(); 
         window.initGlobalChatListener(); 
+        window.startSessionTracking();
         window.showDashboard(); errorMsg.style.display = "none"; btn.innerText = "تسجيل الدخول"; btn.disabled = false;
     };
 
@@ -118,32 +132,10 @@ window.login = async function() {
 window.showDashboard = function() { document.getElementById("login-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("chat-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
 window.openDistribution = function() { document.getElementById("main-menu-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "block"; }
 window.backToMainMenu = function() { document.getElementById("dashboard-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
-
-// زر الرجوع في الدردشة
-window.backToMainMenuFromChat = function() { 
-    currentChatId = null; 
-    document.getElementById("chat-section").style.display = "none"; 
-    document.getElementById("main-menu-section").style.display = "flex"; 
-}
-
+window.backToMainMenuFromChat = function() { currentChatId = null; document.getElementById("chat-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
 window.comingSoon = function(feature) { alert("ميزة " + feature + " سيتم إضافتها لاحقاً ⏳"); }
-window.logout = function() { 
-    currentSessionId = null; 
-    loggedInUser = ""; 
-    allCloudOrders = []; 
-    document.getElementById('globalUserBar').style.display = 'none'; 
-    document.getElementById("dashboard-section").style.display = "none"; 
-    document.getElementById("main-menu-section").style.display = "none"; 
-    document.getElementById("chat-section").style.display = "none"; 
-    document.getElementById("login-section").style.display = "flex"; 
-    window.clearForm(); 
-    if (document.getElementById('tableBody')) {
-        document.getElementById('tableBody').innerHTML = "";
-    }
-}
-// =========================================
-// التوزيع الذكي
-// =========================================
+window.logout = function() { window.showConfirmDialog("تأكيد تسجيل الخروج؟", function() { currentSessionId = null; loggedInUser = ""; allCloudOrders = []; document.getElementById('globalUserBar').style.display = 'none'; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "none"; document.getElementById("chat-section").style.display = "none"; document.getElementById("login-section").style.display = "flex"; window.clearForm(); document.getElementById('tableBody').innerHTML = ""; }); }
+
 window.checkCustomerHistory = function(phone1, phone2) {
     let alertBox = document.getElementById('customerHistoryAlert'); if(!phone1 && !phone2) { alertBox.className = 'hidden'; return; }
     let history = allCloudOrders.filter(o => o.phone1 === phone1 || (phone2 && o.phone2 === phone2)); let total = history.length;
@@ -165,12 +157,9 @@ window.parseText = function() {
     let s = document.querySelector('.orderTypeSelect'), ci = document.querySelector('.orderTypeCustomInput'), tb = s.parentElement.querySelector('.toggle-custom-btn'); let extType = window.extractValue(lines, 'نوع الطلب'); if (extType && s) { if (Array.from(s.options).some(o => o.value === extType)) { if(s.style.display === 'none') window.toggleOrderInput(tb); s.value = extType; } else { if(s.style.display !== 'none') window.toggleOrderInput(tb); ci.value = extType; } } 
 }
 
-
 // =========================================
-// نظام الدردشة الشامل (محدث ليعرض الأسماء فوراً)
+// نظام الدردشة الشامل
 // =========================================
-let currentChatId = null; let allSystemUsersList = []; let allChatMessages = [];
-
 window.initGlobalChatListener = function() {
     let isInitLoad = true;
     onSnapshot(collection(db, "chat_messages"), (snapshot) => {
@@ -202,13 +191,10 @@ window.initGlobalChatListener = function() {
         if(unreadTotal > 0) { mainBadge.style.display = 'flex'; mainBadge.innerText = unreadTotal; } 
         else { mainBadge.style.display = 'none'; }
 
-        for (let chatId in unreadPerChat) {
-            let b = document.getElementById('badge_' + chatId);
-            if(b) { b.innerText = unreadPerChat[chatId]; b.style.display = 'inline-flex'; }
-        }
         document.querySelectorAll('.chat-unread-badge').forEach(b => {
             let chatId = b.id.replace('badge_', '');
-            if(!unreadPerChat[chatId] || unreadPerChat[chatId] === 0) { b.style.display = 'none'; }
+            if(unreadPerChat[chatId]) { b.innerText = unreadPerChat[chatId]; b.style.display = 'inline-flex'; } 
+            else { b.style.display = 'none'; }
         });
 
         if(currentChatId) {
@@ -261,10 +247,9 @@ window.openChatSection = async function() {
     document.getElementById("main-menu-section").style.display = "none"; 
     document.getElementById("chat-section").style.display = "flex";
     
-    // جلب مستخدمين كإجراء احتياطي إذا لم يكونوا موجودين
-    if(additionalUsers.length === 0) {
+    if(additionalUsers.length === 0 && window.loadSystemDataFromFirebase) {
         const cloudData = await window.loadSystemDataFromFirebase();
-        additionalUsers = cloudData.users;
+        additionalUsers = cloudData.users || [];
     }
 
     allSystemUsersList = [ADMIN_USER, ...additionalUsers.map(u => u.username)];
@@ -282,15 +267,18 @@ window.openChatSection = async function() {
         const chatId = [loggedInUser, u].sort().join('_'); 
         const unreadCount = unreadPerChat[chatId] || 0;
         const badgeStyle = unreadCount > 0 ? 'inline-flex' : 'none';
-        privateHtml += `<div class="chat-list-item" id="chatItem_${chatId}" onclick="openChat('${chatId}', '${u}')">
+        privateHtml += `<div class="chat-list-item" id="chatItem_${chatId}" onclick="window.openChat('${chatId}', '${u}')">
             <div class="chat-avatar">${u.charAt(0)}</div>
-            <div class="chat-info"><h4>${u} <span class="chat-unread-badge" id="badge_${chatId}" style="display:${badgeStyle};">${unreadCount}</span></h4></div>
+            <div class="chat-info" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                <h4>${u}</h4>
+                <span class="chat-unread-badge" id="badge_${chatId}" style="display:${badgeStyle};">${unreadCount}</span>
+            </div>
         </div>`; 
     });
     if(privateHtml === '') privateHtml = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size:12px;">لا يوجد مستخدمين آخرين</div>';
     document.getElementById('chatListPrivate').innerHTML = privateHtml;
     
-    loadChatGroups(); 
+    window.loadChatGroups(); 
     window.switchChatTab('general'); 
     window.openChat('general', 'الدردشة العامة');
 }
@@ -317,24 +305,34 @@ window.sendMessage = async function() {
 window.showChatSidebar = function() { document.getElementById('chatSidebar').classList.remove('hidden'); }
 window.showCreateGroupModal = function() { document.getElementById('newGroupName').value = ''; const container = document.getElementById('groupMembersSelection'); container.innerHTML = ''; const otherUsers = allSystemUsersList.filter(u => u !== loggedInUser); otherUsers.forEach(u => { container.innerHTML += `<label class="permission-badge" style="justify-content: flex-start;"><input type="checkbox" class="group-member-cb" value="${u}"> ${u}</label>`; }); document.getElementById('createGroupModal').style.display = 'flex'; }
 window.closeCreateGroupModal = function() { document.getElementById('createGroupModal').style.display = 'none'; }
-window.createChatGroup = async function() { const groupName = document.getElementById('newGroupName').value.trim(); if(!groupName) { alert("يرجى إدخال اسم المجموعة"); return; } let members = [loggedInUser]; document.querySelectorAll('.group-member-cb:checked').forEach(cb => members.push(cb.value)); try { await addDoc(collection(db, "chat_groups"), { name: groupName, createdBy: loggedInUser, members: members, timestamp: serverTimestamp() }); window.showSuccessToast("تم إنشاء المجموعة!"); closeCreateGroupModal(); loadChatGroups(); } catch(e) {} }
+window.createChatGroup = async function() { const groupName = document.getElementById('newGroupName').value.trim(); if(!groupName) { alert("يرجى إدخال اسم المجموعة"); return; } let members = [loggedInUser]; document.querySelectorAll('.group-member-cb:checked').forEach(cb => members.push(cb.value)); try { await addDoc(collection(db, "chat_groups"), { name: groupName, createdBy: loggedInUser, members: members, timestamp: serverTimestamp() }); window.showSuccessToast("تم إنشاء المجموعة!"); window.closeCreateGroupModal(); window.loadChatGroups(); } catch(e) {} }
 window.loadChatGroups = async function() {
     try {
         const snap = await getDocs(query(collection(db, "chat_groups"))); let groupsHtml = '';
         let unreadPerChat = {}; allChatMessages.forEach(msg => { if(msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) { unreadPerChat[msg.chatId] = (unreadPerChat[msg.chatId] || 0) + 1; } });
-        snap.forEach(doc => { const data = doc.data(); if((data.members && data.members.includes(loggedInUser)) || loggedInUser === ADMIN_USER) { const chatId = 'group_' + doc.id; const unreadCount = unreadPerChat[chatId] || 0; const badgeStyle = unreadCount > 0 ? 'inline-flex' : 'none'; groupsHtml += `<div class="chat-list-item" id="chatItem_${chatId}" onclick="openChat('${chatId}', '${data.name}')"><div class="chat-avatar" style="background: linear-gradient(135deg, #00b09b, #96c93d);">👥</div><div class="chat-info"><h4>${data.name} <span class="chat-unread-badge" id="badge_${chatId}" style="display:${badgeStyle};">${unreadCount}</span></h4><p>${data.members.length} أعضاء</p></div></div>`; } });
+        snap.forEach(doc => { 
+            const data = doc.data(); 
+            if((data.members && data.members.includes(loggedInUser)) || loggedInUser === ADMIN_USER) { 
+                const chatId = 'group_' + doc.id; const unreadCount = unreadPerChat[chatId] || 0; const badgeStyle = unreadCount > 0 ? 'inline-flex' : 'none'; 
+                groupsHtml += `<div class="chat-list-item" id="chatItem_${chatId}" onclick="window.openChat('${chatId}', '${data.name}')">
+                    <div class="chat-avatar" style="background: linear-gradient(135deg, #00b09b, #96c93d);">👥</div>
+                    <div class="chat-info" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                        <div><h4>${data.name}</h4><p>${data.members.length} أعضاء</p></div>
+                        <span class="chat-unread-badge" id="badge_${chatId}" style="display:${badgeStyle};">${unreadCount}</span>
+                    </div>
+                </div>`; 
+            } 
+        });
         if(groupsHtml === '') groupsHtml = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size:12px;">لا توجد مجموعات بعد</div>'; document.getElementById('groupsListContainer').innerHTML = groupsHtml;
     } catch(e) {} 
 }
 
-
 // =========================================
-// الأرشيف والطباعة المجمعة وتغيير الحالة والحذف
+// الأرشيف والمتابعة
 // =========================================
 window.openCloudOrders = function() { 
     document.getElementById('cloudOrdersModal').style.display = 'flex'; 
-    // إخفاء زر الحذف إذا لم يكن لديه صلاحية
-    document.getElementById('bulkDeleteBtn').style.display = loggedInUserCanDelete ? 'inline-block' : 'none';
+    document.getElementById('bulkDeleteBtn').style.display = loggedInUserCanDelete ? 'inline-block' : 'none'; 
     window.filterCloudOrders(); 
 }
 window.closeCloudOrders = function() { document.getElementById('cloudOrdersModal').style.display = 'none'; }
@@ -342,37 +340,52 @@ function getWaLink(phone) { if(!phone) return '-'; let p = phone.replace(/\D/g,'
 
 window.toggleAllOrders = function(source) { document.querySelectorAll('.order-cb').forEach(cb => cb.checked = source.checked); }
 
+window.updateSingleOrderStatus = async function(docId, newStatus) {
+    if(window.updateOrderInFirebase) { try { await window.updateOrderInFirebase(docId, { status: newStatus }); window.showSuccessToast(`تم تغيير الحالة إلى ${newStatus}`); } catch(e) { alert("حدث خطأ."); } }
+}
+
 window.filterCloudOrders = function() {
-    const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value, tb = document.getElementById('cloudOrdersTbody'); 
+    const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value;
+    const dFrom = document.getElementById('cloudDateFrom').value, dTo = document.getElementById('cloudDateTo').value;
+    const tb = document.getElementById('cloudOrdersTbody'); 
     tb.innerHTML = ''; document.getElementById('selectAllCb').checked = false; 
+    
     let sortedOrders = [...allCloudOrders].sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-    let filtered = sortedOrders.filter(o => ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || (o.id||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF));
+    
+    let filtered = sortedOrders.filter(o => {
+        let passDate = true;
+        if(dFrom || dTo) {
+            let od = o.timestamp ? new Date(o.timestamp.seconds * 1000) : null;
+            if(od) {
+                if(dFrom && od < new Date(dFrom)) passDate = false;
+                if(dTo) { let td = new Date(dTo); td.setHours(23,59,59); if(od > td) passDate = false; }
+            }
+        }
+        return passDate && ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || (o.id||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF);
+    });
     
     filtered.forEach(o => {
         const tr = document.createElement('tr');
-        let editBtn = loggedInUserCanEdit ? `<button class="btn-outline" style="padding: 5px; border-radius:6px; min-width:40px; box-shadow:none; border:none;" onclick="openEditModal('${o.id_doc}')">✏️</button>` : '-';
+        let editBtn = loggedInUserCanEdit ? `<button class="btn-outline" style="padding: 5px; border-radius:6px; min-width:40px; box-shadow:none; border:none;" onclick="window.openEditModal('${o.id_doc}')">✏️</button>` : '-';
         const dateStr = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString('ar-IQ') : '-';
-        let statusColor = '#407bff'; let st = o.status || 'جديد';
+        
+        let st = o.status || 'جديد'; let statusColor = '#407bff';
         if(st === 'قيد التجهيز') statusColor = '#f39c12'; if(st === 'مسلم للمندوب') statusColor = '#8e44ad'; if(st === 'تم التوصيل') statusColor = '#2ecc71'; if(st === 'راجع') statusColor = '#e74c3c';
 
-        tr.innerHTML = `
-            <td style="text-align: center;"><input type="checkbox" class="order-cb" value="${o.id_doc}" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></td>
-            <td>${o.id||'-'}</td>
-            <td><span style="background:${statusColor}; color:white; padding: 3px 8px; border-radius: 10px; font-size:11px; font-weight:bold;">${st}</span></td>
-            <td style="color:var(--primary-blue); font-weight:bold;">${o.constant||'-'}</td> 
-            <td>${o.name||'-'}</td>
-            <td style="font-size:12px;">${getWaLink(o.phone1)}</td> 
-            <td style="font-size:12px;">${o.gov||'-'}</td>
-            <td style="color:var(--primary-blue); font-size:12px;">${o.type||'-'}</td> 
-            <td>${o.amount||'-'}</td> 
-            <td style="font-size:12px; font-weight:bold;">${o.addedBy||'-'}</td>
-            <td style="font-size:12px; color:var(--text-muted);">${dateStr}</td>
-            <td>${editBtn}</td>`;
+        let statusSelectHtml = `<select onchange="window.updateSingleOrderStatus('${o.id_doc}', this.value)" style="background:${statusColor}; color:white; border:none; padding: 5px; border-radius: 10px; font-size:11px; font-weight:bold; outline:none; appearance:auto; box-shadow:none; min-width:100px;">
+            <option value="جديد" ${st==='جديد'?'selected':''}>جديد 🆕</option><option value="قيد التجهيز" ${st==='قيد التجهيز'?'selected':''}>قيد التجهيز ⏳</option><option value="مسلم للمندوب" ${st==='مسلم للمندوب'?'selected':''}>مسلم للمندوب 🛵</option><option value="تم التوصيل" ${st==='تم التوصيل'?'selected':''}>تم التوصيل ✅</option><option value="راجع" ${st==='راجع'?'selected':''}>راجع ⛔</option>
+        </select>`;
+
+        tr.innerHTML = `<td style="text-align: center;"><input type="checkbox" class="order-cb" value="${o.id_doc}" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></td>
+            <td>${o.id||'-'}</td><td>${statusSelectHtml}</td><td style="color:var(--primary-blue); font-weight:bold;">${o.constant||'-'}</td> 
+            <td>${o.name||'-'}</td><td style="font-size:12px;">${getWaLink(o.phone1)}</td><td style="font-size:12px;">${o.gov||'-'}</td>
+            <td style="color:var(--primary-blue); font-size:12px;">${o.type||'-'}</td><td>${o.amount||'-'}</td> 
+            <td style="font-size:12px; font-weight:bold;">${o.addedBy||'-'}</td><td style="font-size:12px; color:var(--text-muted);">${dateStr}</td><td>${editBtn}</td>`;
         tb.appendChild(tr);
     });
 }
 
-// دالة الطباعة المجمعة (ورق A5 و المبلغ الكلي)
+// دالة الطباعة المجمعة على ورق A5 
 window.bulkPrintOrders = function() {
     let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value);
     if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لطباعتها!"); return; }
@@ -381,7 +394,7 @@ window.bulkPrintOrders = function() {
     selectedIds.forEach((id, index) => {
         let order = allCloudOrders.find(o => o.id_doc === id);
         if(order) {
-            let amt = parseFloat((order.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0;
+            let amt = parseFloat((order.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0; 
             let receiptHtml = `
             <div class="receipt-page" style="${index > 0 ? 'page-break-before: always;' : ''}">
                 <h2 style="text-align: center; margin: 0; font-size: 24px;">Gold Land</h2>
@@ -413,7 +426,7 @@ window.bulkExportPDF = function() {
     selectedIds.forEach((id, index) => {
         let order = allCloudOrders.find(o => o.id_doc === id);
         if(order) {
-            let amt = parseFloat((order.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0;
+            let amt = parseFloat((order.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0; 
             let receiptHtml = `
             <div style="width: 148mm; height: 195mm; padding: 20px; box-sizing: border-box; font-family: Arial; direction: rtl; text-align: right; margin: 0 auto; ${index > 0 ? 'page-break-before: always;' : ''}">
                 <h2 style="text-align: center; font-size: 24px; margin:0;">Gold Land</h2>
@@ -438,11 +451,11 @@ window.bulkExportPDF = function() {
     html2pdf().set(opt).from(printContainer).save().then(() => { document.body.removeChild(printContainer); });
 }
 
-// دالة حذف المحددة
+// دالة الحذف المجمعة بعد التحديد
 window.bulkDeleteOrders = function() {
     let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value);
     if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لحذفها!"); return; }
-    window.showConfirmDialog(`هل أنت متأكد من حذف ${selectedIds.length} طلب نهائياً؟`, async function() {
+    window.showConfirmDialog(`هل أنت متأكد من حذف ${selectedIds.length} طلب بشكل نهائي؟`, async function() {
         document.body.style.cursor = 'wait';
         for(let id of selectedIds) {
             if(window.deleteOrderFromFirebase) await window.deleteOrderFromFirebase(id);
@@ -450,11 +463,10 @@ window.bulkDeleteOrders = function() {
         }
         document.body.style.cursor = 'default';
         window.filterCloudOrders();
-        window.showSuccessToast(`تم حذف ${selectedIds.length} طلب بنجاح!`);
+        window.showSuccessToast(`تم حذف ${selectedIds.length} طلب بنجاح! 🗑️`);
     });
 }
 
-// نافذة تعديل الحالة المجمعة
 window.showBulkStatusModal = function() { let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value); if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لتغيير حالتها!"); return; } document.getElementById('bulkStatusModal').style.display = 'flex'; }
 window.closeBulkStatusModal = function() { document.getElementById('bulkStatusModal').style.display = 'none'; }
 window.saveBulkStatus = async function() {
@@ -466,21 +478,50 @@ window.saveBulkStatus = async function() {
 window.downloadExcelTemplate = function() { const ws = XLSX.utils.aoa_to_sheet([["تسلسل الزبون", "البيج", "اسم الزبون", "رقم الهاتف الأول", "رقم الهاتف الثاني", "المحافظة", "المنطقة", "الطلب", "العدد", "المبلغ الكلي", "ملاحظات"]]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "النموذج"); XLSX.writeFile(wb, "نموذج_رفع_الطلبات.xlsx"); }
 window.uploadExcelFile = function(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = async function(e) { const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'}); const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]); if(json.length === 0) return; if(!confirm(`سيتم رفع ${json.length} طلب؟`)) return; let sc = 0; document.body.style.cursor = 'wait'; for(let row of json) { const data = { id: (row["تسلسل الزبون"]||'').toString(), constant: (row["البيج"]||'').toString(), name: (row["اسم الزبون"]||'').toString(), phone1: (row["رقم الهاتف الأول"]||'').toString(), phone2: (row["رقم الهاتف الثاني"]||'').toString(), gov: (row["المحافظة"]||'').toString(), area: (row["المنطقة"]||'').toString(), type: (row["الطلب"]||'').toString(), qty: parseInt(row["العدد"])||1, amount: (row["المبلغ الكلي"]||'').toString(), note: (row["ملاحظات"]||'').toString(), addedBy: loggedInUser, status: 'جديد' }; if(data.constant && data.name) { if(await window.saveDataToFirebase(data)) sc++; } } document.body.style.cursor = 'default'; event.target.value = ''; window.showSuccessToast(`تم الرفع! (${sc})`); }; reader.readAsArrayBuffer(file); }
 
-window.addEditOrderItemRow = function(tName = "", tQty = 1, tColor = "") { const wr = document.getElementById('editDynamicRowsWrapper'), r = document.createElement('div'); r.className = 'order-item-row'; r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 80px;" value="${tColor}"> <div class="qty-controls" style="flex: 1; min-width: 110px;"><button type="button" class="qty-btn" onclick="changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="${tQty}" min="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;"><button type="button" class="qty-btn" onclick="changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 5px; border-radius: 10px; width: 35px; height: 35px; min-width:unset;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`; wr.appendChild(r); window.updateOrderTypeSelects(); let sel = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), tb = r.querySelector('.toggle-custom-btn'); if (tName) { if (Array.from(sel.options).some(o => o.value === tName)) { sel.value = tName; } else { window.toggleOrderInput(tb); ci.value = tName; } } }
+window.addEditOrderItemRow = function(tName = "", tQty = 1, tColor = "") { const wr = document.getElementById('editDynamicRowsWrapper'), r = document.createElement('div'); r.className = 'order-item-row'; r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 80px;" value="${tColor}"> <div class="qty-controls" style="flex: 1; min-width: 110px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="${tQty}" min="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 5px; border-radius: 10px; width: 35px; height: 35px; min-width:unset;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`; wr.appendChild(r); window.updateOrderTypeSelects(); let sel = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), tb = r.querySelector('.toggle-custom-btn'); if (tName) { if (Array.from(sel.options).some(o => o.value === tName)) { sel.value = tName; } else { window.toggleOrderInput(tb); ci.value = tName; } } }
 window.openEditModal = function(docId) { let order = allCloudOrders.find(o => o.id_doc === docId); if(!order) return; currentEditDocId = docId; document.getElementById('editStatus').value = order.status || 'جديد'; document.getElementById('editConstant').value = order.constant || ''; document.getElementById('editName').value = order.name || ''; document.getElementById('editPhone1').value = order.phone1 || ''; document.getElementById('editPhone2').value = order.phone2 || ''; document.getElementById('editGov').value = order.gov || ''; document.getElementById('editArea').value = order.area || ''; document.getElementById('editAmount').value = order.amount || ''; document.getElementById('editDynamicRowsWrapper').innerHTML = ''; let items = order.type ? order.type.split(' + ') : []; if(items.length === 0) { window.addEditOrderItemRow(); } else { items.forEach(itemStr => { let match = itemStr.match(/\[([^)]+)\s\((\d+)\)\s*([^\]]*)\]/); if(match) { let code = match[1].trim(), qty = parseInt(match[2]) || 1, color = match[3] ? match[3].trim() : ""; let typeObj = configuredOrderTypes.find(t => t.code === code); window.addEditOrderItemRow(typeObj ? typeObj.name : code, qty, color); } else { window.addEditOrderItemRow(itemStr.replace(/\[\vert{}\]/g, ''), 1, ""); } }); } document.getElementById('editOrderModal').style.display = 'flex'; }
 window.closeEditModal = function() { document.getElementById('editOrderModal').style.display = 'none'; currentEditDocId = null; }
 window.saveEditedOrder = async function() { if(!currentEditDocId) return; let arr = [], totQty = 0; document.querySelectorAll('#editDynamicRowsWrapper .order-item-row').forEach(r => { let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim(); let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim(); let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1; if (tv !== "") { let ft = configuredOrderTypes.find(t => t.name === tv), cd = ft ? ft.code : tv, colorText = cv ? ` ${cv}` : ""; arr.push(`[${cd} (${qv})${colorText}]`); totQty += qv; } }); const newData = { status: document.getElementById('editStatus').value, constant: document.getElementById('editConstant').value, name: document.getElementById('editName').value, phone1: document.getElementById('editPhone1').value, phone2: document.getElementById('editPhone2').value, gov: document.getElementById('editGov').value, area: document.getElementById('editArea').value, type: arr.join(' + '), qty: totQty, amount: document.getElementById('editAmount').value }; if(window.updateOrderInFirebase) { try { await window.updateOrderInFirebase(currentEditDocId, newData); window.closeEditModal(); window.showSuccessToast("تم التحديث! ✏️"); } catch(e) { alert("خطأ."); } } }
 
 // =========================================
-// التقارير المتقدمة والرسوم البيانية والإعدادات
+// التقارير والرسوم البيانية والإعدادات
 // =========================================
 window.updateOrderTypeSelects = function() { document.querySelectorAll('.orderTypeSelect').forEach(s => { const v = s.value; s.innerHTML = '<option value="">-- اختر الطلب --</option>' + configuredOrderTypes.map(t => `<option value="${t.name}">${t.name} ➡️ (${t.code})</option>`).join(''); s.value = v; }); }
 window.addToTable = async function() { const pg = document.getElementById('constantField').value; if (!pg) { alert("يجب اختيار البيج!"); return; } let arr = [], totQty = 0; document.querySelectorAll('#itemsContainer .order-item-row').forEach(r => { let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim(); let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim(); let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1; if (tv !== "") { let ft = configuredOrderTypes.find(t => t.name === tv); let cd = ft ? ft.code : tv; let colorText = cv ? ` ${cv}` : ""; arr.push(`[${cd} (${qv})${colorText}]`); totQty += qv; } }); const data = { id: document.getElementById('custId').value, name: document.getElementById('custName').value, phone1: document.getElementById('phone1').value, phone2: document.getElementById('phone2').value, gov: document.getElementById('gov').value, area: document.getElementById('area').value, type: arr.join(' + '), qty: totQty, amount: document.getElementById('amount').value, constant: pg, note: document.getElementById('note').value, addedBy: loggedInUser, status: 'جديد' }; if (!data.id && !data.name) return; if (window.saveDataToFirebase) { document.getElementById("mainSaveBtn").disabled = true; await window.saveDataToFirebase(data); document.getElementById("mainSaveBtn").disabled = false; } window.clearForm(); document.getElementById('pasteArea').value = ''; window.showSuccessToast("تمت إضافة الطلب! 🎉"); }
 
-window.openReports = function() { if (!loggedInUserCanReports) { alert("❌ ليس لديك صلاحية."); return; } document.getElementById('reportsModal').style.display = 'flex'; let pagesHtml = '<option value="all">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); document.getElementById('repPageFilter').innerHTML = pagesHtml; document.getElementById('repFinPageFilter').innerHTML = pagesHtml; let typesHtml = '<option value="all">-- كل الطلبات --</option>' + configuredOrderTypes.map(t => `<option value="${t.code}">${t.name} (${t.code})</option>`).join(''); document.getElementById('repTypeFilter').innerHTML = typesHtml; document.getElementById('repPageTypeFilter').innerHTML = typesHtml; window.generateReports(); }
-window.closeReports = function() { document.getElementById('reportsModal').style.display = 'none'; }
-window.switchReportTab = function(tabId, btn) { document.querySelectorAll('#reportsModal .tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('#reportsModal .tab-pane').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); }
+window.openReports = async function() { 
+    if (!loggedInUserCanReports) { alert("❌ ليس لديك صلاحية."); return; } 
+    document.getElementById('reportsModal').style.display = 'flex'; 
+    let pagesHtml = '<option value="all">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); document.getElementById('repPageFilter').innerHTML = pagesHtml; document.getElementById('repFinPageFilter').innerHTML = pagesHtml; let typesHtml = '<option value="all">-- كل الطلبات --</option>' + configuredOrderTypes.map(t => `<option value="${t.code}">${t.name} (${t.code})</option>`).join(''); document.getElementById('repTypeFilter').innerHTML = typesHtml; document.getElementById('repPageTypeFilter').innerHTML = typesHtml; 
+    
+    const sessionSnap = await getDocs(query(collection(db, "user_sessions")));
+    let userDurations = {};
+    sessionSnap.forEach(doc => {
+        let d = doc.data(); let dur = d.lastActive - d.loginTime;
+        if(dur > 0) userDurations[d.username] = (userDurations[d.username] || 0) + dur;
+    });
+    let sessHtml = '';
+    for(let user in userDurations) {
+        let totalMins = Math.floor(userDurations[user] / 60000); let hours = Math.floor(totalMins / 60); let mins = totalMins % 60;
+        sessHtml += `<tr><td>${user}</td><td dir="ltr" style="font-weight:bold;">${hours}h ${mins}m</td></tr>`;
+    }
+    document.getElementById('repSessionTbody').innerHTML = sessHtml || '<tr><td colspan="2" style="text-align:center;">لا توجد بيانات</td></tr>';
 
+    window.generateReports(); 
+}
+
+window.closeReports = function() { document.getElementById('reportsModal').style.display = 'none'; }
+window.switchReportTab = function(tabId, btn) { 
+    document.querySelectorAll('#reportsModal .tab-btn').forEach(b => b.classList.remove('active')); 
+    document.querySelectorAll('#reportsModal .tab-pane').forEach(p => p.classList.remove('active')); 
+    btn.classList.add('active'); 
+    document.getElementById(tabId).classList.add('active'); 
+
+    // إضافة هذا الشرط لإعادة رسم المخططات بعد أن يصبح التبويب ظاهراً
+    if (tabId === 'repChartsTab') {
+        window.generateReports();
+    }
+}
 window.generateReports = function() { 
     if(allCloudOrders.length === 0) return; 
     const fromVal = document.getElementById('repDateFrom').value, toVal = document.getElementById('repDateTo').value; 
@@ -508,7 +549,7 @@ window.renderCharts = function(orders) {
     if(financialChartInstance) financialChartInstance.destroy();
     let fcCanvas = document.getElementById('financialChart');
     if(fcCanvas) {
-        financialChartInstance = new Chart(fcCanvas, { type: 'bar', data: { labels: Object.keys(pageRevenues), datasets: [{ label: 'الصافي (دينار)', data: Object.values(pageRevenues), backgroundColor: '#407bff', borderRadius: 5 }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+        financialChartInstance = new Chart(fcCanvas, { type: 'bar', data: { labels: Object.keys(pageRevenues), datasets: [{ label: 'الصافي (دينار)', data: Object.values(pageRevenues), backgroundColor: '#407bff', borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     }
 
     let itemStats = {};
@@ -518,39 +559,32 @@ window.renderCharts = function(orders) {
     if(itemsPieChartInstance) itemsPieChartInstance.destroy();
     let pcCanvas = document.getElementById('itemsPieChart');
     if(pcCanvas) {
-        itemsPieChartInstance = new Chart(pcCanvas, { type: 'doughnut', data: { labels: topItems.map(i=>i[0]), datasets: [{ data: topItems.map(i=>i[1]), backgroundColor: ['#ffd700','#407bff','#2ecc71','#e74c3c','#9b59b6'] }] }, options: { responsive: true } });
+        itemsPieChartInstance = new Chart(pcCanvas, { type: 'doughnut', data: { labels: topItems.map(i=>i[0]), datasets: [{ data: topItems.map(i=>i[1]), backgroundColor: ['#ffd700','#407bff','#2ecc71','#e74c3c','#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false } });
     }
 }
 
 window.exportPageReportPDF = function() { const pageName = document.getElementById('repPageFilter').value, typeName = document.getElementById('repPageTypeFilter').value, tempDiv = document.createElement('div'); tempDiv.style.padding = '30px'; tempDiv.style.background = '#ffffff'; tempDiv.style.color = '#000000'; tempDiv.style.direction = 'rtl'; tempDiv.style.fontFamily = 'Arial, sans-serif'; let titleStr = 'تقرير المبيعات - ' + (pageName === 'all' ? 'جميع البيجات' : pageName); if(typeName !== 'all') titleStr += ' | صنف: ' + typeName; const title = document.createElement('h2'); title.innerText = titleStr; title.style.textAlign = 'center'; title.style.marginBottom = '25px'; tempDiv.appendChild(title); const tableClone = document.getElementById('pageReportTable').cloneNode(true); tableClone.style.width = '100%'; tableClone.style.borderCollapse = 'collapse'; tableClone.querySelectorAll('th, td').forEach(cell => { cell.style.border = '1px solid #ccc'; cell.style.padding = '12px'; cell.style.textAlign = 'center'; cell.style.color = '#000'; cell.style.background = '#fff';}); tempDiv.appendChild(tableClone); document.body.appendChild(tempDiv); const opt = { margin: 10, filename: `تقرير_المبيعات.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }; html2pdf().set(opt).from(tempDiv).save().then(() => { document.body.removeChild(tempDiv); }); }
-window.switchReportTab = function(tabId, btn) { 
-    document.querySelectorAll('#reportsModal .tab-btn').forEach(b => b.classList.remove('active')); 
-    document.querySelectorAll('#reportsModal .tab-pane').forEach(p => p.classList.remove('active')); 
-    btn.classList.add('active'); 
-    document.getElementById(tabId).classList.add('active'); 
+window.exportCloudToExcel = function() { const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value; let f = allCloudOrders.filter(o => ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF)); if(f.length === 0) return; let exp = f.map((o, i) => { const amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0, del = (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther; return { "ت": i+1, "البيج": o.constant||"", "حالة الطلب": o.status||"جديد", "اسم الزبون": o.name||"", "الهاتف": o.phone1, "العنوان": o.gov||"", "العدد": parseInt(o.qty)||1, "الكلي": amt, "التوصيل": del, "الصافي": amt-del, "ملاحظات": o.note||"" }; }); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), "السحابة"); XLSX.writeFile(wb, "أرشيف_السحابة.xlsx"); }
 
-    // إضافة هذا الشرط لإعادة رسم المخططات بعد أن يصبح التبويب ظاهراً
-    if (tabId === 'repChartsTab') {
-        window.generateReports();
-    }
-}
 window.openSettings = function() { document.getElementById('settingsModal').style.display = 'flex'; if (loggedInUserCanSettings) { document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); } else { document.getElementById('settingsAuthSection').style.display = 'block'; document.getElementById('settingsManagerSection').style.display = 'none'; } }
 window.closeSettings = function() { document.getElementById('settingsModal').style.display = 'none'; }
 window.verifySettingsPass = function() { if (document.getElementById('settingsPass').value === ADMIN_PASS) { document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); } else { document.getElementById('settings-error').style.display = 'block'; } }
+
+window.toggleSubTab = function(section, action) { document.getElementById(`${section}-add-sec`).style.display = (action === 'add') ? 'block' : 'none'; document.getElementById(`${section}-list-sec`).style.display = (action === 'list') ? 'block' : 'none'; }
+
 window.switchTab = function(tabId, btn) { document.querySelectorAll('#settingsModal .tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('#settingsModal .tab-pane').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); }
 window.addPageType = async function() { const val = document.getElementById('newPageName').value.trim(); if(val && window.addSystemPageToFirebase) { const r = await window.addSystemPageToFirebase({name: val}); configuredPages.push({id: r.id, name: val}); window.renderPagesSettings(); window.updatePagesDropdown(); } }
 window.deletePageType = async function(idx) { window.showConfirmDialog("حذف البيج؟", async function() { await window.deleteSystemPageFromFirebase(configuredPages[idx].id); configuredPages.splice(idx, 1); window.renderPagesSettings(); window.updatePagesDropdown(); }); }
-window.renderPagesSettings = function() { document.getElementById("pagesListDisplay").innerHTML = configuredPages.map((p, i) => `<li class="settings-list-item"><span class="item-text">${p.name}</span><button class="btn-danger" onclick="deletePageType(${i})">حذف</button></li>`).join(''); }
+window.renderPagesSettings = function() { document.getElementById("pagesListDisplay").innerHTML = configuredPages.map((p, i) => `<li class="settings-list-item"><span class="item-text">${p.name}</span><button class="btn-danger" onclick="window.deletePageType(${i})">حذف</button></li>`).join(''); }
 window.updatePagesDropdown = function() { const s1 = document.getElementById('constantField'), s2 = document.getElementById('cloudPageFilter'), s3 = document.getElementById('repPageFilter'), s4 = document.getElementById('repFinPageFilter'); let h1 = '<option value="">-- اختر البيج --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''), h2 = '<option value="">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); if(s1) s1.innerHTML = h1; if(s2) s2.innerHTML = h2; if(s3) s3.innerHTML = h2; if(s4) s4.innerHTML = h2; }
-window.addOrderType = async function() { const n = document.getElementById('newOrderName').value.trim(), c = document.getElementById('newOrderCode').value.trim(); if(n && c && window.addOrderTypeToFirebase) { const r = await window.addOrderTypeToFirebase({name: n, code: c}); configuredOrderTypes.push({id: r.id, name: n, code: c}); window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); } }
+window.addOrderType = async function() { const n = document.getElementById('newOrderName').value.trim(), c = document.getElementById('newOrderCode').value.trim(), p = document.getElementById('newOrderPrice').value.trim(); if(n && c && window.addOrderTypeToFirebase) { const r = await window.addOrderTypeToFirebase({name: n, code: c, price: p}); configuredOrderTypes.push({id: r.id, name: n, code: c, price: p}); window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); } }
 window.deleteOrderType = async function(idx) { window.showConfirmDialog("حذف نوع الطلب؟", async function() { await window.deleteOrderTypeFromFirebase(configuredOrderTypes[idx].id); configuredOrderTypes.splice(idx, 1); window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); }); }
-window.renderOrderTypesSettings = function() { document.getElementById("orderTypesListDisplay").innerHTML = configuredOrderTypes.map((t, i) => `<li class="settings-list-item"><span class="item-text">${t.name} <span style="color:var(--primary-blue); font-size: 13px;">(${t.code})</span></span><button class="btn-danger" onclick="deleteOrderType(${i})">حذف</button></li>`).join(''); }
+window.renderOrderTypesSettings = function() { document.getElementById("orderTypesListDisplay").innerHTML = configuredOrderTypes.map((t, i) => `<li class="settings-list-item"><span class="item-text">${t.name} <span style="color:var(--primary-blue); font-size: 13px;">(${t.code})</span> ${t.price ? ' - '+t.price+' د.ع' : ''}</span><button class="btn-danger" onclick="window.deleteOrderType(${i})">حذف</button></li>`).join(''); }
 window.addUser = async function() { const u = document.getElementById("new-user-name").value.trim(), p = document.getElementById("new-user-pass").value.trim(); if(u === "" || p === "" || u === ADMIN_USER) return; const data = { username: u, password: p, canDeleteCloud: document.getElementById("new-user-can-delete").checked, canEditCloud: document.getElementById("new-user-can-edit").checked, canAccessSettings: document.getElementById("new-user-can-settings").checked, canAccessReports: document.getElementById("new-user-can-reports").checked }; const r = await window.addSystemUserToFirebase(data); additionalUsers.push({id: r.id, ...data}); window.renderUsers(); }
 window.deleteUser = function(idx) { window.showConfirmDialog("حذف المستخدم؟", async function() { await window.deleteSystemUserFromFirebase(additionalUsers[idx].id); additionalUsers.splice(idx, 1); window.renderUsers(); }); }
 window.togglePermission = async function(idx, field) { const u = additionalUsers[idx]; u[field] = !u[field]; await window.updateSystemUserInFirebase(u.id, {[field]: u[field]}); window.renderUsers(); }
-window.renderUsers = function() { document.getElementById("users-list").innerHTML = additionalUsers.map((u, i) => `<li class="settings-list-item user-list-item"><div class="user-header-row"><span class="item-text" style="color:var(--primary-blue);">${u.username} <span style="font-size:12px; color:var(--text-muted);">(${u.password})</span></span><button class="btn-danger" onclick="deleteUser(${i})">حذف</button></div><div class="user-permissions-row"><span class="status-badge ${u.canDeleteCloud ? 'active' : 'inactive'}" onclick="togglePermission(${i}, 'canDeleteCloud')">مسح</span><span class="status-badge ${u.canEditCloud ? 'active' : 'inactive'}" onclick="togglePermission(${i}, 'canEditCloud')">تعديل</span><span class="status-badge ${u.canAccessSettings ? 'active' : 'inactive'}" onclick="togglePermission(${i}, 'canAccessSettings')">إعدادات</span><span class="status-badge ${u.canAccessReports ? 'active' : 'inactive'}" onclick="togglePermission(${i}, 'canAccessReports')">تقارير</span></div></li>`).join(''); }
-
-window.addOrderItemRow = function() { const wr = document.getElementById('dynamicRowsWrapper'), r = document.createElement('div'); r.className = 'order-item-row'; r.innerHTML = `<div style="display:flex; flex: 2; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="toggleOrderInput(this)">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 80px;"> <div class="qty-controls" style="flex: 1; min-width: 110px;"><button type="button" class="qty-btn" onclick="changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;"><button type="button" class="qty-btn" onclick="changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 5px; border-radius: 10px; width: 35px; height: 35px; min-width:unset;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`; wr.appendChild(r); window.updateOrderTypeSelects(); }
+window.renderUsers = function() { document.getElementById("users-list").innerHTML = additionalUsers.map((u, i) => `<li class="settings-list-item user-list-item"><div class="user-header-row"><span class="item-text" style="color:var(--primary-blue);">${u.username} <span style="font-size:12px; color:var(--text-muted);">(${u.password})</span></span><button class="btn-danger" onclick="window.deleteUser(${i})">حذف</button></div><div class="user-permissions-row"><span class="status-badge ${u.canDeleteCloud ? 'active' : 'inactive'}" onclick="window.togglePermission(${i}, 'canDeleteCloud')">مسح</span><span class="status-badge ${u.canEditCloud ? 'active' : 'inactive'}" onclick="window.togglePermission(${i}, 'canEditCloud')">تعديل</span><span class="status-badge ${u.canAccessSettings ? 'active' : 'inactive'}" onclick="window.togglePermission(${i}, 'canAccessSettings')">إعدادات</span><span class="status-badge ${u.canAccessReports ? 'active' : 'inactive'}" onclick="window.togglePermission(${i}, 'canAccessReports')">تقارير</span></div></li>`).join(''); }
+window.addOrderItemRow = function() { const wr = document.getElementById('dynamicRowsWrapper'), r = document.createElement('div'); r.className = 'order-item-row'; r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 80px;"> <div class="qty-controls" style="flex: 1; min-width: 110px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 5px; border-radius: 10px; width: 35px; height: 35px; min-width:unset;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`; wr.appendChild(r); window.updateOrderTypeSelects(); }
 window.changeQty = function(btn, d) { let i = btn.parentElement.querySelector('input[type="number"]'), v = parseInt(i.value)||1; v += d; if(v<1) v=1; i.value = v; }
 window.clearForm = function() { ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => document.getElementById(id).value = ''); document.getElementById('dynamicRowsWrapper').innerHTML = ''; window.addOrderItemRow(); document.getElementById('customerHistoryAlert').className = 'hidden'; document.getElementById('customerHistoryAlert').style.display = 'none'; }
 window.clearAll = function() { document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = ''; window.clearForm(); }
