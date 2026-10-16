@@ -1,5 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, deleteDoc, doc, updateDoc, onSnapshot, where, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { 
+    getFirestore, collection, addDoc, serverTimestamp, getDocs, query, 
+    deleteDoc, doc, updateDoc, onSnapshot, where, setDoc, getDoc, orderBy, limit 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA-2N_HZoej2Vv3vQa0P5hu0gvmwVs0R3o",
@@ -15,14 +18,28 @@ try {
     const app = initializeApp(firebaseConfig);
     db = getFirestore(app);
 
-    window.saveDataToFirebase = async function(orderData) { try { orderData.timestamp = serverTimestamp(); await addDoc(collection(db, "orders"), orderData); return true; } catch (e) { return false; } };
-    window.deleteOrderFromFirebase = async function(docId) { await deleteDoc(doc(db, "orders", docId)); };
-    window.updateOrderInFirebase = async function(docId, newData) { await updateDoc(doc(db, "orders", docId), newData); };
+    window.saveDataToFirebase = async function(orderData) { 
+        try { orderData.timestamp = serverTimestamp(); await addDoc(collection(db, "orders"), orderData); return true; } 
+        catch (e) { console.error("Error saving data:", e); window.showSuccessToast("حدث خطأ أثناء الحفظ"); return false; } 
+    };
     
+    window.deleteOrderFromFirebase = async function(docId) { 
+        try { await deleteDoc(doc(db, "orders", docId)); } catch (e) { console.error("Error deleting order:", e); } 
+    };
+    
+    window.updateOrderInFirebase = async function(docId, newData) { 
+        try { await updateDoc(doc(db, "orders", docId), newData); } catch(e) { console.error("Error updating order:", e); } 
+    };
+    
+    let cloudOrdersUnsubscribe = null;
     window.listenToCloudOrders = function() {
-        const q = query(collection(db, "orders"));
+        if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; }
+        allCloudOrders = [];
+        const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0,0,0,0);
+        const q = query(collection(db, "orders"), where("timestamp", ">=", startOfMonth));
+        
         let isFirstLoad = true;
-        onSnapshot(q, (snapshot) => {
+        cloudOrdersUnsubscribe = onSnapshot(q, (snapshot) => {
             snapshot.docChanges().forEach((change) => {
                 const data = { id_doc: change.doc.id, ...change.doc.data() };
                 if (change.type === "added") {
@@ -42,37 +59,97 @@ try {
             });
             isFirstLoad = false;
             if(document.getElementById('cloudOrdersModal').style.display === 'flex') window.filterCloudOrders();
-        });
+        }, (error) => { console.error("Listener error:", error); });
     };
 
     window.loadSystemDataFromFirebase = async function() {
         try { 
             let users = [], types = [], pages = []; 
-            const [uSnap, tSnap, pSnap, delivSnap] = await Promise.all([ getDocs(collection(db, "system_users")), getDocs(collection(db, "order_types")), getDocs(collection(db, "system_pages")), getDoc(doc(db, "system_settings", "delivery")) ]); 
+            const [uSnap, tSnap, pSnap, delivSnap] = await Promise.all([ 
+                getDocs(collection(db, "system_users")), 
+                getDocs(collection(db, "order_types")), 
+                getDocs(collection(db, "system_pages")), 
+                getDoc(doc(db, "system_settings", "delivery")) 
+            ]); 
             uSnap.forEach(d => users.push({ id: d.id, ...d.data() })); 
             tSnap.forEach(d => types.push({ id: d.id, ...d.data() })); 
             pSnap.forEach(d => pages.push({ id: d.id, ...d.data() })); 
             if(delivSnap.exists()) { feeBaghdad = delivSnap.data().feeBaghdad || 5000; feeOther = delivSnap.data().feeOther || 8000; }
             return { users, types, pages }; 
-        } catch (e) { return { users: [], types: [], pages: [] }; }
+        } catch (e) { console.error("Load system data error:", e); return { users: [], types: [], pages: [] }; }
     };
-    window.addSystemUserToFirebase = async function(data) { return await addDoc(collection(db, "system_users"), data); }; window.deleteSystemUserFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_users", docId)); }; window.updateSystemUserInFirebase = async function(docId, data) { await updateDoc(doc(db, "system_users", docId), data); }; window.addOrderTypeToFirebase = async function(data) { return await addDoc(collection(db, "order_types"), data); }; window.deleteOrderTypeFromFirebase = async function(docId) { await deleteDoc(doc(db, "order_types", docId)); }; window.addSystemPageToFirebase = async function(data) { return await addDoc(collection(db, "system_pages"), data); }; window.deleteSystemPageFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_pages", docId)); };
+    
+    window.addSystemUserToFirebase = async function(data) { return await addDoc(collection(db, "system_users"), data); }; 
+    window.deleteSystemUserFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_users", docId)); }; 
+    window.updateSystemUserInFirebase = async function(docId, data) { await updateDoc(doc(db, "system_users", docId), data); }; 
+    window.addOrderTypeToFirebase = async function(data) { return await addDoc(collection(db, "order_types"), data); }; 
+    window.deleteOrderTypeFromFirebase = async function(docId) { await deleteDoc(doc(db, "order_types", docId)); }; 
+    window.addSystemPageToFirebase = async function(data) { return await addDoc(collection(db, "system_pages"), data); }; 
+    window.deleteSystemPageFromFirebase = async function(docId) { await deleteDoc(doc(db, "system_pages", docId)); };
 } catch(e) { console.warn("Firebase Init Error", e); }
 
-let deferredPrompt; window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
-window.showInstallInstructions = async function(os) { if (deferredPrompt && os !== 'ios') { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } else { if(os === 'ios') alert("🍏 لتثبيت التطبيق على الآيفون:\n\n1. اضغط على زر 'المشاركة' أسفل المتصفح.\n2. اختر 'إضافة إلى الصفحة الرئيسية'."); else alert("📱 التطبيق جاهز للتثبيت! \n\nاضغط على النقاط الثلاث واختر 'إضافة إلى الشاشة الرئيسية'."); } }
+// =========================================
+// إعدادات PWA وتثبيت التطبيق
+// =========================================
+let deferredPrompt; 
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+window.showInstallInstructions = async function(os) { 
+    if (deferredPrompt && os !== 'ios') { 
+        deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; 
+    } else { 
+        if(os === 'ios') alert("🍏 لتثبيت التطبيق على الآيفون:\n\n1. اضغط على زر 'المشاركة' أسفل المتصفح.\n2. اختر 'إضافة إلى الصفحة الرئيسية'."); 
+        else alert("📱 التطبيق جاهز للتثبيت! \n\nاضغط على النقاط الثلاث واختر 'إضافة إلى الشاشة الرئيسية'."); 
+    } 
+}
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error', err)); }); }
 
 function safeGetStorage(key, def) { try { return localStorage.getItem(key) || def; } catch(e) { return def; } }
 function safeSetStorage(key, val) { try { localStorage.setItem(key, val); } catch(e) {} }
 
-let currentTheme = safeGetStorage('gl_theme', 'light');
-window.applyTheme = function(theme) { const isDark = (theme === 'dark'); if (isDark) { document.body.classList.add('dark-mode'); document.querySelectorAll('.theme-toggle-btn').forEach(btn => btn.innerHTML = '☀️'); } else { document.body.classList.remove('dark-mode'); document.querySelectorAll('.theme-toggle-btn').forEach(btn => btn.innerHTML = '🌙'); } }
-window.toggleTheme = function() { currentTheme = (currentTheme === 'light') ? 'dark' : 'light'; safeSetStorage('gl_theme', currentTheme); window.applyTheme(currentTheme); }
-window.applyTheme(currentTheme);
+// =========================================
+// نظام المظهر الذكي (تلقائي، فاتح، داكن)
+// =========================================
+let currentThemeMode = safeGetStorage('gl_theme_mode', 'auto');
 
-setInterval(() => { const timeEl = document.getElementById('globalTime'); if(timeEl) { const now = new Date(); timeEl.innerText = `🕒 ${now.toLocaleTimeString('ar-IQ')} - 📅 ${now.toLocaleDateString('ar-IQ')}`; } }, 1000);
-window.showSuccessToast = function(message) { let toast = document.getElementById('success-toast-alert'); if (!toast) { toast = document.createElement('div'); toast.id = 'success-toast-alert'; toast.className = 'success-toast'; document.body.appendChild(toast); } toast.innerHTML = `✨ ${message}`; toast.classList.add('show'); setTimeout(() => { toast.classList.remove('show'); }, 4000); };
+window.applyThemeMode = function(mode) {
+    currentThemeMode = mode;
+    safeSetStorage('gl_theme_mode', mode);
+    
+    let isDark = false;
+    if (mode === 'dark') {
+        isDark = true;
+    } else if (mode === 'light') {
+        isDark = false;
+    } else {
+        const hour = new Date().getHours();
+        isDark = (hour >= 18 || hour < 6);
+    }
+
+    if (isDark) { document.body.classList.add('dark-mode'); } 
+    else { document.body.classList.remove('dark-mode'); }
+    
+    document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById('theme-btn-' + mode);
+    if(activeBtn) activeBtn.classList.add('active');
+}
+
+window.applyThemeMode(currentThemeMode);
+setInterval(() => { if(currentThemeMode === 'auto') { window.applyThemeMode('auto'); } }, 60000);
+
+setInterval(() => { 
+    const timeEl = document.getElementById('globalTime'); 
+    if(timeEl) { const now = new Date(); timeEl.innerText = `🕒 ${now.toLocaleTimeString('ar-IQ')} - 📅 ${now.toLocaleDateString('ar-IQ')}`; } 
+}, 1000);
+
+window.showSuccessToast = function(message) { 
+    let toast = document.getElementById('success-toast-alert'); 
+    if (!toast) { 
+        toast = document.createElement('div'); toast.id = 'success-toast-alert'; toast.className = 'success-toast'; document.body.appendChild(toast); 
+    } 
+    toast.innerHTML = `✨ ${message}`; 
+    toast.classList.add('show'); 
+    setTimeout(() => { toast.classList.remove('show'); }, 4000); 
+};
 
 const audioBeep = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU9vT18A"); 
 window.playAudioNotification = function() { try { audioBeep.play(); } catch(e){} }
@@ -82,9 +159,6 @@ let additionalUsers = [], configuredOrderTypes = [], configuredPages = [];
 let loggedInUser = "", loggedInUserCanDelete = false, loggedInUserCanEdit = false, loggedInUserCanSettings = false, loggedInUserCanReports = false; 
 let feeBaghdad = 5000, feeOther = 8000; let currentSessionId = null;
 
-// =========================================
-// المتغيرات المفقودة التي سببت المشكلة (تم إرجاعها)
-// =========================================
 let currentChatId = null; 
 let allSystemUsersList = []; 
 let allChatMessages = [];
@@ -94,17 +168,39 @@ let currentEditDocId = null;
 let financialChartInstance = null; 
 let itemsPieChartInstance = null;
 
-window.saveDeliveryFees = async function() { feeBaghdad = parseInt(document.getElementById('feeBaghdadInput').value) || 0; feeOther = parseInt(document.getElementById('feeOtherInput').value) || 0; try { await setDoc(doc(db, "system_settings", "delivery"), { feeBaghdad, feeOther }); window.showSuccessToast("تم حفظ التوصيل سحابياً!"); } catch(e){} }
+function getWaLink(phone) { 
+    if(!phone) return '-'; 
+    let p = phone.replace(/\D/g,''); 
+    if(p.startsWith('07')) p = '964' + p.substring(1); 
+    return `<a href="https://wa.me/${p}" target="_blank" style="color:#2ecc71; text-decoration:none; font-weight:bold;">🟢 واتساب</a>`; 
+}
 
-window.showConfirmDialog = function(msg, callback) { document.getElementById('confirmMessage').innerText = msg; currentConfirmAction = callback; document.getElementById('confirmModal').style.display = 'flex'; document.getElementById('confirmYesBtn').onclick = function() { if(currentConfirmAction) currentConfirmAction(); window.closeConfirmModal(); }; }
+window.saveDeliveryFees = async function() { 
+    feeBaghdad = parseInt(document.getElementById('feeBaghdadInput').value) || 0; 
+    feeOther = parseInt(document.getElementById('feeOtherInput').value) || 0; 
+    try { await setDoc(doc(db, "system_settings", "delivery"), { feeBaghdad, feeOther }); window.showSuccessToast("تم حفظ التوصيل سحابياً!"); } catch(e){ console.error(e); } 
+}
+
+window.showConfirmDialog = function(msg, callback) { 
+    document.getElementById('confirmMessage').innerText = msg; 
+    currentConfirmAction = callback; 
+    document.getElementById('confirmModal').style.display = 'flex'; 
+    document.getElementById('confirmYesBtn').onclick = function() { if(currentConfirmAction) currentConfirmAction(); window.closeConfirmModal(); }; 
+}
 window.closeConfirmModal = function() { document.getElementById('confirmModal').style.display = 'none'; currentConfirmAction = null; }
 window.handleEnter = function(event) { if (event.key === "Enter") window.login(); }
 window.formatAmount = function(input) { let val = input.value.trim(); if (!val) return; let num = parseFloat(val.replace(/[^0-9.-]+/g, "")); if (!isNaN(num) && num > 0 && num < 1000) input.value = (num * 1000).toString(); }
 window.toggleOrderInput = function(btn) { let c = btn.parentElement, s = c.querySelector('.orderTypeSelect'), i = c.querySelector('.orderTypeCustomInput'); if(s.style.display !== 'none') { s.style.display = 'none'; i.style.display = 'block'; i.focus(); btn.innerHTML = '📋'; } else { i.style.display = 'none'; i.value = ''; s.style.display = 'block'; btn.innerHTML = '✍️'; } }
 
-window.startSessionTracking = async function() { try { const loginTimestamp = Date.now(); const docRef = await addDoc(collection(db, "user_sessions"), { username: loggedInUser, loginTime: loginTimestamp, lastActive: loginTimestamp, dateStr: new Date().toLocaleDateString('en-CA') }); currentSessionId = docRef.id; } catch(e) {} };
+window.startSessionTracking = async function() { 
+    try { const loginTimestamp = Date.now(); const docRef = await addDoc(collection(db, "user_sessions"), { username: loggedInUser, loginTime: loginTimestamp, lastActive: loginTimestamp, dateStr: new Date().toLocaleDateString('en-CA') }); currentSessionId = docRef.id; } catch(e) { console.error(e); } 
+};
+
 setInterval(async () => { if(currentSessionId) { try { await updateDoc(doc(db, "user_sessions", currentSessionId), { lastActive: Date.now() }); } catch(e){} } }, 60000);
 
+// =========================================
+// تسجيل الدخول
+// =========================================
 window.login = async function() {
     const user = document.getElementById("username").value.trim(), pass = document.getElementById("password").value.trim(), errorMsg = document.getElementById("login-error"), btn = document.getElementById("loginBtn");
     if(!user || !pass) return; let isManager = (user === ADMIN_USER && pass === ADMIN_PASS); btn.innerText = "جاري التحقق... ⏳"; btn.disabled = true;
@@ -115,6 +211,7 @@ window.login = async function() {
         window.initGlobalChatListener(); 
         window.startSessionTracking();
         window.showDashboard(); errorMsg.style.display = "none"; btn.innerText = "تسجيل الدخول"; btn.disabled = false;
+        window.applyThemeMode(currentThemeMode);
     };
 
     try {
@@ -126,31 +223,59 @@ window.login = async function() {
         if (isManager) { loggedInUser = user; loggedInUserCanDelete = true; loggedInUserCanEdit = true; loggedInUserCanSettings = true; loggedInUserCanReports = true; completeLogin(); return; }
         const isNormalUser = additionalUsers.find(u => u.username === user && u.password === pass);
         if (isNormalUser) { loggedInUser = user; loggedInUserCanDelete = isNormalUser.canDeleteCloud || false; loggedInUserCanEdit = isNormalUser.canEditCloud || false; loggedInUserCanSettings = isNormalUser.canAccessSettings || false; loggedInUserCanReports = isNormalUser.canAccessReports || false; completeLogin(); } else { errorMsg.style.display = "block"; btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
-    } catch (err) { alert("خطأ بالاتصال"); btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
+    } catch (err) { console.error(err); alert("خطأ بالاتصال"); btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
 }
 
 window.showDashboard = function() { document.getElementById("login-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("chat-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
 window.openDistribution = function() { document.getElementById("main-menu-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "block"; }
 window.backToMainMenu = function() { document.getElementById("dashboard-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
 window.backToMainMenuFromChat = function() { currentChatId = null; document.getElementById("chat-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
-window.comingSoon = function(feature) { alert("ميزة " + feature + " سيتم إضافتها لاحقاً ⏳"); }
 window.logout = function() { 
     window.showConfirmDialog("تأكيد تسجيل الخروج؟", function() { 
-        currentSessionId = null; 
-        loggedInUser = ""; 
-        allCloudOrders = []; 
+        currentSessionId = null; loggedInUser = ""; allCloudOrders = []; 
         document.getElementById('globalUserBar').style.display = 'none'; 
         document.getElementById("dashboard-section").style.display = "none"; 
         document.getElementById("main-menu-section").style.display = "none"; 
         document.getElementById("chat-section").style.display = "none"; 
         document.getElementById("login-section").style.display = "flex"; 
         window.clearForm(); 
-        // الشرط لحماية الكود من الانهيار
-        if (document.getElementById('tableBody')) {
-            document.getElementById('tableBody').innerHTML = ""; 
-        }
+        if (document.getElementById('tableBody')) { document.getElementById('tableBody').innerHTML = ""; }
     }); 
 }
+
+// =========================================
+// بروفايل المستخدم الحالي
+// =========================================
+window.openProfile = function() {
+    let currentUserData = additionalUsers.find(u => u.username === loggedInUser) || {};
+    if(loggedInUser === ADMIN_USER) currentUserData = { username: ADMIN_USER, jobTitle: 'مدير عام', location: 'المقر الرئيسي', gender: 'ذكر', phone: '-' };
+
+    document.getElementById('profileUsername').innerText = currentUserData.username || loggedInUser;
+    document.getElementById('profileJob').innerText = currentUserData.jobTitle || 'موظف';
+    document.getElementById('profileLocation').innerText = currentUserData.location || '-';
+    document.getElementById('profileGender').innerText = currentUserData.gender || '-';
+    document.getElementById('profilePhone').innerText = currentUserData.phone || '-';
+    document.getElementById('profileAvatar').innerText = (currentUserData.gender === 'أنثى') ? '👩' : '👨';
+
+    let permsHtml = [];
+    if(loggedInUser === ADMIN_USER) { permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">مدير نظام (كافة الصلاحيات)</span>'); } 
+    else {
+        if(loggedInUserCanDelete) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">مسح</span>');
+        if(loggedInUserCanEdit) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">تعديل</span>');
+        if(loggedInUserCanSettings) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">إعدادات</span>');
+        if(loggedInUserCanReports) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">تقارير</span>');
+        if(permsHtml.length === 0) permsHtml.push('<span class="status-badge inactive" style="background:#eef2f9;">لا توجد صلاحيات إضافية</span>');
+    }
+    document.getElementById('profilePermissions').innerHTML = permsHtml.join('');
+    let myOrdersCount = allCloudOrders.filter(o => o.addedBy === loggedInUser).length;
+    document.getElementById('profileOrderCount').innerText = myOrdersCount;
+    document.getElementById('profileModal').style.display = 'flex';
+}
+window.closeProfile = function() { document.getElementById('profileModal').style.display = 'none'; }
+
+// =========================================
+// التوزيع الذكي
+// =========================================
 window.checkCustomerHistory = function(phone1, phone2) {
     let alertBox = document.getElementById('customerHistoryAlert'); if(!phone1 && !phone2) { alertBox.className = 'hidden'; return; }
     let history = allCloudOrders.filter(o => o.phone1 === phone1 || (phone2 && o.phone2 === phone2)); let total = history.length;
@@ -160,45 +285,115 @@ window.checkCustomerHistory = function(phone1, phone2) {
     } else { alertBox.className = 'hidden'; alertBox.style.display = 'none'; }
 }
 
-window.extractValue = function(lines, keyword) { for (let i = 0; i < lines.length; i++) { if (lines[i].includes(keyword)) { let val = lines[i].split(':').pop().trim().replace(/🛑/g, '').trim(); if (val !== "" && val !== keyword.replace(/:/g, '').trim()) return val; if (i + 1 < lines.length) { let nVal = lines[i+1].replace(/🛑/g, '').trim(); if(nVal && !nVal.includes(':')) return nVal; } } } return ""; }
+window.extractValueSmart = function(txt, field) {
+    const regexMap = {
+        'تسلسل': /(?:تسلسل الزبون|التسلسل|تسلسل)[\s:]*([^\n]+)/i,
+        'اسم': /(?:اسم الزبون|الاسم|اسم)[\s:]*([^\n]+)/i,
+        'هاتف1': /(?:رقم الهاتف الاول|هاتف 1|رقم الاول|رقم الموبايل)[\s:]*([0-9\s]+)/i,
+        'هاتف2': /(?:رقم الهاتف الثاني|هاتف 2|الرقم الثاني)[\s:]*([0-9\s]+)/i,
+        'محافظة': /(?:المحافظة|محافظة)[\s:]*([^\n]+)/i,
+        'منطقة': /(?:المنطقة|منطقة|العنوان|عنوان)[\s:]*([^\n]+)/i,
+        'مبلغ': /(?:المبلغ الكلي|المبلغ|السعر|الكلي)[\s:]*([^\n]+)/i,
+        'ملاحظة': /(?:ملاحظة مهمة|ملاحظات|ملاحظة)[\s:]*([^\n]+)/i,
+        'نوع': /(?:نوع الطلب|الطلب|الصنف)[\s:]*([^\n]+)/i,
+    };
+    let match = txt.match(regexMap[field]);
+    return match ? match[1].replace(/🛑/g, '').trim() : "";
+}
+
 window.parseText = function() { 
-    const txt = document.getElementById('pasteArea').value.trim(); if (!txt) return; const lines = txt.split('\n').map(l => l.trim()).filter(l => l !== ''); 
-    document.getElementById('custId').value = window.extractValue(lines, 'تسلسل الزب'); document.getElementById('custName').value = window.extractValue(lines, 'اسم الزبون'); 
-    let p1 = window.extractValue(lines, 'رقم الهاتف الاول'); document.getElementById('phone1').value = p1; 
-    let p2 = window.extractValue(lines, 'رقم الهاتف الثاني'); document.getElementById('phone2').value = p2; 
-    document.getElementById('gov').value = window.extractValue(lines, 'المحافظة'); document.getElementById('area').value = window.extractValue(lines, 'المنطقة'); 
-    document.getElementById('amount').value = window.extractValue(lines, 'المبلغ الكلي'); window.formatAmount(document.getElementById('amount')); document.getElementById('note').value = window.extractValue(lines, 'ملاحظة مهمة'); 
+    const txt = document.getElementById('pasteArea').value.trim(); if (!txt) return; 
+    document.getElementById('custId').value = window.extractValueSmart(txt, 'تسلسل'); 
+    document.getElementById('custName').value = window.extractValueSmart(txt, 'اسم'); 
+    let p1 = window.extractValueSmart(txt, 'هاتف1'); document.getElementById('phone1').value = p1; 
+    let p2 = window.extractValueSmart(txt, 'هاتف2'); document.getElementById('phone2').value = p2; 
+    document.getElementById('gov').value = window.extractValueSmart(txt, 'محافظة'); 
+    document.getElementById('area').value = window.extractValueSmart(txt, 'منطقة'); 
+    document.getElementById('amount').value = window.extractValueSmart(txt, 'مبلغ'); 
+    window.formatAmount(document.getElementById('amount')); 
+    document.getElementById('note').value = window.extractValueSmart(txt, 'ملاحظة'); 
     window.checkCustomerHistory(p1, p2); 
-    let s = document.querySelector('.orderTypeSelect'), ci = document.querySelector('.orderTypeCustomInput'), tb = s.parentElement.querySelector('.toggle-custom-btn'); let extType = window.extractValue(lines, 'نوع الطلب'); if (extType && s) { if (Array.from(s.options).some(o => o.value === extType)) { if(s.style.display === 'none') window.toggleOrderInput(tb); s.value = extType; } else { if(s.style.display !== 'none') window.toggleOrderInput(tb); ci.value = extType; } } 
+    
+    let extType = window.extractValueSmart(txt, 'نوع');
+    let s = document.querySelector('.orderTypeSelect'), ci = document.querySelector('.orderTypeCustomInput'), tb = s.parentElement.querySelector('.toggle-custom-btn'); 
+    if (extType && s) { 
+        let matchedOpt = Array.from(s.options).find(o => o.value && (o.value.includes(extType) || extType.includes(o.value)));
+        if (matchedOpt) { 
+            if(s.style.display === 'none') window.toggleOrderInput(tb); 
+            s.value = matchedOpt.value; 
+        } else { 
+            if(s.style.display !== 'none') window.toggleOrderInput(tb); 
+            ci.value = extType; 
+        } 
+    } 
+}
+
+window.addOrderItemRow = function(tName = "", tQty = 1, tColor = "") { 
+    const wr = document.getElementById('dynamicRowsWrapper'), r = document.createElement('div'); 
+    r.className = 'order-item-row'; 
+    r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 80px;" value="${tColor}"> <div class="qty-controls" style="flex: 1; min-width: 110px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="${tQty}" min="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 5px; border-radius: 10px; width: 35px; height: 35px; min-width:unset;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`; 
+    wr.appendChild(r); 
+    window.updateOrderTypeSelects(); 
+    let sel = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), tb = r.querySelector('.toggle-custom-btn'); 
+    if (tName) { if (Array.from(sel.options).some(o => o.value === tName)) { sel.value = tName; } else { window.toggleOrderInput(tb); ci.value = tName; } } 
+}
+window.changeQty = function(btn, d) { let i = btn.parentElement.querySelector('input[type="number"]'), v = parseInt(i.value)||1; v += d; if(v<1) v=1; i.value = v; }
+window.clearForm = function() { ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => document.getElementById(id).value = ''); document.getElementById('dynamicRowsWrapper').innerHTML = ''; window.addOrderItemRow(); document.getElementById('customerHistoryAlert').className = 'hidden'; document.getElementById('customerHistoryAlert').style.display = 'none'; }
+window.clearAll = function() { document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = ''; window.clearForm(); }
+
+window.addToTable = async function() { 
+    const pg = document.getElementById('constantField').value; 
+    if (!pg) { alert("يجب اختيار البيج!"); return; } 
+    let arr = [], totQty = 0; 
+    document.querySelectorAll('#itemsContainer .order-item-row').forEach(r => { 
+        let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim(); 
+        let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim(); 
+        let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1; 
+        if (tv !== "") { 
+            let ft = configuredOrderTypes.find(t => t.name === tv); let cd = ft ? ft.code : tv; let colorText = cv ? ` ${cv}` : ""; 
+            arr.push(`[${cd} (${qv})${colorText}]`); totQty += qv; 
+        } 
+    }); 
+    const data = { 
+        id: document.getElementById('custId').value, name: document.getElementById('custName').value, 
+        phone1: document.getElementById('phone1').value, phone2: document.getElementById('phone2').value, 
+        gov: document.getElementById('gov').value, area: document.getElementById('area').value, 
+        type: arr.join(' + '), qty: totQty, amount: document.getElementById('amount').value, 
+        constant: pg, note: document.getElementById('note').value, addedBy: loggedInUser, status: 'جديد' 
+    }; 
+    if (!data.id && !data.name) return; 
+    if (window.saveDataToFirebase) { 
+        document.getElementById("mainSaveBtn").disabled = true; 
+        await window.saveDataToFirebase(data); 
+        document.getElementById("mainSaveBtn").disabled = false; 
+    } 
+    window.clearForm(); document.getElementById('pasteArea').value = ''; window.showSuccessToast("تمت إضافة الطلب! 🎉"); 
 }
 
 // =========================================
-// نظام الدردشة الشامل
+// نظام الدردشة
 // =========================================
+let chatUnsubscribe = null;
 window.initGlobalChatListener = function() {
-    let isInitLoad = true;
-    onSnapshot(collection(db, "chat_messages"), (snapshot) => {
-        let unreadTotal = 0; let unreadPerChat = {};
+    if(chatUnsubscribe) chatUnsubscribe();
+    const q = query(collection(db, "chat_messages"), orderBy("timestamp", "desc"), limit(250));
+    
+    chatUnsubscribe = onSnapshot(q, (snapshot) => {
+        let tempMsgs = [];
+        snapshot.forEach(doc => tempMsgs.push({ id_doc: doc.id, ...doc.data() }));
+        allChatMessages = tempMsgs.reverse();
         
-        snapshot.docChanges().forEach(change => {
-            const msg = { id_doc: change.doc.id, ...change.doc.data() };
-            if(change.type === 'added') {
-                allChatMessages.push(msg);
-                if(!isInitLoad && msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) {
-                    window.playAudioNotification();
-                    window.showSuccessToast(`رسالة جديدة من ${msg.sender} 💬`);
-                }
-            }
-            if(change.type === 'modified') {
-                const idx = allChatMessages.findIndex(m => m.id_doc === msg.id_doc);
-                if(idx > -1) allChatMessages[idx] = msg;
-            }
-        });
-
+        let unreadTotal = 0; let unreadPerChat = {};
         allChatMessages.forEach(msg => {
             if(msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) {
                 unreadTotal++;
                 unreadPerChat[msg.chatId] = (unreadPerChat[msg.chatId] || 0) + 1;
+            }
+            if(msg.timestamp && ((Date.now() / 1000) - msg.timestamp.seconds) < 5) {
+                if(msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) {
+                    window.playAudioNotification();
+                    window.showSuccessToast(`رسالة جديدة من ${msg.sender} 💬`);
+                }
             }
         });
 
@@ -216,22 +411,35 @@ window.initGlobalChatListener = function() {
             window.renderCurrentChatMessages();
             window.markChatAsRead(currentChatId);
         }
-        isInitLoad = false;
-    });
+    }, (error) => console.error("Chat Listener Error:", error));
+
+    if(loggedInUser === ADMIN_USER) { setTimeout(window.cleanupOldChats, 10000); }
+}
+
+window.cleanupOldChats = async function() {
+    try {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const q = query(collection(db, "chat_messages"), where("timestamp", "<", sevenDaysAgo));
+        const snap = await getDocs(q);
+        if(snap.size > 0) {
+            snap.forEach(d => deleteDoc(doc(db, "chat_messages", d.id)));
+            console.log(`تم تنظيف ${snap.size} رسالة قديمة من قاعدة البيانات.`);
+        }
+    } catch(e) { console.error("Error cleaning chats:", e); }
 }
 
 window.markChatAsRead = function(chatId) {
     let unreadMsgs = allChatMessages.filter(m => m.chatId === chatId && m.sender !== loggedInUser && (!m.readBy || !m.readBy.includes(loggedInUser)));
     unreadMsgs.forEach(async msg => {
         let newReadBy = msg.readBy || []; newReadBy.push(loggedInUser);
-        try { await updateDoc(doc(db, "chat_messages", msg.id_doc), { readBy: newReadBy }); } catch(e){}
+        try { await updateDoc(doc(db, "chat_messages", msg.id_doc), { readBy: newReadBy }); } catch(e){ console.error(e); }
     });
 }
 
 window.renderCurrentChatMessages = function() {
     const messagesArea = document.getElementById('chatMessages');
     let msgs = allChatMessages.filter(m => m.chatId === currentChatId);
-    msgs.sort((a, b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
     
     messagesArea.innerHTML = '';
     if(msgs.length === 0) { messagesArea.innerHTML = '<div style="text-align:center; margin-top: 50px; color: var(--text-muted);">لا توجد رسائل بعد. ✍️</div>'; return; }
@@ -243,16 +451,12 @@ window.renderCurrentChatMessages = function() {
         let readStatusHtml = '';
         if(isSent && data.readBy && data.readBy.length > 0) {
             let readers = data.readBy.filter(u => u !== loggedInUser);
-            if(readers.length > 0) {
-                readStatusHtml = `<div style="font-size: 10px; color: #2ecc71; margin-top: 2px;">👁️ قرئت بواسطة: ${readers.join('، ')}</div>`;
-            } else { readStatusHtml = `<div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px;">✓ تم الإرسال</div>`; }
+            if(readers.length > 0) { readStatusHtml = `<div style="font-size: 10px; color: #2ecc71; margin-top: 2px;">👁️ قرئت بواسطة: ${readers.join('، ')}</div>`; } 
+            else { readStatusHtml = `<div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px;">✓ تم الإرسال</div>`; }
         } else if (isSent) { readStatusHtml = `<div style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 2px;">✓ تم الإرسال</div>`; }
 
         const msgDiv = document.createElement('div'); msgDiv.className = `message ${isSent ? 'sent' : 'received'}`;
-        msgDiv.innerHTML = `
-            <div class="msg-sender">${isSent ? 'أنت' : data.sender}</div>
-            <div class="msg-bubble">${data.text}<span class="msg-time">${timeStr}</span>${readStatusHtml}</div>
-        `;
+        msgDiv.innerHTML = `<div class="msg-sender">${isSent ? 'أنت' : data.sender}</div><div class="msg-bubble">${data.text}<span class="msg-time">${timeStr}</span>${readStatusHtml}</div>`;
         messagesArea.appendChild(msgDiv);
     });
     messagesArea.scrollTop = messagesArea.scrollHeight; 
@@ -285,8 +489,7 @@ window.openChatSection = async function() {
         privateHtml += `<div class="chat-list-item" id="chatItem_${chatId}" onclick="window.openChat('${chatId}', '${u}')">
             <div class="chat-avatar">${u.charAt(0)}</div>
             <div class="chat-info" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-                <h4>${u}</h4>
-                <span class="chat-unread-badge" id="badge_${chatId}" style="display:${badgeStyle};">${unreadCount}</span>
+                <h4>${u}</h4><span class="chat-unread-badge" id="badge_${chatId}" style="display:${badgeStyle};">${unreadCount}</span>
             </div>
         </div>`; 
     });
@@ -301,7 +504,9 @@ window.openChatSection = async function() {
 window.switchChatTab = function(tab) {
     document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('chatListGeneral').style.display = 'none'; document.getElementById('chatListPrivate').style.display = 'none'; document.getElementById('chatListGroups').style.display = 'none';
-    if(tab === 'general') { document.getElementById('tabGeneral').classList.add('active'); document.getElementById('chatListGeneral').style.display = 'block'; } else if(tab === 'private') { document.getElementById('tabPrivate').classList.add('active'); document.getElementById('chatListPrivate').style.display = 'block'; } else if(tab === 'groups') { document.getElementById('tabGroups').classList.add('active'); document.getElementById('chatListGroups').style.display = 'block'; }
+    if(tab === 'general') { document.getElementById('tabGeneral').classList.add('active'); document.getElementById('chatListGeneral').style.display = 'block'; } 
+    else if(tab === 'private') { document.getElementById('tabPrivate').classList.add('active'); document.getElementById('chatListPrivate').style.display = 'block'; } 
+    else if(tab === 'groups') { document.getElementById('tabGroups').classList.add('active'); document.getElementById('chatListGroups').style.display = 'block'; }
 }
 
 window.openChat = function(chatId, title) {
@@ -314,13 +519,13 @@ window.openChat = function(chatId, title) {
 
 window.sendMessage = async function() {
     const input = document.getElementById('chatInput'); const text = input.value.trim(); if(text === '' || !currentChatId) return; input.value = '';
-    try { await addDoc(collection(db, "chat_messages"), { chatId: currentChatId, sender: loggedInUser, text: text, timestamp: serverTimestamp(), readBy: [] }); } catch(e) { window.showSuccessToast("فشل إرسال الرسالة."); }
+    try { await addDoc(collection(db, "chat_messages"), { chatId: currentChatId, sender: loggedInUser, text: text, timestamp: serverTimestamp(), readBy: [] }); } catch(e) { console.error(e); window.showSuccessToast("فشل إرسال الرسالة."); }
 }
 
 window.showChatSidebar = function() { document.getElementById('chatSidebar').classList.remove('hidden'); }
 window.showCreateGroupModal = function() { document.getElementById('newGroupName').value = ''; const container = document.getElementById('groupMembersSelection'); container.innerHTML = ''; const otherUsers = allSystemUsersList.filter(u => u !== loggedInUser); otherUsers.forEach(u => { container.innerHTML += `<label class="permission-badge" style="justify-content: flex-start;"><input type="checkbox" class="group-member-cb" value="${u}"> ${u}</label>`; }); document.getElementById('createGroupModal').style.display = 'flex'; }
 window.closeCreateGroupModal = function() { document.getElementById('createGroupModal').style.display = 'none'; }
-window.createChatGroup = async function() { const groupName = document.getElementById('newGroupName').value.trim(); if(!groupName) { alert("يرجى إدخال اسم المجموعة"); return; } let members = [loggedInUser]; document.querySelectorAll('.group-member-cb:checked').forEach(cb => members.push(cb.value)); try { await addDoc(collection(db, "chat_groups"), { name: groupName, createdBy: loggedInUser, members: members, timestamp: serverTimestamp() }); window.showSuccessToast("تم إنشاء المجموعة!"); window.closeCreateGroupModal(); window.loadChatGroups(); } catch(e) {} }
+window.createChatGroup = async function() { const groupName = document.getElementById('newGroupName').value.trim(); if(!groupName) { alert("يرجى إدخال اسم المجموعة"); return; } let members = [loggedInUser]; document.querySelectorAll('.group-member-cb:checked').forEach(cb => members.push(cb.value)); try { await addDoc(collection(db, "chat_groups"), { name: groupName, createdBy: loggedInUser, members: members, timestamp: serverTimestamp() }); window.showSuccessToast("تم إنشاء المجموعة!"); window.closeCreateGroupModal(); window.loadChatGroups(); } catch(e) { console.error(e); } }
 window.loadChatGroups = async function() {
     try {
         const snap = await getDocs(query(collection(db, "chat_groups"))); let groupsHtml = '';
@@ -339,7 +544,7 @@ window.loadChatGroups = async function() {
             } 
         });
         if(groupsHtml === '') groupsHtml = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size:12px;">لا توجد مجموعات بعد</div>'; document.getElementById('groupsListContainer').innerHTML = groupsHtml;
-    } catch(e) {} 
+    } catch(e) { console.error(e); } 
 }
 
 // =========================================
@@ -351,32 +556,51 @@ window.openCloudOrders = function() {
     window.filterCloudOrders(); 
 }
 window.closeCloudOrders = function() { document.getElementById('cloudOrdersModal').style.display = 'none'; }
-function getWaLink(phone) { if(!phone) return '-'; let p = phone.replace(/\D/g,''); if(p.startsWith('07')) p = '964' + p.substring(1); return `<a href="https://wa.me/${p}" target="_blank" style="color:#2ecc71; text-decoration:none; font-weight:bold;">🟢 واتساب</a>`; }
-
 window.toggleAllOrders = function(source) { document.querySelectorAll('.order-cb').forEach(cb => cb.checked = source.checked); }
 
 window.updateSingleOrderStatus = async function(docId, newStatus) {
-    if(window.updateOrderInFirebase) { try { await window.updateOrderInFirebase(docId, { status: newStatus }); window.showSuccessToast(`تم تغيير الحالة إلى ${newStatus}`); } catch(e) { alert("حدث خطأ."); } }
+    if(window.updateOrderInFirebase) { try { await window.updateOrderInFirebase(docId, { status: newStatus }); window.showSuccessToast(`تم تغيير الحالة إلى ${newStatus}`); } catch(e) { console.error(e); alert("حدث خطأ."); } }
+}
+
+window.fetchOldOrders = async function() {
+    const f = document.getElementById('oldOrdersFrom').value;
+    const t = document.getElementById('oldOrdersTo').value;
+    if(!f || !t) { alert("الرجاء تحديد التاريخ من وإلى لجلب الأرشيف"); return; }
+    
+    if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; }
+    
+    const fromD = new Date(f); fromD.setHours(0,0,0,0);
+    const toD = new Date(t); toD.setHours(23,59,59,999);
+    
+    document.body.style.cursor = 'wait';
+    try {
+        const q = query(collection(db, "orders"), where("timestamp", ">=", fromD), where("timestamp", "<=", toD));
+        const snap = await getDocs(q);
+        allCloudOrders = []; 
+        snap.forEach(doc => { allCloudOrders.push({ id_doc: doc.id, ...doc.data() }); });
+        window.filterCloudOrders();
+        window.showSuccessToast(`تم جلب ${snap.size} طلب من الأرشيف بنجاح!`);
+    } catch(e) { 
+        console.error("Error fetching old orders:", e); 
+        alert("حدث خطأ في جلب البيانات، تأكد من الاتصال."); 
+    }
+    document.body.style.cursor = 'default';
+}
+
+window.reloadCurrentMonth = function() {
+    window.listenToCloudOrders(); 
+    window.showSuccessToast("تم العودة لطلبات الشهر الحالي 📅");
 }
 
 window.filterCloudOrders = function() {
     const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value;
-    const dFrom = document.getElementById('cloudDateFrom').value, dTo = document.getElementById('cloudDateTo').value;
     const tb = document.getElementById('cloudOrdersTbody'); 
     tb.innerHTML = ''; document.getElementById('selectAllCb').checked = false; 
     
     let sortedOrders = [...allCloudOrders].sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
     
     let filtered = sortedOrders.filter(o => {
-        let passDate = true;
-        if(dFrom || dTo) {
-            let od = o.timestamp ? new Date(o.timestamp.seconds * 1000) : null;
-            if(od) {
-                if(dFrom && od < new Date(dFrom)) passDate = false;
-                if(dTo) { let td = new Date(dTo); td.setHours(23,59,59); if(od > td) passDate = false; }
-            }
-        }
-        return passDate && ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || (o.id||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF);
+        return ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || (o.id||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF);
     });
     
     filtered.forEach(o => {
@@ -400,7 +624,6 @@ window.filterCloudOrders = function() {
     });
 }
 
-// دالة الطباعة المجمعة على ورق A5 
 window.bulkPrintOrders = function() {
     let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value);
     if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لطباعتها!"); return; }
@@ -430,7 +653,6 @@ window.bulkPrintOrders = function() {
     window.print();
 }
 
-// دالة تصدير وصولات محددة كـ PDF بحجم A5
 window.bulkExportPDF = function() {
     let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value);
     if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لتصديرها كـ PDF!"); return; }
@@ -466,7 +688,6 @@ window.bulkExportPDF = function() {
     html2pdf().set(opt).from(printContainer).save().then(() => { document.body.removeChild(printContainer); });
 }
 
-// دالة الحذف المجمعة بعد التحديد
 window.bulkDeleteOrders = function() {
     let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value);
     if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لحذفها!"); return; }
@@ -493,35 +714,75 @@ window.saveBulkStatus = async function() {
 window.downloadExcelTemplate = function() { const ws = XLSX.utils.aoa_to_sheet([["تسلسل الزبون", "البيج", "اسم الزبون", "رقم الهاتف الأول", "رقم الهاتف الثاني", "المحافظة", "المنطقة", "الطلب", "العدد", "المبلغ الكلي", "ملاحظات"]]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "النموذج"); XLSX.writeFile(wb, "نموذج_رفع_الطلبات.xlsx"); }
 window.uploadExcelFile = function(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = async function(e) { const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'}); const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]); if(json.length === 0) return; if(!confirm(`سيتم رفع ${json.length} طلب؟`)) return; let sc = 0; document.body.style.cursor = 'wait'; for(let row of json) { const data = { id: (row["تسلسل الزبون"]||'').toString(), constant: (row["البيج"]||'').toString(), name: (row["اسم الزبون"]||'').toString(), phone1: (row["رقم الهاتف الأول"]||'').toString(), phone2: (row["رقم الهاتف الثاني"]||'').toString(), gov: (row["المحافظة"]||'').toString(), area: (row["المنطقة"]||'').toString(), type: (row["الطلب"]||'').toString(), qty: parseInt(row["العدد"])||1, amount: (row["المبلغ الكلي"]||'').toString(), note: (row["ملاحظات"]||'').toString(), addedBy: loggedInUser, status: 'جديد' }; if(data.constant && data.name) { if(await window.saveDataToFirebase(data)) sc++; } } document.body.style.cursor = 'default'; event.target.value = ''; window.showSuccessToast(`تم الرفع! (${sc})`); }; reader.readAsArrayBuffer(file); }
 
-window.addEditOrderItemRow = function(tName = "", tQty = 1, tColor = "") { const wr = document.getElementById('editDynamicRowsWrapper'), r = document.createElement('div'); r.className = 'order-item-row'; r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 80px;" value="${tColor}"> <div class="qty-controls" style="flex: 1; min-width: 110px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="${tQty}" min="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 5px; border-radius: 10px; width: 35px; height: 35px; min-width:unset;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`; wr.appendChild(r); window.updateOrderTypeSelects(); let sel = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), tb = r.querySelector('.toggle-custom-btn'); if (tName) { if (Array.from(sel.options).some(o => o.value === tName)) { sel.value = tName; } else { window.toggleOrderInput(tb); ci.value = tName; } } }
-window.openEditModal = function(docId) { let order = allCloudOrders.find(o => o.id_doc === docId); if(!order) return; currentEditDocId = docId; document.getElementById('editStatus').value = order.status || 'جديد'; document.getElementById('editConstant').value = order.constant || ''; document.getElementById('editName').value = order.name || ''; document.getElementById('editPhone1').value = order.phone1 || ''; document.getElementById('editPhone2').value = order.phone2 || ''; document.getElementById('editGov').value = order.gov || ''; document.getElementById('editArea').value = order.area || ''; document.getElementById('editAmount').value = order.amount || ''; document.getElementById('editDynamicRowsWrapper').innerHTML = ''; let items = order.type ? order.type.split(' + ') : []; if(items.length === 0) { window.addEditOrderItemRow(); } else { items.forEach(itemStr => { let match = itemStr.match(/\[([^)]+)\s\((\d+)\)\s*([^\]]*)\]/); if(match) { let code = match[1].trim(), qty = parseInt(match[2]) || 1, color = match[3] ? match[3].trim() : ""; let typeObj = configuredOrderTypes.find(t => t.code === code); window.addEditOrderItemRow(typeObj ? typeObj.name : code, qty, color); } else { window.addEditOrderItemRow(itemStr.replace(/\[\vert{}\]/g, ''), 1, ""); } }); } document.getElementById('editOrderModal').style.display = 'flex'; }
+// =========================================
+// تعديل الطلبات
+// =========================================
+window.openEditModal = function(docId) { 
+    let order = allCloudOrders.find(o => o.id_doc === docId); if(!order) return; 
+    currentEditDocId = docId; 
+    document.getElementById('editStatus').value = order.status || 'جديد'; 
+    document.getElementById('editConstant').value = order.constant || ''; 
+    document.getElementById('editName').value = order.name || ''; 
+    document.getElementById('editPhone1').value = order.phone1 || ''; 
+    document.getElementById('editPhone2').value = order.phone2 || ''; 
+    document.getElementById('editGov').value = order.gov || ''; 
+    document.getElementById('editArea').value = order.area || ''; 
+    document.getElementById('editAmount').value = order.amount || ''; 
+    document.getElementById('editDynamicRowsWrapper').innerHTML = ''; 
+    let items = order.type ? order.type.split(' + ') : []; 
+    if(items.length === 0) { window.addEditOrderItemRow(); } 
+    else { 
+        items.forEach(itemStr => { 
+            let match = itemStr.match(/\[([^)]+)\s\((\d+)\)\s*([^\]]*)\]/); 
+            if(match) { 
+                let code = match[1].trim(), qty = parseInt(match[2]) || 1, color = match[3] ? match[3].trim() : ""; 
+                let typeObj = configuredOrderTypes.find(t => t.code === code); 
+                window.addEditOrderItemRow(typeObj ? typeObj.name : code, qty, color); 
+            } else { window.addEditOrderItemRow(itemStr.replace(/\[\vert{}\]/g, ''), 1, ""); } 
+        }); 
+    } 
+    document.getElementById('editOrderModal').style.display = 'flex'; 
+}
 window.closeEditModal = function() { document.getElementById('editOrderModal').style.display = 'none'; currentEditDocId = null; }
-window.saveEditedOrder = async function() { if(!currentEditDocId) return; let arr = [], totQty = 0; document.querySelectorAll('#editDynamicRowsWrapper .order-item-row').forEach(r => { let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim(); let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim(); let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1; if (tv !== "") { let ft = configuredOrderTypes.find(t => t.name === tv), cd = ft ? ft.code : tv, colorText = cv ? ` ${cv}` : ""; arr.push(`[${cd} (${qv})${colorText}]`); totQty += qv; } }); const newData = { status: document.getElementById('editStatus').value, constant: document.getElementById('editConstant').value, name: document.getElementById('editName').value, phone1: document.getElementById('editPhone1').value, phone2: document.getElementById('editPhone2').value, gov: document.getElementById('editGov').value, area: document.getElementById('editArea').value, type: arr.join(' + '), qty: totQty, amount: document.getElementById('editAmount').value }; if(window.updateOrderInFirebase) { try { await window.updateOrderInFirebase(currentEditDocId, newData); window.closeEditModal(); window.showSuccessToast("تم التحديث! ✏️"); } catch(e) { alert("خطأ."); } } }
+window.saveEditedOrder = async function() { 
+    if(!currentEditDocId) return; 
+    let arr = [], totQty = 0; 
+    document.querySelectorAll('#editDynamicRowsWrapper .order-item-row').forEach(r => { 
+        let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim(); 
+        let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim(); 
+        let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1; 
+        if (tv !== "") { 
+            let ft = configuredOrderTypes.find(t => t.name === tv), cd = ft ? ft.code : tv, colorText = cv ? ` ${cv}` : ""; 
+            arr.push(`[${cd} (${qv})${colorText}]`); totQty += qv; 
+        } 
+    }); 
+    const newData = { 
+        status: document.getElementById('editStatus').value, constant: document.getElementById('editConstant').value, 
+        name: document.getElementById('editName').value, phone1: document.getElementById('editPhone1').value, 
+        phone2: document.getElementById('editPhone2').value, gov: document.getElementById('editGov').value, 
+        area: document.getElementById('editArea').value, type: arr.join(' + '), qty: totQty, 
+        amount: document.getElementById('editAmount').value 
+    }; 
+    if(window.updateOrderInFirebase) { 
+        try { await window.updateOrderInFirebase(currentEditDocId, newData); window.closeEditModal(); window.showSuccessToast("تم التحديث! ✏️"); } 
+        catch(e) { console.error(e); alert("خطأ."); } 
+    } 
+}
 
 // =========================================
-// التقارير والرسوم البيانية والإعدادات
+// التقارير
 // =========================================
-window.updateOrderTypeSelects = function() { document.querySelectorAll('.orderTypeSelect').forEach(s => { const v = s.value; s.innerHTML = '<option value="">-- اختر الطلب --</option>' + configuredOrderTypes.map(t => `<option value="${t.name}">${t.name} ➡️ (${t.code})</option>`).join(''); s.value = v; }); }
-window.addToTable = async function() { const pg = document.getElementById('constantField').value; if (!pg) { alert("يجب اختيار البيج!"); return; } let arr = [], totQty = 0; document.querySelectorAll('#itemsContainer .order-item-row').forEach(r => { let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim(); let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim(); let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1; if (tv !== "") { let ft = configuredOrderTypes.find(t => t.name === tv); let cd = ft ? ft.code : tv; let colorText = cv ? ` ${cv}` : ""; arr.push(`[${cd} (${qv})${colorText}]`); totQty += qv; } }); const data = { id: document.getElementById('custId').value, name: document.getElementById('custName').value, phone1: document.getElementById('phone1').value, phone2: document.getElementById('phone2').value, gov: document.getElementById('gov').value, area: document.getElementById('area').value, type: arr.join(' + '), qty: totQty, amount: document.getElementById('amount').value, constant: pg, note: document.getElementById('note').value, addedBy: loggedInUser, status: 'جديد' }; if (!data.id && !data.name) return; if (window.saveDataToFirebase) { document.getElementById("mainSaveBtn").disabled = true; await window.saveDataToFirebase(data); document.getElementById("mainSaveBtn").disabled = false; } window.clearForm(); document.getElementById('pasteArea').value = ''; window.showSuccessToast("تمت إضافة الطلب! 🎉"); }
-
 window.openReports = async function() { 
     if (!loggedInUserCanReports) { alert("❌ ليس لديك صلاحية."); return; } 
     document.getElementById('reportsModal').style.display = 'flex'; 
-    let pagesHtml = '<option value="all">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); document.getElementById('repPageFilter').innerHTML = pagesHtml; document.getElementById('repFinPageFilter').innerHTML = pagesHtml; let typesHtml = '<option value="all">-- كل الطلبات --</option>' + configuredOrderTypes.map(t => `<option value="${t.code}">${t.name} (${t.code})</option>`).join(''); document.getElementById('repTypeFilter').innerHTML = typesHtml; document.getElementById('repPageTypeFilter').innerHTML = typesHtml; 
+    let pagesHtml = '<option value="all">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); 
+    document.getElementById('repPageFilter').innerHTML = pagesHtml; 
+    document.getElementById('repFinPageFilter').innerHTML = pagesHtml; 
+    document.getElementById('repChartsPageFilter').innerHTML = pagesHtml; // الإضافة الجديدة
+    let typesHtml = '<option value="all">-- كل الطلبات --</option>' + configuredOrderTypes.map(t => `<option value="${t.code}">${t.name} (${t.code})</option>`).join(''); 
+    document.getElementById('repTypeFilter').innerHTML = typesHtml; 
+    document.getElementById('repPageTypeFilter').innerHTML = typesHtml; 
     
-    const sessionSnap = await getDocs(query(collection(db, "user_sessions")));
-    let userDurations = {};
-    sessionSnap.forEach(doc => {
-        let d = doc.data(); let dur = d.lastActive - d.loginTime;
-        if(dur > 0) userDurations[d.username] = (userDurations[d.username] || 0) + dur;
-    });
-    let sessHtml = '';
-    for(let user in userDurations) {
-        let totalMins = Math.floor(userDurations[user] / 60000); let hours = Math.floor(totalMins / 60); let mins = totalMins % 60;
-        sessHtml += `<tr><td>${user}</td><td dir="ltr" style="font-weight:bold;">${hours}h ${mins}m</td></tr>`;
-    }
-    document.getElementById('repSessionTbody').innerHTML = sessHtml || '<tr><td colspan="2" style="text-align:center;">لا توجد بيانات</td></tr>';
-
     window.generateReports(); 
 }
 
@@ -531,11 +792,7 @@ window.switchReportTab = function(tabId, btn) {
     document.querySelectorAll('#reportsModal .tab-pane').forEach(p => p.classList.remove('active')); 
     btn.classList.add('active'); 
     document.getElementById(tabId).classList.add('active'); 
-
-    // إضافة هذا الشرط لإعادة رسم المخططات بعد أن يصبح التبويب ظاهراً
-    if (tabId === 'repChartsTab') {
-        window.generateReports();
-    }
+    if (tabId === 'repChartsTab') { window.generateReports(); }
 }
 window.generateReports = function() { 
     if(allCloudOrders.length === 0) return; 
@@ -550,56 +807,272 @@ window.generateReports = function() {
 
     const selFinPage = document.getElementById('repFinPageFilter').value; let finTargetOrders = targetOrders.filter(o => o.status === 'تم التوصيل'); if(selFinPage !== "all") finTargetOrders = finTargetOrders.filter(o => o.constant === selFinPage); let finCount = finTargetOrders.length, finQty = 0, finGross = 0, finDelivery = 0; finTargetOrders.forEach(o => { let amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0; finQty += parseInt(o.qty) || 1; finGross += amt; finDelivery += (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther; }); document.getElementById('finCount').innerText = finCount; document.getElementById('finQty').innerText = finQty; document.getElementById('finGross').innerText = finGross.toLocaleString(); document.getElementById('finDelivery').innerText = finDelivery.toLocaleString(); document.getElementById('finNet').innerText = (finGross - finDelivery).toLocaleString(); 
 
-    if(window.renderCharts) window.renderCharts(targetOrders);
+    if(window.renderCharts) {
+        // الإضافة هنا: قراءة فلتر الرسوم البيانية وتطبيقه
+        let chartsSelPage = document.getElementById('repChartsPageFilter').value;
+        let chartsTargetOrders = targetOrders;
+        if(chartsSelPage && chartsSelPage !== "all") {
+            chartsTargetOrders = chartsTargetOrders.filter(o => o.constant === chartsSelPage);
+        }
+        window.renderCharts(chartsTargetOrders);
+    }
 }
-
 window.renderCharts = function(orders) {
     let completed = orders.filter(o => o.status === 'تم التوصيل');
     let pageRevenues = {};
+    
     completed.forEach(o => { 
         let net = (parseFloat((o.amount||"0").toString().replace(/[^0-9.-]+/g,"")) || 0) - ((o.gov || "").includes("بغداد") ? feeBaghdad : feeOther);
-        pageRevenues[o.constant] = (pageRevenues[o.constant] || 0) + net;
+        // التعديل هنا: معالجة الطلبات التي لا تحتوي على اسم بيج
+        let pageName = o.constant ? o.constant : "غير محدد";
+        pageRevenues[pageName] = (pageRevenues[pageName] || 0) + net;
     });
 
     if(financialChartInstance) financialChartInstance.destroy();
     let fcCanvas = document.getElementById('financialChart');
     if(fcCanvas) {
-        financialChartInstance = new Chart(fcCanvas, { type: 'bar', data: { labels: Object.keys(pageRevenues), datasets: [{ label: 'الصافي (دينار)', data: Object.values(pageRevenues), backgroundColor: '#407bff', borderRadius: 5 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        financialChartInstance = new Chart(fcCanvas, { 
+            type: 'bar', 
+            data: { 
+                labels: Object.keys(pageRevenues), 
+                datasets: [{ 
+                    label: 'الصافي (دينار)', 
+                    data: Object.values(pageRevenues), 
+                    backgroundColor: '#407bff', 
+                    borderRadius: 5,
+                    maxBarThickness: 60 // التعديل هنا: منع العمود من التمدد بشكل زائد
+                }] 
+            }, 
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { display: false } } 
+            } 
+        });
     }
 
     let itemStats = {};
-    completed.forEach(o => { if(o.type) { o.type.split('+').forEach(item => { let m = item.match(/\[(.*?)\s\((\d+)\)/); if(m) { itemStats[m[1].trim()] = (itemStats[m[1].trim()] || 0) + parseInt(m[2]); } }); } });
+    completed.forEach(o => { 
+        if(o.type) { 
+            o.type.split('+').forEach(item => { 
+                let m = item.match(/\[(.*?)\s\((\d+)\)/); 
+                if(m) { itemStats[m[1].trim()] = (itemStats[m[1].trim()] || 0) + parseInt(m[2]); } 
+            }); 
+        } 
+    });
     let topItems = Object.entries(itemStats).sort((a,b)=>b[1]-a[1]).slice(0,5);
     
     if(itemsPieChartInstance) itemsPieChartInstance.destroy();
     let pcCanvas = document.getElementById('itemsPieChart');
     if(pcCanvas) {
-        itemsPieChartInstance = new Chart(pcCanvas, { type: 'doughnut', data: { labels: topItems.map(i=>i[0]), datasets: [{ data: topItems.map(i=>i[1]), backgroundColor: ['#ffd700','#407bff','#2ecc71','#e74c3c','#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false } });
+        itemsPieChartInstance = new Chart(pcCanvas, { 
+            type: 'doughnut', 
+            data: { 
+                labels: topItems.map(i=>i[0]), 
+                datasets: [{ 
+                    data: topItems.map(i=>i[1]), 
+                    backgroundColor: ['#ffd700','#407bff','#2ecc71','#e74c3c','#9b59b6'] 
+                }] 
+            }, 
+            options: { responsive: true, maintainAspectRatio: false } 
+        });
     }
 }
 
 window.exportPageReportPDF = function() { const pageName = document.getElementById('repPageFilter').value, typeName = document.getElementById('repPageTypeFilter').value, tempDiv = document.createElement('div'); tempDiv.style.padding = '30px'; tempDiv.style.background = '#ffffff'; tempDiv.style.color = '#000000'; tempDiv.style.direction = 'rtl'; tempDiv.style.fontFamily = 'Arial, sans-serif'; let titleStr = 'تقرير المبيعات - ' + (pageName === 'all' ? 'جميع البيجات' : pageName); if(typeName !== 'all') titleStr += ' | صنف: ' + typeName; const title = document.createElement('h2'); title.innerText = titleStr; title.style.textAlign = 'center'; title.style.marginBottom = '25px'; tempDiv.appendChild(title); const tableClone = document.getElementById('pageReportTable').cloneNode(true); tableClone.style.width = '100%'; tableClone.style.borderCollapse = 'collapse'; tableClone.querySelectorAll('th, td').forEach(cell => { cell.style.border = '1px solid #ccc'; cell.style.padding = '12px'; cell.style.textAlign = 'center'; cell.style.color = '#000'; cell.style.background = '#fff';}); tempDiv.appendChild(tableClone); document.body.appendChild(tempDiv); const opt = { margin: 10, filename: `تقرير_المبيعات.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }; html2pdf().set(opt).from(tempDiv).save().then(() => { document.body.removeChild(tempDiv); }); }
 window.exportCloudToExcel = function() { const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value; let f = allCloudOrders.filter(o => ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF)); if(f.length === 0) return; let exp = f.map((o, i) => { const amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0, del = (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther; return { "ت": i+1, "البيج": o.constant||"", "حالة الطلب": o.status||"جديد", "اسم الزبون": o.name||"", "الهاتف": o.phone1, "العنوان": o.gov||"", "العدد": parseInt(o.qty)||1, "الكلي": amt, "التوصيل": del, "الصافي": amt-del, "ملاحظات": o.note||"" }; }); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), "السحابة"); XLSX.writeFile(wb, "أرشيف_السحابة.xlsx"); }
 
-window.openSettings = function() { document.getElementById('settingsModal').style.display = 'flex'; if (loggedInUserCanSettings) { document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); } else { document.getElementById('settingsAuthSection').style.display = 'block'; document.getElementById('settingsManagerSection').style.display = 'none'; } }
+// =========================================
+// الإعدادات وإدارة النظام
+// =========================================
+window.openSettings = function() { 
+    document.getElementById('settingsModal').style.display = 'flex'; 
+    if (loggedInUserCanSettings) { 
+        document.getElementById('settingsAuthSection').style.display = 'none'; 
+        document.getElementById('settingsManagerSection').style.display = 'block'; 
+        window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); 
+    } else { 
+        document.getElementById('settingsAuthSection').style.display = 'block'; 
+        document.getElementById('settingsManagerSection').style.display = 'none'; 
+    } 
+}
 window.closeSettings = function() { document.getElementById('settingsModal').style.display = 'none'; }
-window.verifySettingsPass = function() { if (document.getElementById('settingsPass').value === ADMIN_PASS) { document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); } else { document.getElementById('settings-error').style.display = 'block'; } }
+window.verifySettingsPass = function() { 
+    if (document.getElementById('settingsPass').value === ADMIN_PASS) { 
+        document.getElementById('settingsAuthSection').style.display = 'none'; 
+        document.getElementById('settingsManagerSection').style.display = 'block'; 
+        window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); 
+    } else { document.getElementById('settings-error').style.display = 'block'; } 
+}
+window.switchTab = function(tabId, btn) { 
+    document.querySelectorAll('#settingsModal .tab-btn').forEach(b => b.classList.remove('active')); 
+    document.querySelectorAll('#settingsModal .tab-pane').forEach(p => p.classList.remove('active')); 
+    btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); 
+}
 
-window.toggleSubTab = function(section, action) { document.getElementById(`${section}-add-sec`).style.display = (action === 'add') ? 'block' : 'none'; document.getElementById(`${section}-list-sec`).style.display = (action === 'list') ? 'block' : 'none'; }
-
-window.switchTab = function(tabId, btn) { document.querySelectorAll('#settingsModal .tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('#settingsModal .tab-pane').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); }
 window.addPageType = async function() { const val = document.getElementById('newPageName').value.trim(); if(val && window.addSystemPageToFirebase) { const r = await window.addSystemPageToFirebase({name: val}); configuredPages.push({id: r.id, name: val}); window.renderPagesSettings(); window.updatePagesDropdown(); } }
 window.deletePageType = async function(idx) { window.showConfirmDialog("حذف البيج؟", async function() { await window.deleteSystemPageFromFirebase(configuredPages[idx].id); configuredPages.splice(idx, 1); window.renderPagesSettings(); window.updatePagesDropdown(); }); }
 window.renderPagesSettings = function() { document.getElementById("pagesListDisplay").innerHTML = configuredPages.map((p, i) => `<li class="settings-list-item"><span class="item-text">${p.name}</span><button class="btn-danger" onclick="window.deletePageType(${i})">حذف</button></li>`).join(''); }
-window.updatePagesDropdown = function() { const s1 = document.getElementById('constantField'), s2 = document.getElementById('cloudPageFilter'), s3 = document.getElementById('repPageFilter'), s4 = document.getElementById('repFinPageFilter'); let h1 = '<option value="">-- اختر البيج --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''), h2 = '<option value="">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); if(s1) s1.innerHTML = h1; if(s2) s2.innerHTML = h2; if(s3) s3.innerHTML = h2; if(s4) s4.innerHTML = h2; }
+window.updatePagesDropdown = function() { 
+    const s1 = document.getElementById('constantField'), s2 = document.getElementById('cloudPageFilter'), s3 = document.getElementById('repPageFilter'), s4 = document.getElementById('repFinPageFilter'), s5 = document.getElementById('repChartsPageFilter'); 
+    let h1 = '<option value="">-- اختر البيج --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''), h2 = '<option value="">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); 
+    if(s1) s1.innerHTML = h1; if(s2) s2.innerHTML = h2; if(s3) s3.innerHTML = h2; if(s4) s4.innerHTML = h2; if(s5) s5.innerHTML = h2; 
+}
 window.addOrderType = async function() { const n = document.getElementById('newOrderName').value.trim(), c = document.getElementById('newOrderCode').value.trim(), p = document.getElementById('newOrderPrice').value.trim(); if(n && c && window.addOrderTypeToFirebase) { const r = await window.addOrderTypeToFirebase({name: n, code: c, price: p}); configuredOrderTypes.push({id: r.id, name: n, code: c, price: p}); window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); } }
 window.deleteOrderType = async function(idx) { window.showConfirmDialog("حذف نوع الطلب؟", async function() { await window.deleteOrderTypeFromFirebase(configuredOrderTypes[idx].id); configuredOrderTypes.splice(idx, 1); window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); }); }
 window.renderOrderTypesSettings = function() { document.getElementById("orderTypesListDisplay").innerHTML = configuredOrderTypes.map((t, i) => `<li class="settings-list-item"><span class="item-text">${t.name} <span style="color:var(--primary-blue); font-size: 13px;">(${t.code})</span> ${t.price ? ' - '+t.price+' د.ع' : ''}</span><button class="btn-danger" onclick="window.deleteOrderType(${i})">حذف</button></li>`).join(''); }
-window.addUser = async function() { const u = document.getElementById("new-user-name").value.trim(), p = document.getElementById("new-user-pass").value.trim(); if(u === "" || p === "" || u === ADMIN_USER) return; const data = { username: u, password: p, canDeleteCloud: document.getElementById("new-user-can-delete").checked, canEditCloud: document.getElementById("new-user-can-edit").checked, canAccessSettings: document.getElementById("new-user-can-settings").checked, canAccessReports: document.getElementById("new-user-can-reports").checked }; const r = await window.addSystemUserToFirebase(data); additionalUsers.push({id: r.id, ...data}); window.renderUsers(); }
-window.deleteUser = function(idx) { window.showConfirmDialog("حذف المستخدم؟", async function() { await window.deleteSystemUserFromFirebase(additionalUsers[idx].id); additionalUsers.splice(idx, 1); window.renderUsers(); }); }
-window.togglePermission = async function(idx, field) { const u = additionalUsers[idx]; u[field] = !u[field]; await window.updateSystemUserInFirebase(u.id, {[field]: u[field]}); window.renderUsers(); }
-window.renderUsers = function() { document.getElementById("users-list").innerHTML = additionalUsers.map((u, i) => `<li class="settings-list-item user-list-item"><div class="user-header-row"><span class="item-text" style="color:var(--primary-blue);">${u.username} <span style="font-size:12px; color:var(--text-muted);">(${u.password})</span></span><button class="btn-danger" onclick="window.deleteUser(${i})">حذف</button></div><div class="user-permissions-row"><span class="status-badge ${u.canDeleteCloud ? 'active' : 'inactive'}" onclick="window.togglePermission(${i}, 'canDeleteCloud')">مسح</span><span class="status-badge ${u.canEditCloud ? 'active' : 'inactive'}" onclick="window.togglePermission(${i}, 'canEditCloud')">تعديل</span><span class="status-badge ${u.canAccessSettings ? 'active' : 'inactive'}" onclick="window.togglePermission(${i}, 'canAccessSettings')">إعدادات</span><span class="status-badge ${u.canAccessReports ? 'active' : 'inactive'}" onclick="window.togglePermission(${i}, 'canAccessReports')">تقارير</span></div></li>`).join(''); }
-window.addOrderItemRow = function() { const wr = document.getElementById('dynamicRowsWrapper'), r = document.createElement('div'); r.className = 'order-item-row'; r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 80px;"> <div class="qty-controls" style="flex: 1; min-width: 110px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 5px; border-radius: 10px; width: 35px; height: 35px; min-width:unset;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`; wr.appendChild(r); window.updateOrderTypeSelects(); }
-window.changeQty = function(btn, d) { let i = btn.parentElement.querySelector('input[type="number"]'), v = parseInt(i.value)||1; v += d; if(v<1) v=1; i.value = v; }
-window.clearForm = function() { ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => document.getElementById(id).value = ''); document.getElementById('dynamicRowsWrapper').innerHTML = ''; window.addOrderItemRow(); document.getElementById('customerHistoryAlert').className = 'hidden'; document.getElementById('customerHistoryAlert').style.display = 'none'; }
-window.clearAll = function() { document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = ''; window.clearForm(); }
+
+// =========================================
+// نظام إدارة الموظفين المتطور (أزرار القائمة + البطاقات المنبثقة)
+// =========================================
+window.toggleEmployeeSection = function(sec) {
+    document.getElementById('add-employee-sec').style.display = (sec === 'add') ? 'block' : 'none';
+    document.getElementById('list-employee-sec').style.display = (sec === 'list') ? 'block' : 'none';
+    
+    document.getElementById('btn-sec-list').style.background = (sec === 'list') ? 'var(--button-gradient)' : 'transparent';
+    document.getElementById('btn-sec-list').style.color = (sec === 'list') ? 'white' : 'var(--text-muted)';
+    document.getElementById('btn-sec-list').style.boxShadow = (sec === 'list') ? '0 10px 20px rgba(64, 123, 255, 0.3)' : 'none';
+
+    document.getElementById('btn-sec-add').style.background = (sec === 'add') ? 'var(--button-gradient)' : 'transparent';
+    document.getElementById('btn-sec-add').style.color = (sec === 'add') ? 'white' : 'var(--text-muted)';
+    document.getElementById('btn-sec-add').style.boxShadow = (sec === 'add') ? '0 10px 20px rgba(64, 123, 255, 0.3)' : 'none';
+
+    if(sec === 'add' && !document.getElementById('emp-edit-id').value) {
+        document.getElementById('emp-form-title').innerText = "إضافة موظف جديد";
+        document.getElementById('save-emp-btn').innerText = "حفظ الموظف ➕";
+    }
+}
+
+window.saveEmployee = async function() {
+    const editId = document.getElementById("emp-edit-id").value;
+    const data = {
+        username: document.getElementById("emp-name").value.trim(),
+        gender: document.getElementById("emp-gender").value,
+        phone: document.getElementById("emp-phone").value.trim(),
+        location: document.getElementById("emp-location").value.trim(),
+        jobTitle: document.getElementById("emp-job").value.trim(),
+        password: document.getElementById("emp-pass").value.trim(),
+        canDeleteCloud: document.getElementById("emp-can-delete").checked,
+        canEditCloud: document.getElementById("emp-can-edit").checked,
+        canAccessSettings: document.getElementById("emp-can-settings").checked,
+        canAccessReports: document.getElementById("emp-can-reports").checked
+    };
+
+    if(data.username === "" || data.password === "" || data.username === ADMIN_USER) { alert("يرجى إدخال الاسم وكلمة المرور"); return; }
+    
+    document.body.style.cursor = 'wait';
+    if(editId) {
+        await window.updateSystemUserInFirebase(editId, data);
+        const idx = additionalUsers.findIndex(u => u.id === editId);
+        if(idx > -1) additionalUsers[idx] = { id: editId, ...data };
+        window.showSuccessToast("تم تحديث بيانات الموظف بنجاح!");
+    } else {
+        const r = await window.addSystemUserToFirebase(data);
+        additionalUsers.push({ id: r.id, ...data });
+        window.showSuccessToast("تمت إضافة الموظف بنجاح!");
+    }
+    
+    document.body.style.cursor = 'default';
+    ['emp-name', 'emp-phone', 'emp-location', 'emp-job', 'emp-pass', 'emp-edit-id'].forEach(id => document.getElementById(id).value = '');
+    ['emp-can-delete', 'emp-can-edit', 'emp-can-settings', 'emp-can-reports'].forEach(id => document.getElementById(id).checked = false);
+    
+    window.renderUsers();
+    window.toggleEmployeeSection('list');
+}
+
+window.editEmployee = function(idx) {
+    const u = additionalUsers[idx];
+    document.getElementById("emp-edit-id").value = u.id;
+    document.getElementById("emp-name").value = u.username || '';
+    document.getElementById("emp-gender").value = u.gender || 'ذكر';
+    document.getElementById("emp-phone").value = u.phone || '';
+    document.getElementById("emp-location").value = u.location || '';
+    document.getElementById("emp-job").value = u.jobTitle || '';
+    document.getElementById("emp-pass").value = u.password || '';
+    
+    document.getElementById("emp-can-delete").checked = u.canDeleteCloud || false;
+    document.getElementById("emp-can-edit").checked = u.canEditCloud || false;
+    document.getElementById("emp-can-settings").checked = u.canAccessSettings || false;
+    document.getElementById("emp-can-reports").checked = u.canAccessReports || false;
+
+    document.getElementById('emp-form-title').innerText = "تحديث بيانات الموظف";
+    document.getElementById('save-emp-btn').innerText = "تحديث البيانات 💾";
+    window.toggleEmployeeSection('add');
+}
+
+window.deleteEmployee = function(idx) { 
+    window.showConfirmDialog("تأكيد حذف بروفايل الموظف بشكل نهائي؟", async function() { 
+        await window.deleteSystemUserFromFirebase(additionalUsers[idx].id); 
+        additionalUsers.splice(idx, 1); 
+        window.renderUsers(); 
+        window.showSuccessToast("تم الحذف بنجاح");
+    }); 
+}
+
+window.togglePasswordVisibility = function(inputId) {
+    const input = document.getElementById(inputId);
+    if(input.type === "password") { input.type = "text"; } else { input.type = "password"; }
+}
+
+// عرض نافذة البروفايل الخاصة بالموظف المحدد من القائمة
+window.viewEmployeeProfile = function(idx) {
+    const u = additionalUsers[idx];
+    let avatarIcon = (u.gender === 'أنثى') ? '👩' : '👨';
+    
+    document.getElementById('view-emp-avatar').innerText = avatarIcon;
+    document.getElementById('view-emp-name').innerText = u.username;
+    document.getElementById('view-emp-job').innerText = u.jobTitle || 'موظف';
+    document.getElementById('view-emp-location').innerText = u.location || '-';
+    document.getElementById('view-emp-gender').innerText = u.gender || '-';
+    document.getElementById('view-emp-phone').innerText = u.phone || '-';
+    
+    let waLinkBtn = u.phone ? `<a href="${getWaLink(u.phone).match(/href="([^"]*)/)[1]}" target="_blank" class="emp-wa-btn">مراسلة عبر واتساب 💬</a>` : `<button class="emp-wa-btn" style="background:#ccc; cursor:not-allowed;">لا يوجد رقم هاتف</button>`;
+    document.getElementById('view-emp-wa').innerHTML = waLinkBtn;
+    
+    let perms = [];
+    if(u.canDeleteCloud) perms.push('<span class="status-badge active" style="background:#eef2f9;">حذف</span>');
+    if(u.canEditCloud) perms.push('<span class="status-badge active" style="background:#eef2f9;">تعديل</span>');
+    if(u.canAccessSettings) perms.push('<span class="status-badge active" style="background:#eef2f9;">إعدادات</span>');
+    if(u.canAccessReports) perms.push('<span class="status-badge active" style="background:#eef2f9;">تقارير</span>');
+    if(perms.length === 0) perms.push('<span style="font-size:12px; color:#aaa;">لا يملك صلاحيات</span>');
+    document.getElementById('view-emp-perms').innerHTML = perms.join('');
+    
+    document.getElementById('view-emp-pass').value = u.password;
+    document.getElementById('view-emp-pass').type = "password";
+    
+    document.getElementById('view-emp-edit-btn').onclick = function() { window.closeEmployeeProfileModal(); window.editEmployee(idx); };
+    document.getElementById('view-emp-del-btn').onclick = function() { window.closeEmployeeProfileModal(); window.deleteEmployee(idx); };
+
+    document.getElementById('employeeProfileModal').style.display = 'flex';
+}
+
+window.closeEmployeeProfileModal = function() { document.getElementById('employeeProfileModal').style.display = 'none'; }
+
+// عرض الموظفين كقائمة أزرار منسدلة بسيطة
+window.renderUsers = function() { 
+    let html = '';
+    additionalUsers.forEach((u, i) => {
+        let avatarIcon = (u.gender === 'أنثى') ? '👩' : '👨';
+        html += `
+        <div class="settings-list-item" style="cursor:pointer; padding: 10px 20px; transition: transform 0.2s ease;" onclick="window.viewEmployeeProfile(${i})" onmouseover="this.style.transform='scale(0.98)'" onmouseout="this.style.transform='none'">
+            <div style="display:flex; align-items:center; gap:15px; flex:1;">
+                <div style="font-size:22px; background:var(--bg-color); border-radius:50%; width:40px; height:40px; display:flex; justify-content:center; align-items:center; box-shadow:var(--inner-shadow);">${avatarIcon}</div>
+                <div style="text-align:right;">
+                    <div style="font-weight:bold; font-size:15px; color:var(--text-color);">${u.username}</div>
+                    <div style="font-size:11px; color:var(--text-muted);">${u.jobTitle || 'موظف'}</div>
+                </div>
+            </div>
+            <div style="color:var(--primary-blue); font-size:13px; font-weight:bold; display:flex; align-items:center; gap:5px;">عرض <span style="font-size:18px;">👁️</span></div>
+        </div>`;
+    });
+    
+    if(html === '') html = '<div style="text-align:center; padding: 30px; color:#ccc;">لا يوجد موظفين حالياً</div>';
+    document.getElementById("employee-cards-container").innerHTML = html; 
+}
+window.updateOrderTypeSelects = function() { 
+    document.querySelectorAll('.orderTypeSelect').forEach(s => { 
+        const v = s.value; 
+        s.innerHTML = '<option value="">-- اختر الطلب --</option>' + configuredOrderTypes.map(t => `<option value="${t.name}">${t.name} ➡️ (${t.code})</option>`).join(''); 
+        s.value = v; 
+    }); 
+}
