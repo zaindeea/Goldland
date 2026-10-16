@@ -7,7 +7,7 @@
   "theme_color": "#ffd700",
   "icons": [
     {
-     <link rel="apple-touch-icon" href="gl.png">      "sizes": "512x512",
+"src": "gl.png",
       "type": "image/svg+xml"
     }
   ]
