@@ -254,15 +254,16 @@
                         <select id="repChartsPageFilter" onchange="generateReports()" style="flex: 1; padding: 15px; border-radius: 15px; border: none; font-weight: bold; box-shadow: var(--inner-shadow); background: var(--bg-color); color: var(--text-color);"></select>
                     </div>
                     <div style="display:flex; flex-wrap: wrap; gap:20px;">
-    <div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);">
-        <h4 style="margin-bottom: 15px;">المبيعات (المالية)</h4>
-        <div style="position: relative; height: 250px; width: 100%;"><canvas id="financialChart"></canvas></div>
-    </div>
-    <div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);">
-        <h4 style="margin-bottom: 15px;">أكثر الأصناف مبيعاً (القطع)</h4>
-        <div style="position: relative; height: 250px; width: 100%;"><canvas id="itemsPieChart"></canvas></div>
-    </div>
-</div>
+                        <div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);">
+                            <h4 style="margin-bottom: 15px;">المبيعات (المالية)</h4>
+                            <div style="position: relative; height: 250px; width: 100%;"><canvas id="financialChart"></canvas></div>
+                        </div>
+                        <div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);">
+                            <h4 style="margin-bottom: 15px;">أكثر الأصناف مبيعاً (القطع)</h4>
+                            <div style="position: relative; height: 250px; width: 100%;"><canvas id="itemsPieChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Tab: المالي -->
                 <div id="repFinTab" class="tab-pane" style="text-align: right;">
