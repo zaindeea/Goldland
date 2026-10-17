@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gold-land-v1.1';
+const CACHE_NAME = 'gold-land-v2.0';
 const urlsToCache = [
   './',
   './index.html',
@@ -9,7 +9,9 @@ const urlsToCache = [
   './icon-512x512.png'
 ];
 
+// تثبيت ملفات الكاش وتفعيل الـ Service Worker فوراً
 self.addEventListener('install', event => {
+  self.skipWaiting(); 
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -18,30 +20,41 @@ self.addEventListener('install', event => {
   );
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
-});
-
 // تفعيل وتنظيف الكاش القديم عند وجود تحديث جديد
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
+          if (cacheName !== CACHE_NAME) {
+            console.log('جاري مسح الكاش القديم:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim()) 
+  );
+});
+
+// استراتيجية (Network First): جلب الملفات من الإنترنت أولاً لتطبيق التحديثات، وفي حال انقطاع النت يعود للكاش
+self.addEventListener('fetch', event => {
+  // تخطي الطلبات الخارجية (مثل فايربيس) وعدم تخزينها بالكاش لتجنب الأخطاء
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request)
+      .then(networkResponse => {
+        // إذا نجح الاتصال، قم بتحديث الكاش بالنسخة الجديدة
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+      })
+      .catch(() => {
+        // في حال عدم وجود إنترنت، اجلب النسخة المحفوظة في الكاش
+        return caches.match(event.request);
+      })
   );
 });
