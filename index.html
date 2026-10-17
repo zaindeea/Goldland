@@ -141,7 +141,7 @@
         </div>
     </div>
 
-    <!-- 3. واجهة الأرشيف والمتابعة (تم تحويلها لصفحة كاملة مع أزرار مصغرة) -->
+    <!-- 3. واجهة الأرشيف والمتابعة -->
     <div class="container no-print" id="archive-section" style="display: none; height: calc(100vh - 80px); flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
             <div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الأرشيف والمتابعة</h2></div>
@@ -149,16 +149,17 @@
         </div>
 
         <div class="card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 15px;">
+            
             <!-- شريط الأدوات الجديد والأزرار المصغرة -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: var(--bg-color); padding: 10px; border-radius: 15px; box-shadow: var(--inner-shadow); align-items: center;">
                 
                 <!-- زر جلب الأرشيف -->
-                <div style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);">
+                <div id="btn-fetch-old" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);">
                     <button class="action-icon-btn btn-blue" onclick="openArchiveFetchModal()" title="جلب الطلبات القديمة (الأرشيف)">🕰️</button>
                 </div>
 
-                <!-- أزرار الإكسل -->
-                <div style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);">
+                <!-- أزرار الإكسل (استيراد/تصدير) -->
+                <div id="btn-group-import-export" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);">
                     <button class="action-icon-btn" onclick="downloadExcelTemplate()" title="تحميل نموذج إكسل فارغ">⬇️</button>
                     <label class="action-icon-btn btn-blue" style="cursor: pointer; margin:0;" title="رفع طلبات من إكسل">
                         📤<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile(event)">
@@ -168,6 +169,7 @@
                 
                 <!-- أزرار الإجراءات للطلبات المحددة -->
                 <div style="display:flex; gap: 10px; align-items: center;">
+                    <button class="action-icon-btn" onclick="bulkEditOrder()" id="bulkEditBtn" title="تعديل الطلب المحدد">✏️</button>
                     <button class="action-icon-btn" onclick="showBulkStatusModal()" title="تغيير حالة المحدد">🔄</button>
                     <button class="action-icon-btn" onclick="bulkPrintOrders()" style="color: #b8860b;" title="طباعة A5 للمحدد">🖨️</button>
                     <button class="action-icon-btn" onclick="bulkExportPDF()" style="color: #2ecc71;" title="تصدير PDF للمحدد">📄</button>
@@ -175,24 +177,33 @@
                 </div>
             </div>
 
-            <!-- الفلاتر -->
+            <!-- الفلاتر العلوية -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
                 <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، التسلسل..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 150px;">
                 <select id="cloudStatusFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل الحالات --</option><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select>
                 <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل البيجات --</option></select>
             </div>
+
+            <!-- الفلاتر السفلية (بالتاريخ) -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: var(--bg-color); padding: 10px; border-radius: 15px; box-shadow: var(--inner-shadow); align-items: center; justify-content: center;">
+                <label style="margin:0; font-size:13px; font-weight:bold;">من تاريخ:</label>
+                <input type="date" id="archiveFilterFrom" dir="ltr" style="flex:1; min-width:120px; box-shadow:none; padding:8px; border-radius:10px;">
+                <label style="margin:0; font-size:13px; font-weight:bold;">إلى تاريخ:</label>
+                <input type="date" id="archiveFilterTo" dir="ltr" style="flex:1; min-width:120px; box-shadow:none; padding:8px; border-radius:10px;">
+                <button class="action-icon-btn btn-blue" onclick="filterCloudOrders()" title="بحث بالتاريخ">🔍</button>
+            </div>
             
             <!-- الجدول -->
             <div style="overflow-y: auto; flex: 1;">
                 <table>
-                    <thead><tr><th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllCb" onclick="toggleAllOrders(this)" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></th><th>التسلسل</th><th>الحالة</th><th>البيج</th><th>الزبون</th><th>الواتساب</th><th>المحافظة</th><th>الطلب</th><th>المبلغ الكلي</th><th>المستخدم</th><th>التاريخ</th><th>تعديل</th></tr></thead>
+                    <thead><tr><th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllCb" onclick="toggleAllOrders(this)" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></th><th>التسلسل</th><th>الحالة</th><th>البيج</th><th>الزبون</th><th>الواتساب</th><th>المحافظة</th><th>الطلب</th><th>المبلغ الكلي</th><th>المستخدم</th><th>التاريخ</th></tr></thead>
                     <tbody id="cloudOrdersTbody"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- نافذة منبثقة لجلب الأرشيف (التي طلبتموها كزر) -->
+    <!-- نافذة منبثقة لجلب الأرشيف -->
     <div class="modal-overlay no-print" id="archiveFetchModal" style="z-index: 12000;">
         <div class="modal-content" style="max-width: 350px; text-align: center;">
             <span class="close-modal" onclick="closeArchiveFetchModal()">&times;</span>
@@ -204,7 +215,7 @@
         </div>
     </div>
 
-    <!-- 4. واجهة التقارير (تم تحويلها لصفحة كاملة) -->
+    <!-- 4. واجهة التقارير -->
     <div class="container no-print" id="reports-section" style="display: none; height: calc(100vh - 80px); flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
             <div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">📊 التقارير والإحصائيات</h2></div>
@@ -217,6 +228,7 @@
                 <button class="tab-btn" onclick="switchReportTab('repTypeTab', this)">أداء الأصناف</button>
                 <button class="tab-btn" onclick="switchReportTab('repChartsTab', this)">الرسوم البيانية 📈</button>
                 <button class="tab-btn" onclick="switchReportTab('repFinTab', this)">المالي</button>
+                <button class="tab-btn" onclick="switchReportTab('repEmpTab', this)">الموظفين 👥</button>
             </div>
             
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -276,11 +288,61 @@
                         <div class="report-card"><h4>الصافي</h4><div class="val" id="finNet" style="color:#2ecc71;">0</div></div>
                     </div>
                 </div>
+
+                <!-- Tab: الموظفين -->
+                <div id="repEmpTab" class="tab-pane" style="text-align: right;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;">
+                        <select id="repEmpSelect" onchange="generateEmployeeReport()" style="flex: 2; min-width: 150px; padding: 15px; border-radius: 15px; border: none; font-weight: bold; box-shadow: var(--inner-shadow); background: var(--bg-color); color: var(--text-color);"></select>
+                        <button class="btn-export" onclick="exportEmployeeReportPDF()" style="padding: 15px; flex: 1;">PDF 📄</button>
+                    </div>
+                    
+                    <div id="employeeReportContent" style="display: none;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 20px;">
+                            <div class="report-card" style="background: rgba(64,123,255,0.05);">
+                                <h4>ساعات العمل ⏱️</h4>
+                                <div class="val" id="empRepHours" style="color: var(--primary-blue);">0</div>
+                            </div>
+                            <div class="report-card" style="background: rgba(46,204,113,0.05);">
+                                <h4>الطلبات المضافة ➕</h4>
+                                <div class="val" id="empRepAdded" style="color: #2ecc71;">0</div>
+                            </div>
+                            <div class="report-card" style="background: rgba(243,156,18,0.05);">
+                                <h4>التعديلات ✏️</h4>
+                                <div class="val" id="empRepEdits" style="color: #f39c12;">0</div>
+                            </div>
+                            <div class="report-card" style="background: rgba(231,76,60,0.05);">
+                                <h4>الحذف 🗑️</h4>
+                                <div class="val" id="empRepDeletes" style="color: #e74c3c;">0</div>
+                            </div>
+                        </div>
+
+                        <h4 style="margin-bottom: 10px; color: var(--primary-blue);">الطلبات المضافة</h4>
+                        <div style="overflow-x: auto; max-height: 250px; border-radius: 15px; margin-bottom: 20px; box-shadow: var(--inner-shadow);">
+                            <table id="empAddedOrdersTable">
+                                <thead style="position: sticky; top: 0; z-index: 1;">
+                                    <tr><th>التسلسل</th><th>الزبون</th><th>البيج</th><th>المبلغ</th><th>الحالة</th></tr>
+                                </thead>
+                                <tbody id="empAddedOrdersTbody"></tbody>
+                            </table>
+                        </div>
+
+                        <h4 style="margin-bottom: 10px; color: #f39c12;">سجل النشاطات المفصل</h4>
+                        <div style="overflow-x: auto; max-height: 250px; border-radius: 15px; box-shadow: var(--inner-shadow);">
+                            <table id="empActionTable">
+                                <thead style="position: sticky; top: 0; z-index: 1;">
+                                    <tr><th>الوقت والتاريخ</th><th>الإجراء</th><th>التفاصيل</th></tr>
+                                </thead>
+                                <tbody id="empActionTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="empRepNoData" style="text-align: center; color: var(--text-muted); padding: 30px; font-weight: bold;">الرجاء اختيار اسم الموظف لعرض تقريره المفصل.</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 5. واجهة الإعدادات والمظهر (تم تحويلها لصفحة كاملة) -->
+    <!-- 5. واجهة الإعدادات والمظهر -->
     <div class="container no-print" id="settings-section" style="display: none; flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
             <div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">⚙️ الإعدادات</h2></div>
@@ -321,10 +383,27 @@
                     </div>
                     
                     <div id="typesTab" class="tab-pane" style="text-align: right;">
-                        <input type="text" id="newOrderName" placeholder="اسم الطلب" style="width:100%; margin-bottom:15px;">
-                        <input type="text" id="newOrderCode" placeholder="الرمز" style="width:100%; margin-bottom:15px;">
-                        <button onclick="addOrderType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button>
-                        <ul id="orderTypesListDisplay"></ul>
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px; background: rgba(64,123,255,0.05); padding: 5px; border-radius: 15px;">
+                            <button id="btn-sec-type-list" onclick="toggleOrderTypeSection('list')" style="flex: 1; padding: 12px; font-size: 14px; border-radius: 12px; background: var(--button-gradient); color: white;">قائمة الطلبات 📋</button>
+                            <button id="btn-sec-type-add" onclick="toggleOrderTypeSection('add')" style="flex: 1; padding: 12px; font-size: 14px; border-radius: 12px; background: transparent; color: var(--text-muted); box-shadow: none;">إضافة ديكور ➕</button>
+                        </div>
+
+                        <div id="add-ordertype-sec" style="display: none; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03);">
+                            <input type="hidden" id="type-edit-id" value="">
+                            <h4 id="type-form-title" style="text-align: center; color: var(--primary-blue); margin-bottom: 20px; margin-top: 0;">إضافة ديكور جديد</h4>
+                            
+                            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div class="form-group" style="margin-bottom: 10px;"><label>اسم الطلب (الديكور)</label><input type="text" id="type-name" placeholder="مثال: لوحة خشبية"></div>
+                                <div class="form-group" style="margin-bottom: 10px;"><label>الرمز</label><input type="text" id="type-code" placeholder="مثال: WD1"></div>
+                                <div class="form-group" style="margin-bottom: 10px;"><label>السعر (اختياري)</label><input type="number" id="type-price" placeholder="مثال: 15000"></div>
+                                <div class="form-group" style="margin-bottom: 10px;"><label>الملاحظات (اختياري)</label><input type="text" id="type-notes" placeholder="ملاحظات إضافية..."></div>
+                            </div>
+                            <button id="save-type-btn" onclick="saveOrderType()" style="width: 100%; margin-top: 15px;">حفظ الديكور 💾</button>
+                        </div>
+
+                        <div id="list-ordertype-sec">
+                            <div id="orderTypesCardsContainer" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                        </div>
                     </div>
                     
                     <div id="usersTab" class="tab-pane" style="text-align: right;">
@@ -352,6 +431,10 @@
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-edit"> تعديل</label>
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-settings"> إعدادات</label>
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-reports"> تقارير</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-chat"> الدردشة</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-add"> التوزيع الذكي</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-fetch-old"> الأرشيف القديم</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-import-export"> استيراد/تصدير</label>
                             </div>
                             <button id="save-emp-btn" onclick="saveEmployee()" style="width: 100%;">حفظ الموظف 💾</button>
                         </div>
@@ -373,7 +456,7 @@
         </div>
     </div>
 
-    <!-- نوافذ إضافية (تعديل الطلب، مجموعات الدردشة، بروفايل الموظف، الخ) تبقى كما هي كـ Modals -->
+    <!-- نوافذ إضافية (تعديل الطلب، مجموعات الدردشة، بروفايل الموظف، الخ) -->
     <div class="modal-overlay no-print" id="editOrderModal" style="z-index: 11000;"><div class="modal-content" style="max-width: 600px; text-align: right;"><span class="close-modal" onclick="closeEditModal()">&times;</span><h3 style="margin-bottom: 20px; text-align: center;">✏️ تحديث الطلب</h3><div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;"><label style="color: var(--primary-blue);">حالة الطلب</label><select id="editStatus" style="font-weight: bold;"><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select></div><div class="form-grid"><div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div><div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div><div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr"></div><div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr"></div><div class="form-group"><label>المحافظة</label><input type="text" id="editGov"></div><div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div></div><div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><button type="button" class="btn-outline" onclick="addEditOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></div><div id="editDynamicRowsWrapper"></div></div><div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount"></div><button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التحديثات 💾</button></div></div>
     <div class="modal-overlay no-print" id="bulkStatusModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 350px; text-align: center;"><span class="close-modal" onclick="closeBulkStatusModal()">&times;</span><h3 style="margin-bottom: 15px;">تغيير حالة الطلبات المحددة</h3><select id="bulkStatusSelect" style="margin-bottom: 25px; width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ccc;"><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select><button class="btn-parse" onclick="saveBulkStatus()" style="width: 100%;">تطبيق على الكل 💾</button></div></div>
     <div class="modal-overlay no-print" id="createGroupModal" style="z-index: 12000;"><div class="modal-content" style="max-width: 400px; text-align: right;"><span class="close-modal" onclick="closeCreateGroupModal()">&times;</span><h3 style="text-align: center; margin-bottom: 20px;">👥 مجموعة جديدة</h3><div class="form-group"><label>اسم المجموعة</label><input type="text" id="newGroupName" placeholder="مثال: فريق المبيعات"></div><div class="form-group"><label>اختر الأعضاء</label><div id="groupMembersSelection" style="max-height: 180px; overflow-y: auto; background: var(--bg-color); box-shadow: var(--inner-shadow); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 10px;"></div></div><button class="btn-parse" onclick="createChatGroup()" style="width: 100%; margin-top: 15px;">إنشاء المجموعة ➕</button></div></div>
