@@ -473,10 +473,7 @@ window.fetchOldOrders = async function() {
 window.reloadCurrentMonth = function() { window.listenToCloudOrders(); window.closeArchiveFetchModal(); window.showSuccessToast("تم العودة لطلبات الشهر الحالي 📅"); }
 
 window.filterCloudOrders = function() {
-    const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), 
-          pF = document.getElementById('cloudPageFilter').value, 
-          sF = document.getElementById('cloudStatusFilter').value;
-    
+    const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value;
     const fDate = document.getElementById('archiveFilterFrom').value;
     const tDate = document.getElementById('archiveFilterTo').value;
 
@@ -484,17 +481,9 @@ window.filterCloudOrders = function() {
     let toDate = tDate ? new Date(tDate) : null; if(toDate) toDate.setHours(23,59,59,999);
 
     const tb = document.getElementById('cloudOrdersTbody'); 
-    tb.innerHTML = ''; 
-    document.getElementById('selectAllCb').checked = false; 
+    tb.innerHTML = ''; document.getElementById('selectAllCb').checked = false; 
     
-    // ---------------------------------------------------------
-    // التعديل هنا: ترتيب الطلبات تصاعدياً حسب التسلسل (رقم الزبون)
-    // ---------------------------------------------------------
-    let sortedOrders = [...allCloudOrders].sort((a, b) => {
-        let idA = parseInt(a.id) || 0;
-        let idB = parseInt(b.id) || 0;
-        return idA - idB; // ترتيب تصاعدي (من الأصغر للأكبر)
-    });
+    let sortedOrders = [...allCloudOrders].sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
     
     let filtered = sortedOrders.filter(o => {
         let matchText = ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || (o.id||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF);
