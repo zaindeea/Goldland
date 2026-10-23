@@ -473,7 +473,10 @@ window.fetchOldOrders = async function() {
 window.reloadCurrentMonth = function() { window.listenToCloudOrders(); window.closeArchiveFetchModal(); window.showSuccessToast("تم العودة لطلبات الشهر الحالي 📅"); }
 
 window.filterCloudOrders = function() {
-    const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value;
+    const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), 
+          pF = document.getElementById('cloudPageFilter').value, 
+          sF = document.getElementById('cloudStatusFilter').value;
+    
     const fDate = document.getElementById('archiveFilterFrom').value;
     const tDate = document.getElementById('archiveFilterTo').value;
 
@@ -481,9 +484,17 @@ window.filterCloudOrders = function() {
     let toDate = tDate ? new Date(tDate) : null; if(toDate) toDate.setHours(23,59,59,999);
 
     const tb = document.getElementById('cloudOrdersTbody'); 
-    tb.innerHTML = ''; document.getElementById('selectAllCb').checked = false; 
+    tb.innerHTML = ''; 
+    document.getElementById('selectAllCb').checked = false; 
     
-    let sortedOrders = [...allCloudOrders].sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+    // ---------------------------------------------------------
+    // التعديل هنا: ترتيب الطلبات تصاعدياً حسب التسلسل (رقم الزبون)
+    // ---------------------------------------------------------
+    let sortedOrders = [...allCloudOrders].sort((a, b) => {
+        let idA = parseInt(a.id) || 0;
+        let idB = parseInt(b.id) || 0;
+        return idA - idB; // ترتيب تصاعدي (من الأصغر للأكبر)
+    });
     
     let filtered = sortedOrders.filter(o => {
         let matchText = ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || (o.id||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF);
@@ -497,25 +508,6 @@ window.filterCloudOrders = function() {
         }
         return matchText && matchDate;
     });
-    
-    filtered.forEach(o => {
-        const tr = document.createElement('tr');
-        const dateStr = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString('ar-IQ') : '-';
-        let st = o.status || 'جديد'; let statusColor = '#407bff';
-        if(st === 'قيد التجهيز') statusColor = '#f39c12'; if(st === 'مسلم للمندوب') statusColor = '#8e44ad'; if(st === 'تم التوصيل') statusColor = '#2ecc71'; if(st === 'راجع') statusColor = '#e74c3c';
-
-        let statusSelectHtml = `<select onchange="window.updateSingleOrderStatus('${o.id_doc}', this.value)" style="background:${statusColor}; color:white; border:none; padding: 5px; border-radius: 10px; font-size:11px; font-weight:bold; outline:none; appearance:auto; box-shadow:none; min-width:100px;">
-            <option value="جديد" ${st==='جديد'?'selected':''}>جديد 🆕</option><option value="قيد التجهيز" ${st==='قيد التجهيز'?'selected':''}>قيد التجهيز ⏳</option><option value="مسلم للمندوب" ${st==='مسلم للمندوب'?'selected':''}>مسلم للمندوب 🛵</option><option value="تم التوصيل" ${st==='تم التوصيل'?'selected':''}>تم التوصيل ✅</option><option value="راجع" ${st==='راجع'?'selected':''}>راجع ⛔</option>
-        </select>`;
-
-        tr.innerHTML = `<td style="text-align: center;"><input type="checkbox" class="order-cb" value="${o.id_doc}" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></td>
-            <td>${o.id||'-'}</td><td>${statusSelectHtml}</td><td style="color:var(--primary-blue); font-weight:bold;">${o.constant||'-'}</td> 
-            <td>${o.name||'-'}</td><td style="font-size:12px;">${getWaLink(o.phone1)}</td><td style="font-size:12px;">${o.gov||'-'}</td>
-            <td style="color:var(--primary-blue); font-size:12px;">${o.type||'-'}</td><td>${o.amount||'-'}</td> 
-            <td style="font-size:12px; font-weight:bold;">${o.addedBy||'-'}</td><td style="font-size:12px; color:var(--text-muted);">${dateStr}</td>`;
-        tb.appendChild(tr);
-    });
-}
     
     filtered.forEach(o => {
         const tr = document.createElement('tr');
