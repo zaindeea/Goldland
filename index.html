@@ -165,6 +165,8 @@
                         📤<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile(event)">
                     </label>
                     <button class="action-icon-btn" onclick="exportCloudToExcel()" style="color:#2ecc71;" title="تصدير السحابة إلى إكسل">📊</button>
+                    <!-- الزر الجديد للتصدير المتقدم -->
+                    <button class="action-icon-btn btn-export" onclick="openAdvancedExportModal()" style="color:#fff;" title="تصدير متقدم (Excel / PDF)">📤</button>
                 </div>
                 
                 <!-- أزرار الإجراءات للطلبات المحددة -->
@@ -462,6 +464,41 @@
     <div class="modal-overlay no-print" id="createGroupModal" style="z-index: 12000;"><div class="modal-content" style="max-width: 400px; text-align: right;"><span class="close-modal" onclick="closeCreateGroupModal()">&times;</span><h3 style="text-align: center; margin-bottom: 20px;">👥 مجموعة جديدة</h3><div class="form-group"><label>اسم المجموعة</label><input type="text" id="newGroupName" placeholder="مثال: فريق المبيعات"></div><div class="form-group"><label>اختر الأعضاء</label><div id="groupMembersSelection" style="max-height: 180px; overflow-y: auto; background: var(--bg-color); box-shadow: var(--inner-shadow); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 10px;"></div></div><button class="btn-parse" onclick="createChatGroup()" style="width: 100%; margin-top: 15px;">إنشاء المجموعة ➕</button></div></div>
     <div class="modal-overlay no-print" id="confirmModal" style="z-index: 13000;"><div class="modal-content" style="max-width: 350px; padding-top: 40px; text-align: center;"><div style="font-size: 50px; margin-bottom: 15px;">⚠️</div><h3 style="color: #ff4757; margin-bottom: 10px;">تأكيد الإجراء</h3><p id="confirmMessage" style="color: var(--text-muted); margin-bottom: 30px;">هل أنت متأكد؟</p><div style="display: flex; gap: 15px; justify-content: center;"><button id="confirmYesBtn" class="btn-danger" style="width: 50%;">نعم</button><button onclick="closeConfirmModal()" class="btn-outline" style="width: 50%;">إلغاء</button></div></div></div>
     
+    <!-- نافذة منبثقة للتصدير المتقدم -->
+    <div class="modal-overlay no-print" id="advancedExportModal" style="z-index: 12500;">
+        <div class="modal-content" style="max-width: 400px; text-align: right;">
+            <span class="close-modal" onclick="closeAdvancedExportModal()">&times;</span>
+            <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">📤 تصدير البيانات المتقدم</h3>
+            
+            <div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;">
+                <label>تحديد الحالة:</label>
+                <select id="exportStatusFilter" style="font-weight: bold;">
+                    <option value="all">-- كل الحالات --</option>
+                    <option value="جديد">جديد 🆕</option>
+                    <option value="قيد التجهيز">قيد التجهيز ⏳</option>
+                    <option value="مسلم للمندوب">مسلم للمندوب 🛵</option>
+                    <option value="تم التوصيل">تم التوصيل ✅</option>
+                    <option value="راجع">راجع ⛔</option>
+                </select>
+            </div>
+
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group"><label>من تاريخ:</label><input type="date" id="exportDateFrom" dir="ltr"></div>
+                <div class="form-group"><label>إلى تاريخ:</label><input type="date" id="exportDateTo" dir="ltr"></div>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label>صيغة التصدير:</label>
+                <select id="exportFormat">
+                    <option value="excel">ملف Excel (إكسل) 📊</option>
+                    <option value="pdf">ملف PDF (بي دي إف) 📄</option>
+                </select>
+            </div>
+
+            <button class="btn-parse" onclick="executeAdvancedExport()" style="width: 100%; margin-top: 20px; font-size: 16px;">تصدير الآن 🚀</button>
+        </div>
+    </div>
+
     <!-- نافذة عرض بروفايل الموظف -->
     <div class="modal-overlay no-print" id="employeeProfileModal" style="z-index: 14000;">
         <div class="modal-content" style="max-width: 400px; padding: 0; background: transparent; box-shadow: none;">
