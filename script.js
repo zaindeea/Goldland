@@ -534,7 +534,7 @@ window.bulkEditOrder = function() {
     if(selectedIds.length === 0) { alert("يرجى تحديد طلب لتعديله!"); return; }
     if(selectedIds.length > 1) { alert("يرجى تحديد طلب واحد فقط للتعديل!"); return; }
     window.openEditModal(selectedIds[0]);
-}
+};
 
 window.bulkPrintOrders = function() {
     let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value);
