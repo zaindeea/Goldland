@@ -1047,3 +1047,137 @@ window.exportEmployeeReportPDF = function() {
     const opt = { margin: 10, filename: `تقرير_الموظف_${selEmp}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }; 
     html2pdf().set(opt).from(tempDiv).save().then(() => { document.body.removeChild(tempDiv); }); 
 };
+
+// =========================================
+// التصدير المتقدم (Excel & PDF)
+// =========================================
+
+window.openAdvancedExportModal = function() {
+    document.getElementById('advancedExportModal').style.display = 'flex';
+}
+
+window.closeAdvancedExportModal = function() {
+    document.getElementById('advancedExportModal').style.display = 'none';
+}
+
+window.executeAdvancedExport = function() {
+    const sF = document.getElementById('exportStatusFilter').value;
+    const fDate = document.getElementById('exportDateFrom').value;
+    const tDate = document.getElementById('exportDateTo').value;
+    const format = document.getElementById('exportFormat').value;
+
+    // تهيئة التواريخ
+    let fromDate = fDate ? new Date(fDate) : null; 
+    if(fromDate) fromDate.setHours(0,0,0,0);
+    let toDate = tDate ? new Date(tDate) : null; 
+    if(toDate) toDate.setHours(23,59,59,999);
+
+    // فلترة الطلبات بناءً على المدخلات
+    let filtered = allCloudOrders.filter(o => {
+        let matchStatus = (sF === "all" || (o.status || "جديد") === sF);
+        let matchDate = true;
+        if(fromDate || toDate) {
+            if(!o.timestamp?.seconds) { matchDate = false; } else {
+                const d = new Date(o.timestamp.seconds * 1000);
+                if(fromDate && d < fromDate) matchDate = false;
+                if(toDate && d > toDate) matchDate = false;
+            }
+        }
+        return matchStatus && matchDate;
+    });
+
+    if (filtered.length === 0) {
+        alert("⚠️ لا توجد طلبات مطابقة للبيانات المحددة!");
+        return;
+    }
+
+    document.body.style.cursor = 'wait';
+
+    // التصدير بصيغة Excel
+    if (format === 'excel') {
+        let exp = filtered.map((o, i) => { 
+            const amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0;
+            const del = (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther; 
+            const dateStr = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString('ar-IQ') : '-';
+            return { 
+                "ت": i+1, 
+                "البيج": o.constant||"", 
+                "حالة الطلب": o.status||"جديد", 
+                "اسم الزبون": o.name||"", 
+                "الهاتف": o.phone1, 
+                "العنوان": o.gov||"", 
+                "الطلب": o.type||"",
+                "العدد": parseInt(o.qty)||1, 
+                "الكلي": amt, 
+                "التوصيل": del, 
+                "الصافي": amt-del, 
+                "ملاحظات": o.note||"",
+                "التاريخ": dateStr
+            }; 
+        });
+        const wb = XLSX.utils.book_new(); 
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), "الطلبات"); 
+        XLSX.writeFile(wb, `تصدير_مخصص_${new Date().toLocaleDateString('ar-IQ')}.xlsx`);
+        
+        document.body.style.cursor = 'default';
+        window.closeAdvancedExportModal();
+        window.showSuccessToast(`تم تصدير ${filtered.length} طلب كملف Excel 🎉`);
+    } 
+    // التصدير بصيغة PDF
+    else if (format === 'pdf') {
+        const tempDiv = document.createElement('div'); 
+        tempDiv.style.padding = '20px'; 
+        tempDiv.style.background = '#ffffff'; 
+        tempDiv.style.color = '#000000'; 
+        tempDiv.style.direction = 'rtl'; 
+        tempDiv.style.fontFamily = 'Arial, sans-serif'; 
+        
+        const title = document.createElement('h2'); 
+        title.innerText = 'تقرير الطلبات المخصص'; 
+        title.style.textAlign = 'center'; title.style.marginBottom = '20px'; 
+        tempDiv.appendChild(title); 
+
+        // إنشاء جدول HTML للـ PDF
+        let tableHtml = '<table style="width:100%; border-collapse: collapse; font-size: 11px;" border="1">';
+        tableHtml += '<thead style="background:#f2f2f2;"><tr><th style="padding:8px;">ت</th><th style="padding:8px;">البيج</th><th style="padding:8px;">الزبون</th><th style="padding:8px;">الهاتف</th><th style="padding:8px;">العنوان</th><th style="padding:8px;">الطلب</th><th style="padding:8px;">المبلغ</th><th style="padding:8px;">الحالة</th><th style="padding:8px;">التاريخ</th></tr></thead><tbody>';
+        
+        filtered.forEach((o, i) => {
+            const dateStr = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString('ar-IQ') : '-';
+            tableHtml += `<tr>
+                <td style="padding:6px; text-align:center;">${i+1}</td>
+                <td style="padding:6px; text-align:center;">${o.constant||'-'}</td>
+                <td style="padding:6px; text-align:center;">${o.name||'-'}</td>
+                <td style="padding:6px; text-align:center;" dir="ltr">${o.phone1||'-'}</td>
+                <td style="padding:6px; text-align:center;">${o.gov||'-'}</td>
+                <td style="padding:6px; text-align:center;">${o.type||'-'}</td>
+                <td style="padding:6px; text-align:center;">${o.amount||'-'}</td>
+                <td style="padding:6px; text-align:center;">${o.status||'جديد'}</td>
+                <td style="padding:6px; text-align:center;">${dateStr}</td>
+            </tr>`;
+        });
+        tableHtml += '</tbody></table>';
+        tempDiv.innerHTML += tableHtml;
+        
+        document.body.appendChild(tempDiv); 
+        
+        // إعدادات الـ PDF (نستخدم العرض العرضي landscape لاحتواء الأعمدة)
+        const opt = { 
+            margin: 10, 
+            filename: `تقرير_مخصص_${new Date().toLocaleDateString('ar-IQ')}.pdf`, 
+            image: { type: 'jpeg', quality: 0.98 }, 
+            html2canvas: { scale: 2 }, 
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
+        }; 
+        
+        html2pdf().set(opt).from(tempDiv).save().then(() => { 
+            document.body.removeChild(tempDiv); 
+            document.body.style.cursor = 'default';
+            window.closeAdvancedExportModal();
+            window.showSuccessToast(`تم تصدير ${filtered.length} طلب كملف PDF 📄`);
+        }).catch(err => {
+            console.error(err);
+            document.body.style.cursor = 'default';
+            alert("حدث خطأ أثناء تصدير الـ PDF");
+        });
+    }
+}
