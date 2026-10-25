@@ -150,26 +150,21 @@
 
         <div class="card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 15px;">
             
-            <!-- شريط الأدوات الجديد والأزرار المصغرة -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: var(--bg-color); padding: 10px; border-radius: 15px; box-shadow: var(--inner-shadow); align-items: center;">
                 
-                <!-- زر جلب الأرشيف -->
                 <div id="btn-fetch-old" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);">
                     <button class="action-icon-btn btn-blue" onclick="openArchiveFetchModal()" title="جلب الطلبات القديمة (الأرشيف)">🕰️</button>
                 </div>
 
-                <!-- أزرار الإكسل (استيراد/تصدير) -->
                 <div id="btn-group-import-export" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);">
                     <button class="action-icon-btn" onclick="downloadExcelTemplate()" title="تحميل نموذج إكسل فارغ">⬇️</button>
                     <label class="action-icon-btn btn-blue" style="cursor: pointer; margin:0;" title="رفع طلبات من إكسل">
                         📤<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile(event)">
                     </label>
                     <button class="action-icon-btn" onclick="exportCloudToExcel()" style="color:#2ecc71;" title="تصدير السحابة إلى إكسل">📊</button>
-                    <!-- الزر الجديد للتصدير المتقدم -->
                     <button class="action-icon-btn btn-export" onclick="openAdvancedExportModal()" style="color:#fff;" title="تصدير متقدم (Excel / PDF)">📤</button>
                 </div>
                 
-                <!-- أزرار الإجراءات للطلبات المحددة -->
                 <div style="display:flex; gap: 10px; align-items: center;">
                     <button class="action-icon-btn" onclick="bulkEditOrder()" id="bulkEditBtn" title="تعديل الطلب المحدد">✏️</button>
                     <button class="action-icon-btn" onclick="showBulkStatusModal()" title="تغيير حالة المحدد">🔄</button>
@@ -179,14 +174,12 @@
                 </div>
             </div>
 
-            <!-- الفلاتر العلوية -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
                 <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، التسلسل..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 150px;">
                 <select id="cloudStatusFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل الحالات --</option><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select>
                 <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل البيجات --</option></select>
             </div>
 
-            <!-- الفلاتر السفلية (بالتاريخ) -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: var(--bg-color); padding: 10px; border-radius: 15px; box-shadow: var(--inner-shadow); align-items: center; justify-content: center;">
                 <label style="margin:0; font-size:13px; font-weight:bold;">من تاريخ:</label>
                 <input type="date" id="archiveFilterFrom" dir="ltr" style="flex:1; min-width:120px; box-shadow:none; padding:8px; border-radius:10px;">
@@ -195,10 +188,9 @@
                 <button class="action-icon-btn btn-blue" onclick="filterCloudOrders()" title="بحث بالتاريخ">🔍</button>
             </div>
             
-            <!-- الجدول -->
             <div style="overflow-y: auto; flex: 1;">
                 <table>
-                    <thead><tr><th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllCb" onclick="toggleAllOrders(this)" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></th><th>التسلسل</th><th>الحالة</th><th>البيج</th><th>الزبون</th><th>الواتساب</th><th>المحافظة</th><th>الطلب</th><th>المبلغ الكلي</th><th>المستخدم</th><th>التاريخ</th></tr></thead>
+                    <thead><tr><th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllCb" onclick="toggleAllOrders(this)" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></th><th>التسلسل</th><th>الحالة</th><th>البيج</th><th>الزبون</th><th>الواتساب</th><th>المحافظة</th><th>الطلب (اضغط للتعديل)</th><th>المبلغ الكلي</th><th>المستخدم</th><th>التاريخ</th></tr></thead>
                     <tbody id="cloudOrdersTbody"></tbody>
                 </table>
             </div>
@@ -431,6 +423,7 @@
                             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; justify-content: center; background: var(--bg-color); padding: 15px; border-radius: 15px;">
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-delete"> حذف</label>
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-edit"> تعديل</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-edit-type"> تعديل نوع الطلب</label>
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-settings"> إعدادات</label>
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-reports"> تقارير</label>
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-chat"> الدردشة</label>
@@ -459,6 +452,23 @@
     </div>
 
     <!-- نوافذ إضافية (تعديل الطلب، مجموعات الدردشة، بروفايل الموظف، الخ) -->
+    
+    <!-- النافذة الجديدة: تعديل الطلب والنوع والعدد فقط من خلال الجدول -->
+    <div class="modal-overlay no-print" id="quickTypeEditModal" style="z-index: 11500;">
+        <div class="modal-content" style="max-width: 600px; text-align: right;">
+            <span class="close-modal" onclick="closeQuickTypeEditModal()">&times;</span>
+            <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">✏️ تعديل الطلب واللون والعدد</h3>
+            <div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <label style="margin:0;">📦 الطلبات والعدد</label>
+                    <button type="button" class="btn-outline" onclick="addQuickTypeOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button>
+                </div>
+                <div id="quickTypeDynamicRowsWrapper"></div>
+            </div>
+            <button class="btn-parse" onclick="saveQuickTypeEdit()" style="width: 100%; margin-top: 15px;">حفظ التعديلات 💾</button>
+        </div>
+    </div>
+
     <div class="modal-overlay no-print" id="editOrderModal" style="z-index: 11000;"><div class="modal-content" style="max-width: 600px; text-align: right;"><span class="close-modal" onclick="closeEditModal()">&times;</span><h3 style="margin-bottom: 20px; text-align: center;">✏️ تحديث الطلب</h3><div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;"><label style="color: var(--primary-blue);">حالة الطلب</label><select id="editStatus" style="font-weight: bold;"><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select></div><div class="form-grid"><div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div><div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div><div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr"></div><div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr"></div><div class="form-group"><label>المحافظة</label><input type="text" id="editGov"></div><div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div></div><div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><button type="button" class="btn-outline" onclick="addEditOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></div><div id="editDynamicRowsWrapper"></div></div><div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount"></div><button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التحديثات 💾</button></div></div>
     <div class="modal-overlay no-print" id="bulkStatusModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 350px; text-align: center;"><span class="close-modal" onclick="closeBulkStatusModal()">&times;</span><h3 style="margin-bottom: 15px;">تغيير حالة الطلبات المحددة</h3><select id="bulkStatusSelect" style="margin-bottom: 25px; width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ccc;"><option value="جديد">جديد 🆕</option><option value="قيد التجهيز">قيد التجهيز ⏳</option><option value="مسلم للمندوب">مسلم للمندوب 🛵</option><option value="تم التوصيل">تم التوصيل ✅</option><option value="راجع">راجع ⛔</option></select><button class="btn-parse" onclick="saveBulkStatus()" style="width: 100%;">تطبيق على الكل 💾</button></div></div>
     <div class="modal-overlay no-print" id="createGroupModal" style="z-index: 12000;"><div class="modal-content" style="max-width: 400px; text-align: right;"><span class="close-modal" onclick="closeCreateGroupModal()">&times;</span><h3 style="text-align: center; margin-bottom: 20px;">👥 مجموعة جديدة</h3><div class="form-group"><label>اسم المجموعة</label><input type="text" id="newGroupName" placeholder="مثال: فريق المبيعات"></div><div class="form-group"><label>اختر الأعضاء</label><div id="groupMembersSelection" style="max-height: 180px; overflow-y: auto; background: var(--bg-color); box-shadow: var(--inner-shadow); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 10px;"></div></div><button class="btn-parse" onclick="createChatGroup()" style="width: 100%; margin-top: 15px;">إنشاء المجموعة ➕</button></div></div>
