@@ -169,6 +169,7 @@ let additionalUsers = [], configuredOrderTypes = [], configuredPages = [];
 let loggedInUser = "";
 let loggedInUserCanDelete = false, loggedInUserCanEdit = false, loggedInUserCanSettings = false, loggedInUserCanReports = false; 
 let loggedInUserCanChat = false, loggedInUserCanAdd = false, loggedInUserCanFetchOld = false, loggedInUserCanImportExport = false;
+let loggedInUserCanEditType = false;
 
 let feeBaghdad = 5000, feeOther = 8000; let currentSessionId = null;
 let currentChatId = null; let allSystemUsersList = []; let allChatMessages = [];
@@ -224,6 +225,7 @@ window.login = async function() {
             loggedInUser = user; 
             loggedInUserCanDelete = true; loggedInUserCanEdit = true; loggedInUserCanSettings = true; loggedInUserCanReports = true;
             loggedInUserCanChat = true; loggedInUserCanAdd = true; loggedInUserCanFetchOld = true; loggedInUserCanImportExport = true;
+            loggedInUserCanEditType = true; 
             completeLogin(); return; 
         }
         const isNormalUser = additionalUsers.find(u => u.username === user && u.password === pass);
@@ -233,6 +235,7 @@ window.login = async function() {
             loggedInUserCanSettings = isNormalUser.canAccessSettings || false; loggedInUserCanReports = isNormalUser.canAccessReports || false; 
             loggedInUserCanChat = isNormalUser.canAccessChat || false; loggedInUserCanAdd = isNormalUser.canAddOrders || false;
             loggedInUserCanFetchOld = isNormalUser.canFetchOld || false; loggedInUserCanImportExport = isNormalUser.canImportExport || false;
+            loggedInUserCanEditType = isNormalUser.canEditOrderType || false; 
             completeLogin(); 
         } else { errorMsg.style.display = "block"; btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
     } catch (err) { console.error(err); alert("خطأ بالاتصال"); btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
@@ -253,6 +256,7 @@ window.logout = function() {
         currentSessionId = null; loggedInUser = ""; allCloudOrders = []; 
         loggedInUserCanDelete = false; loggedInUserCanEdit = false; loggedInUserCanSettings = false; loggedInUserCanReports = false;
         loggedInUserCanChat = false; loggedInUserCanAdd = false; loggedInUserCanFetchOld = false; loggedInUserCanImportExport = false;
+        loggedInUserCanEditType = false;
         document.getElementById('globalUserBar').style.display = 'none'; document.getElementById("dashboard-section").style.display = "none"; 
         document.getElementById("archive-section").style.display = "none"; document.getElementById("reports-section").style.display = "none"; 
         document.getElementById("settings-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "none"; 
@@ -279,7 +283,8 @@ window.openProfile = function() {
     if(loggedInUser === ADMIN_USER) { permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">مدير نظام (كافة الصلاحيات)</span>'); } 
     else {
         if(loggedInUserCanDelete) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">مسح</span>');
-        if(loggedInUserCanEdit) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">تعديل</span>');
+        if(loggedInUserCanEdit) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">تعديل شامل</span>');
+        if(loggedInUserCanEditType) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">تعديل الطلب والنوع</span>');
         if(loggedInUserCanSettings) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">إعدادات</span>');
         if(loggedInUserCanReports) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">تقارير</span>');
         if(loggedInUserCanChat) permsHtml.push('<span class="status-badge active" style="background:#eef2f9;">الدردشة</span>');
@@ -487,13 +492,10 @@ window.filterCloudOrders = function() {
     tb.innerHTML = ''; 
     document.getElementById('selectAllCb').checked = false; 
     
-    // ---------------------------------------------------------
-    // التعديل هنا: ترتيب الطلبات تصاعدياً حسب التسلسل (رقم الزبون)
-    // ---------------------------------------------------------
     let sortedOrders = [...allCloudOrders].sort((a, b) => {
         let idA = parseInt(a.id) || 0;
         let idB = parseInt(b.id) || 0;
-        return idA - idB; // ترتيب تصاعدي (من الأصغر للأكبر)
+        return idA - idB; 
     });
     
     let filtered = sortedOrders.filter(o => {
@@ -522,13 +524,63 @@ window.filterCloudOrders = function() {
         tr.innerHTML = `<td style="text-align: center;"><input type="checkbox" class="order-cb" value="${o.id_doc}" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></td>
             <td>${o.id||'-'}</td><td>${statusSelectHtml}</td><td style="color:var(--primary-blue); font-weight:bold;">${o.constant||'-'}</td> 
             <td>${o.name||'-'}</td><td style="font-size:12px;">${getWaLink(o.phone1)}</td><td style="font-size:12px;">${o.gov||'-'}</td>
-            <td style="color:var(--primary-blue); font-size:12px;">${o.type||'-'}</td><td>${o.amount||'-'}</td> 
+            <td style="color:var(--primary-blue); font-size:12px; cursor:pointer; text-decoration:underline;" onclick="window.openQuickTypeEditModal('${o.id_doc}')" title="اضغط لتعديل الطلب واللون">${o.type||'-'}</td>
+            <td>${o.amount||'-'}</td> 
             <td style="font-size:12px; font-weight:bold;">${o.addedBy||'-'}</td><td style="font-size:12px; color:var(--text-muted);">${dateStr}</td>`;
         tb.appendChild(tr);
     });
 }
 
-// تعديل الطلب المحدد من الأزرار العلوية
+window.addQuickTypeOrderItemRow = function(tName = "", tQty = 1, tColor = "") { 
+    const wr = document.getElementById('quickTypeDynamicRowsWrapper');
+    const r = document.createElement('div'); r.className = 'order-item-row'; 
+    r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 80px;" value="${tColor}"> <div class="qty-controls" style="flex: 1; min-width: 110px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="${tQty}" min="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 5px; border-radius: 10px; width: 35px; height: 35px; min-width:unset;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`; 
+    wr.appendChild(r); window.updateOrderTypeSelects(); 
+    let sel = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), tb = r.querySelector('.toggle-custom-btn'); 
+    if (tName) { if (Array.from(sel.options).some(o => o.value === tName)) { sel.value = tName; } else { window.toggleOrderInput(tb); ci.value = tName; } } 
+}
+
+window.openQuickTypeEditModal = function(docId) { 
+    if(!loggedInUserCanEditType && loggedInUser !== ADMIN_USER) { alert("❌ ليس لديك صلاحية لتعديل نوع الطلب."); return; }
+    let order = allCloudOrders.find(o => o.id_doc === docId); if(!order) return; 
+    currentEditDocId = docId; 
+    document.getElementById('quickTypeDynamicRowsWrapper').innerHTML = ''; 
+    let items = order.type ? order.type.split(' + ') : []; 
+    if(items.length === 0) { window.addQuickTypeOrderItemRow(); } 
+    else { 
+        items.forEach(itemStr => { 
+            let match = itemStr.match(/\[([^)]+)\s\((\d+)\)\s*([^\]]*)\]/); 
+            if(match) { 
+                let code = match[1].trim(), qty = parseInt(match[2]) || 1, color = match[3] ? match[3].trim() : ""; 
+                let typeObj = configuredOrderTypes.find(t => t.code === code); 
+                window.addQuickTypeOrderItemRow(typeObj ? typeObj.name : code, qty, color); 
+            } else { 
+                window.addQuickTypeOrderItemRow(itemStr.replace(/\[\vert{}\]/g, ''), 1, ""); 
+            } 
+        }); 
+    } 
+    document.getElementById('quickTypeEditModal').style.display = 'flex'; 
+}
+
+window.closeQuickTypeEditModal = function() { document.getElementById('quickTypeEditModal').style.display = 'none'; currentEditDocId = null; }
+
+window.saveQuickTypeEdit = async function() { 
+    if(!currentEditDocId) return; 
+    let arr = [], totQty = 0; 
+    document.querySelectorAll('#quickTypeDynamicRowsWrapper .order-item-row').forEach(r => { 
+        let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim(); 
+        let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim(); let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1; 
+        if (tv !== "") { let ft = configuredOrderTypes.find(t => t.name === tv), cd = ft ? ft.code : tv, colorText = cv ? ` ${cv}` : ""; arr.push(`[${cd} (${qv})${colorText}]`); totQty += qv; } 
+    }); 
+    const newData = { type: arr.join(' + '), qty: totQty }; 
+    document.body.style.cursor = 'wait';
+    if(window.updateOrderInFirebase) { 
+        try { await window.updateOrderInFirebase(currentEditDocId, newData); window.closeQuickTypeEditModal(); window.showSuccessToast("تم تحديث الطلب بنجاح! ✏️"); } 
+        catch(e) { console.error(e); alert("خطأ."); } 
+    } 
+    document.body.style.cursor = 'default';
+}
+
 window.bulkEditOrder = function() {
     let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value);
     if(selectedIds.length === 0) { alert("يرجى تحديد طلب لتعديله!"); return; }
@@ -622,7 +674,7 @@ window.downloadExcelTemplate = function() { const ws = XLSX.utils.aoa_to_sheet([
 window.uploadExcelFile = function(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = async function(e) { const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'}); const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]); if(json.length === 0) return; if(!confirm(`سيتم رفع ${json.length} طلب؟`)) return; let sc = 0; document.body.style.cursor = 'wait'; for(let row of json) { const data = { id: (row["تسلسل الزبون"]||'').toString(), constant: (row["البيج"]||'').toString(), name: (row["اسم الزبون"]||'').toString(), phone1: (row["رقم الهاتف الأول"]||'').toString(), phone2: (row["رقم الهاتف الثاني"]||'').toString(), gov: (row["المحافظة"]||'').toString(), area: (row["المنطقة"]||'').toString(), type: (row["الطلب"]||'').toString(), qty: parseInt(row["العدد"])||1, amount: (row["المبلغ الكلي"]||'').toString(), note: (row["ملاحظات"]||'').toString(), addedBy: loggedInUser, status: 'جديد' }; if(data.constant && data.name) { if(await window.saveDataToFirebase(data)) sc++; } } document.body.style.cursor = 'default'; event.target.value = ''; window.showSuccessToast(`تم الرفع! (${sc})`); }; reader.readAsArrayBuffer(file); }
 
 // =========================================
-// تعديل الطلبات
+// تعديل الطلبات (التعديل الشامل)
 // =========================================
 window.addEditOrderItemRow = function(tName = "", tQty = 1, tColor = "") { 
     const wr = document.getElementById('editDynamicRowsWrapper');
@@ -671,7 +723,9 @@ window.openReports = async function() {
     
     let pagesHtml = '<option value="all">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${p.name}">${p.name}</option>`).join(''); 
     document.getElementById('repPageFilter').innerHTML = pagesHtml; document.getElementById('repFinPageFilter').innerHTML = pagesHtml; document.getElementById('repChartsPageFilter').innerHTML = pagesHtml;
-    let typesHtml = '<option value="all">-- كل الطلبات --</option>' + configuredOrderTypes.map(t => `<option value="${t.code}">${t.name} (${t.code})</option>`).join(''); 
+    
+    // إضافة خيار "أخرى" للفلترة إن لزم الأمر مستقبلاً
+    let typesHtml = '<option value="all">-- كل الطلبات --</option>' + configuredOrderTypes.map(t => `<option value="${t.code}">${t.name} (${t.code})</option>`).join('') + '<option value="أخرى">أخرى (غير مسجلة)</option>'; 
     document.getElementById('repTypeFilter').innerHTML = typesHtml; document.getElementById('repPageTypeFilter').innerHTML = typesHtml; 
     
     let empHtml = '<option value="">-- اختر الموظف --</option>';
@@ -695,7 +749,43 @@ window.generateReports = function() {
 
     const selPage = document.getElementById('repPageFilter').value, selPageType = document.getElementById('repPageTypeFilter').value; let pageTargetOrders = targetOrders; if(selPage !== "all") pageTargetOrders = pageTargetOrders.filter(o => o.constant === selPage); if(selPageType !== "all") pageTargetOrders = pageTargetOrders.filter(o => o.type && o.type.includes(`[${selPageType}`)); let totalPageQty = 0, totalPageAmt = 0, pageTbodyHtml = ""; if (pageTargetOrders.length === 0) { pageTbodyHtml = '<tr><td colspan="3" style="text-align:center;">لا توجد بيانات</td></tr>'; } else { pageTargetOrders.forEach(o => { let amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0, qty = parseInt(o.qty) || 1; totalPageQty += qty; totalPageAmt += amt; let safeType = (o.type || "").split(' + ').map(item => `<span dir="ltr" style="display: inline-block; padding: 0 5px;">${item}</span>`).join(' + '); pageTbodyHtml += `<tr><td style="font-size: 13px; text-align: center;">${safeType}</td><td>${qty}</td><td>${amt.toLocaleString()}</td></tr>`; }); } document.getElementById('repPageTbody').innerHTML = pageTbodyHtml; document.getElementById('totalPageQty').innerText = totalPageQty; document.getElementById('totalPageAmount').innerText = totalPageAmt.toLocaleString(); 
 
-    const selType = document.getElementById('repTypeFilter').value; let typeStats = {}; targetOrders.forEach(o => { if(o.type && o.status === 'تم التوصيل') { o.type.split('+').forEach(item => { let match = item.match(/\[(.*?)\s\((\d+)\)/); if(match) { let code = match[1].trim(), qty = parseInt(match[2]) || 1; typeStats[code] = (typeStats[code] || 0) + qty; } }); } }); let typeCardsHtml = "", filteredTypes = Object.entries(typeStats); if(selType !== "all") filteredTypes = filteredTypes.filter(([tCode]) => tCode === selType); if(filteredTypes.length === 0) { typeCardsHtml = '<div style="width:100%; text-align:center; color:#ccc;">لا توجد طلبات مكتملة</div>'; } else { filteredTypes.forEach(([tCode, tQty]) => { let tNameObj = configuredOrderTypes.find(t => t.code === tCode); typeCardsHtml += `<div class="report-card"><h4>${tNameObj ? tNameObj.name : tCode} (${tCode})</h4><div class="val">${tQty}</div></div>`; }); } document.getElementById('repTypeCardsContainer').innerHTML = typeCardsHtml; 
+    const selType = document.getElementById('repTypeFilter').value; 
+    let typeStats = {}; 
+    
+    // فلترة وحساب أداء الأصناف (التعديل المطلوب)
+    targetOrders.forEach(o => { 
+        if(o.type && o.status === 'تم التوصيل') { 
+            o.type.split('+').forEach(item => { 
+                let match = item.match(/\[(.*?)\s\((\d+)\)/); 
+                if(match) { 
+                    let code = match[1].trim(), qty = parseInt(match[2]) || 1; 
+                    let isConfigured = configuredOrderTypes.some(t => t.code === code);
+                    if (isConfigured) {
+                        typeStats[code] = (typeStats[code] || 0) + qty; 
+                    } else {
+                        typeStats['أخرى'] = (typeStats['أخرى'] || 0) + qty;
+                    }
+                } 
+            }); 
+        } 
+    }); 
+    
+    let typeCardsHtml = "", filteredTypes = Object.entries(typeStats); 
+    if(selType !== "all") filteredTypes = filteredTypes.filter(([tCode]) => tCode === selType); 
+    
+    if(filteredTypes.length === 0) { 
+        typeCardsHtml = '<div style="width:100%; text-align:center; color:#ccc;">لا توجد طلبات مكتملة</div>'; 
+    } else { 
+        filteredTypes.forEach(([tCode, tQty]) => { 
+            if(tCode === 'أخرى') {
+                typeCardsHtml += `<div class="report-card"><h4>أخرى (غير مسجلة)</h4><div class="val">${tQty}</div></div>`;
+            } else {
+                let tNameObj = configuredOrderTypes.find(t => t.code === tCode); 
+                typeCardsHtml += `<div class="report-card"><h4>${tNameObj ? tNameObj.name : tCode} (${tCode})</h4><div class="val">${tQty}</div></div>`; 
+            }
+        }); 
+    } 
+    document.getElementById('repTypeCardsContainer').innerHTML = typeCardsHtml; 
 
     const selFinPage = document.getElementById('repFinPageFilter').value; let finTargetOrders = targetOrders.filter(o => o.status === 'تم التوصيل'); if(selFinPage !== "all") finTargetOrders = finTargetOrders.filter(o => o.constant === selFinPage); let finCount = finTargetOrders.length, finQty = 0, finGross = 0, finDelivery = 0; finTargetOrders.forEach(o => { let amt = parseFloat((o.amount || "0").toString().replace(/[^0-9.-]+/g,"")) || 0; finQty += parseInt(o.qty) || 1; finGross += amt; finDelivery += (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther; }); document.getElementById('finCount').innerText = finCount; document.getElementById('finQty').innerText = finQty; document.getElementById('finGross').innerText = finGross.toLocaleString(); document.getElementById('finDelivery').innerText = finDelivery.toLocaleString(); document.getElementById('finNet').innerText = (finGross - finDelivery).toLocaleString(); 
 
@@ -711,9 +801,35 @@ window.renderCharts = function(orders) {
     completed.forEach(o => { let net = (parseFloat((o.amount||"0").toString().replace(/[^0-9.-]+/g,"")) || 0) - ((o.gov || "").includes("بغداد") ? feeBaghdad : feeOther); let pageName = o.constant ? o.constant : "غير محدد"; pageRevenues[pageName] = (pageRevenues[pageName] || 0) + net; });
     if(financialChartInstance) financialChartInstance.destroy(); let fcCanvas = document.getElementById('financialChart');
     if(fcCanvas) { financialChartInstance = new Chart(fcCanvas, { type: 'bar', data: { labels: Object.keys(pageRevenues), datasets: [{ label: 'الصافي (دينار)', data: Object.values(pageRevenues), backgroundColor: '#407bff', borderRadius: 5, maxBarThickness: 60 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } }); }
-    let itemStats = {}; completed.forEach(o => { if(o.type) { o.type.split('+').forEach(item => { let m = item.match(/\[(.*?)\s\((\d+)\)/); if(m) { itemStats[m[1].trim()] = (itemStats[m[1].trim()] || 0) + parseInt(m[2]); } }); } }); let topItems = Object.entries(itemStats).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    
+    let itemStats = {}; 
+    completed.forEach(o => { 
+        if(o.type) { 
+            o.type.split('+').forEach(item => { 
+                let m = item.match(/\[(.*?)\s\((\d+)\)/); 
+                if(m) { 
+                    let code = m[1].trim();
+                    let qty = parseInt(m[2]);
+                    let isConfigured = configuredOrderTypes.some(t => t.code === code);
+                    if(isConfigured) {
+                        itemStats[code] = (itemStats[code] || 0) + qty;
+                    } else {
+                        itemStats['أخرى'] = (itemStats['أخرى'] || 0) + qty;
+                    }
+                } 
+            }); 
+        } 
+    }); 
+    
+    let topItems = Object.entries(itemStats).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    let chartLabels = topItems.map(i => {
+        if(i[0] === 'أخرى') return 'أخرى';
+        let t = configuredOrderTypes.find(x => x.code === i[0]);
+        return t ? t.name : i[0];
+    });
+
     if(itemsPieChartInstance) itemsPieChartInstance.destroy(); let pcCanvas = document.getElementById('itemsPieChart');
-    if(pcCanvas) { itemsPieChartInstance = new Chart(pcCanvas, { type: 'doughnut', data: { labels: topItems.map(i=>i[0]), datasets: [{ data: topItems.map(i=>i[1]), backgroundColor: ['#ffd700','#407bff','#2ecc71','#e74c3c','#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false } }); }
+    if(pcCanvas) { itemsPieChartInstance = new Chart(pcCanvas, { type: 'doughnut', data: { labels: chartLabels, datasets: [{ data: topItems.map(i=>i[1]), backgroundColor: ['#ffd700','#407bff','#2ecc71','#e74c3c','#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false } }); }
 }
 
 window.exportPageReportPDF = function() { const pageName = document.getElementById('repPageFilter').value, typeName = document.getElementById('repPageTypeFilter').value, tempDiv = document.createElement('div'); tempDiv.style.padding = '30px'; tempDiv.style.background = '#ffffff'; tempDiv.style.color = '#000000'; tempDiv.style.direction = 'rtl'; tempDiv.style.fontFamily = 'Arial, sans-serif'; let titleStr = 'تقرير المبيعات - ' + (pageName === 'all' ? 'جميع البيجات' : pageName); if(typeName !== 'all') titleStr += ' | صنف: ' + typeName; const title = document.createElement('h2'); title.innerText = titleStr; title.style.textAlign = 'center'; title.style.marginBottom = '25px'; tempDiv.appendChild(title); const tableClone = document.getElementById('pageReportTable').cloneNode(true); tableClone.style.width = '100%'; tableClone.style.borderCollapse = 'collapse'; tableClone.querySelectorAll('th, td').forEach(cell => { cell.style.border = '1px solid #ccc'; cell.style.padding = '12px'; cell.style.textAlign = 'center'; cell.style.color = '#000'; cell.style.background = '#fff';}); tempDiv.appendChild(tableClone); document.body.appendChild(tempDiv); const opt = { margin: 10, filename: `تقرير_المبيعات.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }; html2pdf().set(opt).from(tempDiv).save().then(() => { document.body.removeChild(tempDiv); }); }
@@ -861,6 +977,7 @@ window.saveEmployee = async function() {
         username: document.getElementById("emp-name").value.trim(), gender: document.getElementById("emp-gender").value, phone: document.getElementById("emp-phone").value.trim(),
         location: document.getElementById("emp-location").value.trim(), jobTitle: document.getElementById("emp-job").value.trim(), password: document.getElementById("emp-pass").value.trim(),
         canDeleteCloud: document.getElementById("emp-can-delete").checked, canEditCloud: document.getElementById("emp-can-edit").checked,
+        canEditOrderType: document.getElementById("emp-can-edit-type").checked, 
         canAccessSettings: document.getElementById("emp-can-settings").checked, canAccessReports: document.getElementById("emp-can-reports").checked,
         canAccessChat: document.getElementById("emp-can-chat").checked, canAddOrders: document.getElementById("emp-can-add").checked,
         canFetchOld: document.getElementById("emp-can-fetch-old").checked, canImportExport: document.getElementById("emp-can-import-export").checked
@@ -873,7 +990,7 @@ window.saveEmployee = async function() {
     
     document.body.style.cursor = 'default';
     ['emp-name', 'emp-phone', 'emp-location', 'emp-job', 'emp-pass', 'emp-edit-id'].forEach(id => document.getElementById(id).value = '');
-    ['emp-can-delete', 'emp-can-edit', 'emp-can-settings', 'emp-can-reports', 'emp-can-chat', 'emp-can-add', 'emp-can-fetch-old', 'emp-can-import-export'].forEach(id => document.getElementById(id).checked = false);
+    ['emp-can-delete', 'emp-can-edit', 'emp-can-edit-type', 'emp-can-settings', 'emp-can-reports', 'emp-can-chat', 'emp-can-add', 'emp-can-fetch-old', 'emp-can-import-export'].forEach(id => document.getElementById(id).checked = false);
     
     window.renderUsers(); window.toggleEmployeeSection('list');
 }
@@ -884,6 +1001,7 @@ window.editEmployee = function(idx) {
     document.getElementById("emp-phone").value = u.phone || ''; document.getElementById("emp-location").value = u.location || ''; document.getElementById("emp-job").value = u.jobTitle || ''; document.getElementById("emp-pass").value = u.password || '';
     
     document.getElementById("emp-can-delete").checked = u.canDeleteCloud || false; document.getElementById("emp-can-edit").checked = u.canEditCloud || false;
+    document.getElementById("emp-can-edit-type").checked = u.canEditOrderType || false; 
     document.getElementById("emp-can-settings").checked = u.canAccessSettings || false; document.getElementById("emp-can-reports").checked = u.canAccessReports || false;
     document.getElementById("emp-can-chat").checked = u.canAccessChat || false; document.getElementById("emp-can-add").checked = u.canAddOrders || false;
     document.getElementById("emp-can-fetch-old").checked = u.canFetchOld || false; document.getElementById("emp-can-import-export").checked = u.canImportExport || false;
@@ -904,7 +1022,8 @@ window.viewEmployeeProfile = function(idx) {
     
     let perms = [];
     if(u.canDeleteCloud) perms.push('<span class="status-badge active" style="background:#eef2f9;">حذف</span>');
-    if(u.canEditCloud) perms.push('<span class="status-badge active" style="background:#eef2f9;">تعديل</span>');
+    if(u.canEditCloud) perms.push('<span class="status-badge active" style="background:#eef2f9;">تعديل شامل</span>');
+    if(u.canEditOrderType) perms.push('<span class="status-badge active" style="background:#eef2f9;">تعديل الطلب والنوع</span>'); 
     if(u.canAccessSettings) perms.push('<span class="status-badge active" style="background:#eef2f9;">إعدادات</span>');
     if(u.canAccessReports) perms.push('<span class="status-badge active" style="background:#eef2f9;">تقارير</span>');
     if(u.canAccessChat) perms.push('<span class="status-badge active" style="background:#eef2f9;">الدردشة</span>');
