@@ -69,7 +69,7 @@ try {
     window.listenToCloudOrders = function() {
         if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; }
         allCloudOrders = []; const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0,0,0,0);
-        const q = query(collection(db, "orders"), where("timestamp", ">=", startOfMonth));
+        const q = query(collection(db, "orders"), where("timestamp", ">=", startOfMonth), limit(500));
         let isFirstLoad = true;
         cloudOrdersUnsubscribe = onSnapshot(q, (snapshot) => {
             snapshot.docChanges().forEach((change) => {
@@ -211,13 +211,32 @@ window.login = async function() {
             document.getElementById('feeBaghdadInput').value = feeBaghdad; document.getElementById('feeOtherInput').value = feeOther; window.updateOrderTypeSelects(); window.updatePagesDropdown();
             window.renderWhCatalogSettings(); 
         }
+        try {
+            const adminDoc = await getDoc(doc(db, "system_settings", "admin_credentials"));
+            if(adminDoc.exists() && adminDoc.data().username === user && adminDoc.data().password === pass) {
+                 isManager = true;
+            }
+        } catch(e) {}
         if (isManager) { 
             loggedInUser = user; loggedInUserCanDelete = true; loggedInUserCanEdit = true; loggedInUserCanSettings = true; loggedInUserCanReports = true; loggedInUserCanChat = true; loggedInUserCanAdd = true; loggedInUserCanFetchOld = true; loggedInUserCanImportExport = true; loggedInUserCanEditType = true; loggedInUserCanPurchase = true; loggedInUserCanConsume = true; 
             completeLogin(); return; 
         }
-        const isNormalUser = additionalUsers.find(u => u.username === user && u.password === pass);
-        if (isNormalUser) { 
-            loggedInUser = user; loggedInUserCanDelete = isNormalUser.canDeleteCloud || false; loggedInUserCanEdit = isNormalUser.canEditCloud || false; loggedInUserCanSettings = isNormalUser.canAccessSettings || false; loggedInUserCanReports = isNormalUser.canAccessReports || false; loggedInUserCanChat = isNormalUser.canAccessChat || false; loggedInUserCanAdd = isNormalUser.canAddOrders || false; loggedInUserCanFetchOld = isNormalUser.canFetchOld || false; loggedInUserCanImportExport = isNormalUser.canImportExport || false; loggedInUserCanEditType = isNormalUser.canEditOrderType || false; loggedInUserCanPurchase = isNormalUser.canPurchase || false; loggedInUserCanConsume = isNormalUser.canConsume || false;
+        const q = query(collection(db, "system_users"), where("username", "==", user), where("password", "==", pass));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) { 
+            const userData = querySnapshot.docs[0].data();
+            loggedInUser = user; 
+            loggedInUserCanDelete = userData.canDeleteCloud || false; 
+            loggedInUserCanEdit = userData.canEditCloud || false; 
+            loggedInUserCanSettings = userData.canAccessSettings || false; 
+            loggedInUserCanReports = userData.canAccessReports || false; 
+            loggedInUserCanChat = userData.canAccessChat || false; 
+            loggedInUserCanAdd = userData.canAddOrders || false; 
+            loggedInUserCanFetchOld = userData.canFetchOld || false; 
+            loggedInUserCanImportExport = userData.canImportExport || false; 
+            loggedInUserCanEditType = userData.canEditOrderType || false; 
+            loggedInUserCanPurchase = userData.canPurchase || false; 
+            loggedInUserCanConsume = userData.canConsume || false;
             completeLogin(); 
         } else { errorMsg.innerText = "بيانات الدخول غير صحيحة!"; errorMsg.style.display = "block"; btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
     } catch (err) { alert("خطأ بالاتصال"); btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
@@ -397,7 +416,7 @@ window.submitWarehousePurchase = async function() {
                     const s = p.snap.data(); const oldQty = parseFloat(s.qty) || 0, oldCost = parseFloat(s.unitCost) || 0;
                     const newQty = Math.round((oldQty + p.item.qty) * 1000) / 1000;
                     const avg = newQty > 0 ? ((oldQty * oldCost) + (p.item.qty * p.item.unitCost)) / newQty : p.item.unitCost;
-                    tx.update(p.ref, { qty: newQty, unitCost: Math.round(avg * 100) / 100, category: p.item.category, unitMeasure: p.item.unitMeasure });
+                    tx.update(p.ref, { qty: newQty, unitCost: Number(avg.toFixed(2)), category: p.item.category, unitMeasure: p.item.unitMeasure });
                 } else {
                     tx.set(p.ref, { catalogId: p.item.catalogId, name: p.item.name, code: p.item.code, category: p.item.category, unitMeasure: p.item.unitMeasure, unitCost: p.item.unitCost, qty: p.item.qty, threshold: 0 });
                 }
@@ -795,7 +814,20 @@ window.closeEmployeeProfileModal = function() { document.getElementById('employe
 // =========================================
 window.addOrderItemRow();
 if ('serviceWorker' in navigator) {
-    const registerSW = () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW registration failed', err));
+    const registerSW = () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        if (confirm("تم إطلاق تحديث جديد للتطبيق! هل تريد إعادة تحميل الصفحة لتطبيقه؟")) {
+                            window.location.reload();
+                        }
+                    }
+                });
+            });
+        }).catch(err => console.warn('SW registration failed', err));
+    };
     if (document.readyState === 'complete') registerSW(); else window.addEventListener('load', registerSW);
 }
 
