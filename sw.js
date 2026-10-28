@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gold-land-v3.1';
+const CACHE_NAME = 'gold-land-v3.2';
 const urlsToCache = [
   './',
   './index.html',
@@ -11,15 +11,12 @@ const urlsToCache = [
   './gl.png'
 ];
 
-// مكتبات خارجية تُخزَّن (Cache First) حتى تشتغل واجهة التطبيق بدون إنترنت.
-// بيانات Firestore (firestore.googleapis.com) ما تنخزن أبداً.
 const CDN_RULES = [
   { host: 'cdnjs.cloudflare.com' },
   { host: 'cdn.jsdelivr.net' },
   { host: 'www.gstatic.com', path: '/firebasejs/' }
 ];
 
-// تثبيت: نخزن كل ملف لحاله، فإذا ملف واحد فشل ما يفشل التثبيت كله
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
@@ -29,7 +26,6 @@ self.addEventListener('install', event => {
   );
 });
 
-// تفعيل: مسح الكاش القديم
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
@@ -52,12 +48,10 @@ self.addEventListener('fetch', event => {
   }
 });
 
-// ملفات التطبيق: الإنترنت أولاً (لتصل التحديثات)، وإذا انقطع نرجع للكاش
 async function networkFirst(req) {
   const cache = await caches.open(CACHE_NAME);
   try {
     const res = await fetch(req);
-    // نخزن فقط الردود السليمة، حتى لا نستبدل نسخة صحيحة بخطأ 404 أو 500
     if (res && res.ok && res.status === 200) cache.put(req, res.clone()).catch(() => {});
     return res;
   } catch (err) {
@@ -71,7 +65,6 @@ async function networkFirst(req) {
   }
 }
 
-// مكتبات CDN: الكاش أولاً
 async function cacheFirst(req) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(req);
