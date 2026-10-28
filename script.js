@@ -65,11 +65,17 @@ try {
     window.deleteOrderFromFirebase = async function(docId) { try { await deleteDoc(doc(db, "orders", docId)); window.logActionToCloud("حذف طلب", `تم مسح طلب نهائياً`); } catch (e) { console.error(e); } };
     window.updateOrderInFirebase = async function(docId, newData) { try { await updateDoc(doc(db, "orders", docId), newData); const _li = allCloudOrders.findIndex(o => o.id_doc === docId); if(_li > -1) Object.assign(allCloudOrders[_li], newData); if(document.getElementById('archive-section').style.display === 'flex') window.filterCloudOrders(); let actType = newData.status ? "تغيير حالة" : "تعديل طلب"; window.logActionToCloud(actType, `تعديل/تحديث بيانات طلب`); } catch(e) { console.error(e); throw e; } };
     
-    // مراقب الطلبات السحابية
+    // مراقب الطلبات السحابية (يعرض آخر 10 أيام بشكل افتراضي)
     window.listenToCloudOrders = function() {
         if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; }
-        allCloudOrders = []; const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0,0,0,0);
-        const q = query(collection(db, "orders"), where("timestamp", ">=", startOfMonth), limit(500));
+        allCloudOrders = []; 
+        
+        // إعداد التاريخ إلى قبل 10 أيام من اليوم
+        const startDate = new Date(); 
+        startDate.setDate(startDate.getDate() - 10); 
+        startDate.setHours(0,0,0,0);
+        
+        const q = query(collection(db, "orders"), where("timestamp", ">=", startDate), limit(500));
         let isFirstLoad = true;
         cloudOrdersUnsubscribe = onSnapshot(q, (snapshot) => {
             snapshot.docChanges().forEach((change) => {
@@ -563,7 +569,7 @@ window.closeArchiveFetchModal = function() { document.getElementById('archiveFet
 window.toggleAllOrders = function(source) { document.querySelectorAll('.order-cb').forEach(cb => cb.checked = source.checked); }
 window.updateSingleOrderStatus = async function(docId, newStatus) { if(window.updateOrderInFirebase) { try { await window.updateOrderInFirebase(docId, { status: newStatus }); window.showSuccessToast(`تم تغيير الحالة إلى ${newStatus}`); } catch(e) { alert("حدث خطأ."); window.filterCloudOrders(); } } }
 window.fetchOldOrders = async function() { const f = document.getElementById('oldOrdersFrom').value, t = document.getElementById('oldOrdersTo').value; if(!f || !t) { alert("الرجاء تحديد التاريخ"); return; } if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; } const fromD = new Date(f); fromD.setHours(0,0,0,0); const toD = new Date(t); toD.setHours(23,59,59,999); document.body.style.cursor = 'wait'; try { const q = query(collection(db, "orders"), where("timestamp", ">=", fromD), where("timestamp", "<=", toD)); const snap = await getDocs(q); allCloudOrders = []; snap.forEach(doc => { allCloudOrders.push({ id_doc: doc.id, ...doc.data() }); }); window.filterCloudOrders(); window.closeArchiveFetchModal(); window.showSuccessToast(`تم جلب ${snap.size} طلب!`); } catch(e) { console.error(e); } document.body.style.cursor = 'default'; }
-window.reloadCurrentMonth = function() { window.listenToCloudOrders(); window.closeArchiveFetchModal(); window.showSuccessToast("تم العودة لطلبات الشهر الحالي 📅"); }
+window.reloadCurrentMonth = function() { window.listenToCloudOrders(); window.closeArchiveFetchModal(); window.showSuccessToast("تم العودة لطلبات آخر 10 أيام 📅"); }
 window.filterCloudOrders = function() {
     const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value;
     const tb = document.getElementById('cloudOrdersTbody'); tb.innerHTML = ''; document.getElementById('selectAllCb').checked = false; 
@@ -599,34 +605,107 @@ window.closeBulkStatusModal = function() { document.getElementById('bulkStatusMo
 window.saveBulkStatus = async function() { let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value); if(selectedIds.length === 0) { window.closeBulkStatusModal(); return; } let newStatus = document.getElementById('bulkStatusSelect').value; document.body.style.cursor = 'wait'; try { for(let i = 0; i < selectedIds.length; i += 400) { const batch = writeBatch(db); selectedIds.slice(i, i + 400).forEach(id => batch.update(doc(db, "orders", id), { status: newStatus })); await batch.commit(); } allCloudOrders.forEach(o => { if(selectedIds.includes(o.id_doc)) o.status = newStatus; }); window.logActionToCloud("تغيير حالة", `تغيير حالة ${selectedIds.length} طلب إلى ${newStatus}`); window.filterCloudOrders(); window.closeBulkStatusModal(); window.showSuccessToast(`تم تغيير حالة ${selectedIds.length} طلب إلى (${newStatus}) بنجاح!`); } catch(e) { console.error(e); alert("حدث خطأ أثناء تغيير الحالة"); } document.body.style.cursor = 'default'; }
 
 window.downloadExcelTemplate = function() { const ws = XLSX.utils.aoa_to_sheet([["تسلسل الزبون", "البيج", "اسم الزبون", "رقم الهاتف الأول", "رقم الهاتف الثاني", "المحافظة", "المنطقة", "الطلب", "العدد", "المبلغ الكلي", "ملاحظات"].map(h => window.tr(h))]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, window.tr("النموذج")); XLSX.writeFile(wb, window.tr("نموذج_رفع_الطلبات.xlsx")); }
+
+let pendingExcelFile = null;
+let pendingExcelInput = null;
+
 window.uploadExcelFile = function(event) {
-    const file = event.target.files[0]; if (!file) return;
-    const input = event.target; const reader = new FileReader();
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    pendingExcelFile = file;
+    pendingExcelInput = event.target;
+    
+    // تعيين تاريخ اليوم كافتراضي في الحقل
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    document.getElementById('excelUploadDateInput').value = `${yyyy}-${mm}-${dd}`;
+    
+    // إظهار نافذة اختيار التاريخ
+    document.getElementById('excelDateModal').style.display = 'flex';
+}
+
+window.closeExcelDateModal = function() {
+    document.getElementById('excelDateModal').style.display = 'none';
+    pendingExcelFile = null;
+    if(pendingExcelInput) pendingExcelInput.value = ''; // تصفير الحقل
+}
+
+window.confirmExcelUpload = function() {
+    if (!pendingExcelFile) return;
+    
+    const dateVal = document.getElementById('excelUploadDateInput').value;
+    if (!dateVal) {
+        alert("يرجى تحديد التاريخ أولاً!");
+        return;
+    }
+
+    // إعداد التاريخ المختار وتعيين الوقت لمنتصف النهار (12:00) لتجنب أي مشاكل تتعلق بالمناطق الزمنية
+    const selectedDate = new Date(dateVal);
+    selectedDate.setHours(12, 0, 0, 0);
+
+    const reader = new FileReader();
     reader.onload = async function(e) {
         try {
             const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
             const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-            if (json.length === 0) { alert("الملف فارغ!"); return; }
-            const valid = []; let skipped = 0;
+            if (json.length === 0) { alert("الملف فارغ!"); window.closeExcelDateModal(); return; }
+            
+            const valid = []; 
+            let skipped = 0;
+            
             for (const row of json) {
-                const data = { id: (colVal(row, "تسلسل الزبون") || '').toString(), constant: (colVal(row, "البيج") || '').toString(), name: (colVal(row, "اسم الزبون") || '').toString(), phone1: (colVal(row, "رقم الهاتف الأول") || '').toString(), phone2: (colVal(row, "رقم الهاتف الثاني") || '').toString(), gov: (colVal(row, "المحافظة") || '').toString(), area: (colVal(row, "المنطقة") || '').toString(), type: (colVal(row, "الطلب") || '').toString(), qty: parseInt(colVal(row, "العدد")) || 1, amount: (colVal(row, "المبلغ الكلي") || '').toString(), note: (colVal(row, "ملاحظات") || '').toString(), addedBy: loggedInUser, status: 'جديد' };
+                const data = { 
+                    id: (colVal(row, "تسلسل الزبون") || '').toString(), 
+                    constant: (colVal(row, "البيج") || '').toString(), 
+                    name: (colVal(row, "اسم الزبون") || '').toString(), 
+                    phone1: (colVal(row, "رقم الهاتف الأول") || '').toString(), 
+                    phone2: (colVal(row, "رقم الهاتف الثاني") || '').toString(), 
+                    gov: (colVal(row, "المحافظة") || '').toString(), 
+                    area: (colVal(row, "المنطقة") || '').toString(), 
+                    type: (colVal(row, "الطلب") || '').toString(), 
+                    qty: parseInt(colVal(row, "العدد")) || 1, 
+                    amount: (colVal(row, "المبلغ الكلي") || '').toString(), 
+                    note: (colVal(row, "ملاحظات") || '').toString(), 
+                    addedBy: loggedInUser, 
+                    status: 'جديد' 
+                };
                 if (data.constant && data.name) valid.push(data); else skipped++;
             }
-            if (valid.length === 0) { alert("لا توجد صفوف صالحة (البيج واسم الزبون مطلوبان)"); return; }
-            if (!confirm(`سيتم رفع ${valid.length} طلب${skipped ? ` (تم تجاهل ${skipped} صف ناقص)` : ''}؟`)) return;
+            
+            if (valid.length === 0) { alert("لا توجد صفوف صالحة (البيج واسم الزبون مطلوبان)"); window.closeExcelDateModal(); return; }
+            if (!confirm(`سيتم رفع ${valid.length} طلب${skipped ? ` (تم تجاهل ${skipped} صف ناقص)` : ''} بتاريخ ${dateVal}؟`)) return;
+            
+            // إخفاء النافذة وبدء التحميل
+            document.getElementById('excelDateModal').style.display = 'none';
             document.body.style.cursor = 'wait';
+            
             for (let i = 0; i < valid.length; i += 400) {
                 const batch = writeBatch(db);
-                valid.slice(i, i + 400).forEach(d => batch.set(doc(collection(db, "orders")), { ...d, timestamp: serverTimestamp() }));
+                valid.slice(i, i + 400).forEach(d => {
+                    // حفظ التاريخ المختار يدوياً بدلاً من serverTimestamp()
+                    batch.set(doc(collection(db, "orders")), { ...d, timestamp: selectedDate });
+                });
                 await batch.commit();
             }
-            window.logActionToCloud("رفع Excel", `تم رفع ${valid.length} طلب من ملف Excel`);
-            window.showSuccessToast(`تم الرفع! (${valid.length})`);
-        } catch (err) { console.error(err); alert("حدث خطأ أثناء رفع الملف"); }
-        finally { document.body.style.cursor = 'default'; input.value = ''; }
+            
+            window.logActionToCloud("رفع Excel", `تم رفع ${valid.length} طلب من ملف Excel بتاريخ ${dateVal}`);
+            window.showSuccessToast(`تم الرفع بنجاح! (${valid.length}) طلب`);
+            
+        } catch (err) { 
+            console.error(err); 
+            alert("حدث خطأ أثناء رفع الملف"); 
+        } finally { 
+            document.body.style.cursor = 'default'; 
+            pendingExcelFile = null;
+            if(pendingExcelInput) pendingExcelInput.value = '';
+        }
     };
-    reader.readAsArrayBuffer(file);
+    reader.readAsArrayBuffer(pendingExcelFile);
 }
+
 window.exportCloudToExcel = function() { const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value; let f = allCloudOrders.filter(o => ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF)); if(f.length === 0) return; let exp = f.map((o, i) => { const amt = parseAmount(o.amount), del = (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther; return { [window.tr("ت")]: i+1, [window.tr("البيج")]: o.constant||"", [window.tr("حالة الطلب")]: window.tr(o.status||"جديد"), [window.tr("اسم الزبون")]: o.name||"", [window.tr("الهاتف")]: o.phone1, [window.tr("العنوان")]: o.gov||"", [window.tr("الطلب")]: o.type||"", [window.tr("العدد")]: parseInt(o.qty)||1, [window.tr("الكلي")]: amt, [window.tr("التوصيل")]: del, [window.tr("الصافي")]: amt-del, [window.tr("ملاحظات")]: o.note||"" }; }); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), window.tr("السحابة")); XLSX.writeFile(wb, window.tr("أرشيف_السحابة.xlsx")); }
 window.openAdvancedExportModal = function() { document.getElementById('advancedExportModal').style.display = 'flex'; }
 window.closeAdvancedExportModal = function() { document.getElementById('advancedExportModal').style.display = 'none'; }
