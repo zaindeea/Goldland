@@ -79,7 +79,7 @@
                 <div id="profilePermissions" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;"></div>
             </div>
             <div class="report-card" style="background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
-                <h4 style="font-size: 13px;">إجمالي الطلبات المُدخلة (هذا الشهر)</h4>
+                <h4 style="font-size: 13px;">إجمالي الطلبات المُدخلة (آخر 10 أيام)</h4>
                 <div class="val" id="profileOrderCount" style="color: #2ecc71;">0</div>
             </div>
         </div>
@@ -394,7 +394,20 @@
     </div>
 
     <!-- النوافذ المنبثقة -->
-    <div class="modal-overlay no-print" id="archiveFetchModal"><div class="modal-content"><span class="close-modal" onclick="closeArchiveFetchModal()">&times;</span><h3>🕰️ جلب الطلبات القديمة</h3><div class="form-group"><label>من تاريخ:</label><input type="date" id="oldOrdersFrom"></div><div class="form-group"><label>إلى تاريخ:</label><input type="date" id="oldOrdersTo"></div><button class="btn-parse" onclick="fetchOldOrders()" style="width:100%; margin-bottom:10px;">جلب</button><button class="btn-outline" onclick="reloadCurrentMonth()" style="width:100%;">العودة لطلبات الشهر</button></div></div>
+    <!-- نافذة تحديد تاريخ رفع الإكسل -->
+    <div class="modal-overlay no-print" id="excelDateModal" style="z-index: 13000;">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <span class="close-modal" onclick="closeExcelDateModal()">&times;</span>
+            <h3 style="margin-bottom: 20px;">📅 تحديد تاريخ الطلبات المرفوعة</h3>
+            <div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;">
+                <label style="color: var(--primary-blue);">اختر تاريخ الرفع:</label>
+                <input type="date" id="excelUploadDateInput" dir="ltr" style="font-weight: bold;">
+            </div>
+            <button class="btn-parse" onclick="confirmExcelUpload()" style="width: 100%; margin-top: 15px;">تأكيد ورفع 📤</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay no-print" id="archiveFetchModal"><div class="modal-content"><span class="close-modal" onclick="closeArchiveFetchModal()">&times;</span><h3>🕰️ جلب الطلبات القديمة</h3><div class="form-group"><label>من تاريخ:</label><input type="date" id="oldOrdersFrom"></div><div class="form-group"><label>إلى تاريخ:</label><input type="date" id="oldOrdersTo"></div><button class="btn-parse" onclick="fetchOldOrders()" style="width:100%; margin-bottom:10px;">جلب</button><button class="btn-outline" onclick="reloadCurrentMonth()" style="width:100%;">العودة لطلبات آخر 10 أيام</button></div></div>
     <div class="modal-overlay no-print" id="confirmModal"><div class="modal-content" style="text-align:center;"><p id="confirmMessage" style="margin-bottom:20px; font-weight:bold;"></p><div style="display:flex; gap:10px;"><button id="confirmYesBtn" class="btn-danger" style="flex:1;">نعم</button><button class="btn-outline" onclick="closeConfirmModal()" style="flex:1;">إلغاء</button></div></div></div>
     
     <!-- النوافذ المنبثقة للتحرير وتغيير الحالة والتصدير -->
