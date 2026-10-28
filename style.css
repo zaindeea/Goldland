@@ -1,7 +1,28 @@
 /* =========================================
    إعدادات عامة ومتغيرات الألوان (Theme)
 ========================================= */
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+* { 
+    box-sizing: border-box; 
+    -webkit-tap-highlight-color: transparent; 
+    -webkit-touch-callout: none; /* لمنع ظهور قائمة النسخ عند الضغط المطول */
+}
+
+html, body {
+    overscroll-behavior-y: none; /* لمنع تأثير الارتداد والسحب الزائد في الجوال */
+    touch-action: manipulation; /* لمنع التكبير عند النقر المزدوج (Double-tap to zoom) */
+}
+
+/* منع تحديد النصوص في كامل التطبيق لتجربة أصلية (Native App Feel) */
+body {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* السماح بتحديد النصوص في الأماكن المهمة فقط (المدخلات، الرسائل، الإيصالات) */
+input, textarea, select, .chat-messages, .receipt-page, .report-card {
+    -webkit-user-select: auto;
+    user-select: auto;
+}
 
 :root {
     --bg-color: #eef2f9; 
