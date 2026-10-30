@@ -51,6 +51,7 @@
  "-- اختر الموظف --": "-- Select employee --",
  "-- كل البيجات --": "-- All pages --",
  "-- كل الحالات --": "-- All statuses --",
+ "كل الحالات": "All statuses",
  "-- كل الطلبات --": "-- All orders --",
  "1. اضغط على زر 'المشاركة' أسفل المتصفح.": "1. Tap the 'Share' button at the bottom of the browser.",
  "2. اختر 'إضافة إلى الصفحة الرئيسية'.": "2. Choose 'Add to Home Screen'.",
