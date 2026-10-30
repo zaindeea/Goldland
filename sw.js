@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gold-land-v3.2';
+const CACHE_NAME = 'gold-land-v4.2';
 const urlsToCache = [
   './',
   './index.html',
@@ -6,9 +6,15 @@ const urlsToCache = [
   './script.js',
   './i18n.js',
   './manifest.json',
+  './logo.png',
+  './favicon.ico',
+  './favicon-32x32.png',
+  './favicon-16x16.png',
+  './apple-touch-icon.png',
   './icon-192x192.png',
   './icon-512x512.png',
-  './gl.png'
+  './icon-maskable-192x192.png',
+  './icon-maskable-512x512.png'
 ];
 
 const CDN_RULES = [
