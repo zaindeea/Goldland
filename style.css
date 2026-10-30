@@ -12,16 +12,14 @@ html, body {
     touch-action: manipulation; /* لمنع التكبير عند النقر المزدوج (Double-tap to zoom) */
 }
 
-/* منع تحديد النصوص في كامل التطبيق لتجربة أصلية (Native App Feel) */
+/* السماح بتحديد النصوص والنسخ (أرقام الهواتف والعناوين) */
 body {
+    -webkit-user-select: text;
+    user-select: text;
+}
+button, .menu-btn, .tab-btn, .chat-tab, .action-icon-btn, .lang-toggle-btn, .icon-toggle {
     -webkit-user-select: none;
     user-select: none;
-}
-
-/* السماح بتحديد النصوص في الأماكن المهمة فقط (المدخلات، الرسائل، الإيصالات) */
-input, textarea, select, .chat-messages, .receipt-page, .report-card {
-    -webkit-user-select: auto;
-    user-select: auto;
 }
 
 :root {
@@ -63,9 +61,21 @@ body::before, body::after { content: ''; position: fixed; border-radius: 50%; z-
 body::before { width: 350px; height: 350px; top: -100px; left: -100px; }
 body::after { width: 250px; height: 250px; bottom: -50px; right: -50px; }
 
-.global-user-bar { width: 100%; max-width: 1200px; margin: 0 auto; display: flex; align-items: center; padding: 15px 20px; padding-left: 80px; background: transparent; border-bottom: 2px solid var(--shadow-dark); position: relative; }
+.global-user-bar { width: 100%; max-width: 100%; margin: 0 auto; display: flex; align-items: center; gap: 10px; padding: 12px clamp(12px, 3vw, 28px); background: transparent; border-bottom: 2px solid var(--shadow-dark); position: relative; }
 body.dark-mode .global-user-bar { border-bottom: 2px solid rgba(18, 17, 28, 0.6); }
 .global-user-bar span { font-weight: bold; color: var(--text-color); font-size: 14px; }
+.user-bar-name { color: var(--primary-blue) !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 42vw; }
+.user-bar-time { font-size: 12.5px !important; color: var(--text-muted) !important; white-space: nowrap; margin-inline: auto; }
+.user-bar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.icon-toggle { width: 38px; height: 38px; min-width: unset; padding: 0; border-radius: 50%; font-size: 16px; line-height: 1; display: flex; align-items: center; justify-content: center; background: var(--bg-color); color: var(--text-color); box-shadow: var(--outer-shadow); }
+
+/* الشعار */
+.brand-logo { display: flex; align-items: center; justify-content: center; background: var(--bg-color); box-shadow: var(--outer-shadow); overflow: hidden; position: relative; flex: 0 0 auto; }
+.brand-logo.dash-logo { border-radius: 14px; }
+.logo-img { width: 78%; height: 78%; object-fit: contain; display: block; }
+.main-logo .logo-img { width: 76%; height: 76%; }
+.dash-logo .logo-img { width: 82%; height: 82%; }
+.main-logo.brand-logo { border-radius: 34%; }
 
 .css-logo { display: flex; justify-content: center; align-items: center; border-radius: 35%; background: var(--bg-color); position: relative; overflow: hidden; box-shadow: var(--outer-shadow); }
 .css-logo::after { content: ''; position: absolute; inset: 6px; background: var(--bg-color); border-radius: 30%; box-shadow: var(--inner-shadow); }
@@ -261,4 +271,93 @@ html[dir="ltr"] .message.received { align-self: flex-start; }
 html[dir="ltr"] input[dir="ltr"] { text-align: left !important; }
 @media (max-width: 768px) {
     html[dir="ltr"] .chat-sidebar.hidden { transform: translateX(-110%); }
+}
+
+/* ===== إعداد حساب المدير (أول تشغيل) ===== */
+.admin-setup { text-align: start; background: rgba(184, 134, 11, 0.08); border: 1px solid rgba(184, 134, 11, 0.22); border-radius: 22px; padding: 18px; }
+.admin-setup-title { font-size: 17px; margin: 0 0 8px; text-align: center; color: var(--text-color); }
+.admin-setup-hint { font-size: 12.5px; line-height: 1.7; color: var(--text-muted); margin: 0 0 14px; }
+
+/* ===== إعدادات المظهر ===== */
+.setting-label { display: block; font-weight: 800; font-size: 13px; color: var(--text-color); margin: 20px 0 8px; }
+.setting-desc { font-size: 12.5px; line-height: 1.65; color: var(--text-muted); margin: 0 0 10px; }
+.choice-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.choice-btn { flex: 1; min-width: 96px; padding: 12px 14px; font-size: 13.5px; border-radius: 14px; background: var(--bg-color); color: var(--text-muted); box-shadow: var(--outer-shadow); white-space: nowrap; }
+.choice-btn.active { background: var(--button-gradient); color: #fff; }
+.pass-locked { font-size: 12px; color: var(--text-muted); }
+
+/* ===== تجاوب عام (الجوال) ===== */
+body { padding-bottom: env(safe-area-inset-bottom); }
+.container { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+.chat-input-area { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+
+@media (max-width: 560px) {
+    .user-bar-time { display: none; }
+    .user-bar-name { max-width: 55vw; }
+    .global-user-bar { gap: 8px; }
+}
+
+@media (max-width: 480px) {
+    .login-box { padding: 34px 20px; border-radius: 30px; }
+    .login-title { font-size: 28px; }
+    .menu-glass-card { padding: 28px 16px; border-radius: 30px; }
+    .header-dash h2 { font-size: 18px !important; }
+    .report-card { min-width: 118px; padding: 16px; }
+    .report-card .val { font-size: 20px; }
+    .icon-toggle { width: 34px; height: 34px; font-size: 15px; }
+    .success-toast { width: calc(100% - 30px); justify-content: center; font-size: 13px; }
+}
+
+/* ===== وضع الكمبيوتر ===== */
+html[data-layout="desktop"] .login-box { max-width: 440px; padding: 44px 38px; }
+html[data-layout="desktop"] .menu-glass-card { max-width: 900px; padding: 44px 40px; border-radius: 44px; }
+html[data-layout="desktop"] .menu-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+html[data-layout="desktop"] .menu-btn { flex-direction: column; justify-content: center; gap: 10px; height: 132px; padding: 16px 10px; font-size: 15px; border-radius: 24px; text-align: center; }
+html[data-layout="desktop"] .menu-btn .icon { font-size: 30px; }
+html[data-layout="desktop"] .menu-btn-logout { margin-top: 26px; flex-direction: row; justify-content: center; gap: 10px; }
+html[data-layout="desktop"] .container { max-width: 1240px; padding: 26px 30px; }
+html[data-layout="desktop"] table { display: table; }
+html[data-layout="desktop"] th, html[data-layout="desktop"] td { padding: 14px 18px; font-size: 14px; }
+html[data-layout="desktop"] .modal-content { max-width: 720px; }
+html[data-layout="desktop"] .form-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+html[data-layout="desktop"] .settings-tabs { justify-content: flex-start; }
+html[data-layout="desktop"] .settings-tabs .tab-btn { flex: 0 0 auto; padding-inline: 22px; }
+html[data-layout="desktop"] .chat-container { height: calc(100dvh - 140px); }
+html[data-layout="desktop"] .header-dash h2 { font-size: 22px; }
+
+@media (max-width: 719px) {
+    html[data-layout="desktop"] .menu-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    html[data-layout="desktop"] .menu-btn { height: 116px; }
+}
+
+/* ===== مؤشر القوائم المنسدلة ===== */
+select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239a97b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: left 18px center;
+    background-size: 15px 15px;
+    padding-left: 46px;
+    cursor: pointer;
+}
+html[dir="ltr"] select {
+    background-position: right 18px center;
+    padding-left: 15px;
+    padding-right: 46px;
+}
+select option { background: var(--bg-color); color: var(--text-color); }
+
+/* ===== رسوم التقارير البيانية ===== */
+.chart-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+.chart-card { flex: 1 1 300px; min-width: 0; background: var(--bg-color); padding: 15px; border-radius: 18px; box-shadow: var(--outer-shadow); }
+.chart-card h4 { margin: 0 0 15px 0; font-size: 15px; color: var(--text-color); font-weight: 800; }
+.chart-empty { padding: 70px 0; color: var(--text-muted); font-size: 13px; }
+.status-breakdown { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px; }
+.sb-chip { display: flex; align-items: center; gap: 8px; background: var(--bg-color); box-shadow: var(--outer-shadow); border-radius: 14px; padding: 9px 14px; font-size: 13px; color: var(--text-color); }
+.sb-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+.sb-name { font-weight: 700; }
+.sb-count { color: var(--text-muted); font-size: 12px; }
+.sb-amt { color: var(--primary-blue); font-weight: 800; }
+@media (max-width: 480px) {
+    .chart-card { padding: 12px; }
+    .sb-chip { padding: 8px 11px; font-size: 12px; }
 }
