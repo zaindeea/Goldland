@@ -31,6 +31,32 @@ function parseTypeItems(typeStr) {
 
 function colVal(row, ar) { return row[ar] ?? row[window.trEn(ar)]; }
 
+// كتابة الطلب بصيغة مقروءة: [CODE (2) أحمر] → اسم الصنف ×2 (أحمر)
+function orderItemsReadable(typeStr) {
+    if (!typeStr) return '';
+    const items = parseTypeItems(typeStr);
+    if (items.length === 0) return String(typeStr).replace(/[\[\]]/g, '').trim();
+    return items.map(it => {
+        const conf = configuredOrderTypes.find(t => t.code === it.code);
+        const name = window.tr(conf ? conf.name : it.code);
+        return it.color ? `${name} ×${it.qty} (${window.tr(it.color)})` : `${name} ×${it.qty}`;
+    }).join(' + ');
+}
+
+// كتابة الحالة الموحّدة (تنظيف النص + الافتراضي جديد + ترجمة حسب اللغة)
+function statusLabel(s) {
+    return window.tr(String(s || '').trim() || 'جديد');
+}
+
+// اسم ملف التصدير: تصدير_<الحالة>_<تاريخ السحب>.<ext>
+function exportFileName(ext, statusVal) {
+    const d = new Date(), p = n => String(n).padStart(2, '0');
+    const day = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    const st = (!statusVal || statusVal === 'all') ? window.tr('كل الحالات') : statusLabel(statusVal);
+    return `تصدير_${st.replace(/\s+/g, '_')}_${day}.${ext}`;
+}
+
+
 const firebaseConfig = {
     apiKey: "AIzaSyA-2N_HZoej2Vv3vQa0P5hu0gvmwVs0R3o",
     authDomain: "gold-land2021.firebaseapp.com",
@@ -902,10 +928,119 @@ window.confirmExcelUpload = function() {
     reader.readAsArrayBuffer(pendingExcelFile);
 }
 
-window.exportCloudToExcel = function() { const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value; let f = allCloudOrders.filter(o => ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF)); if(f.length === 0) return; let exp = f.map((o, i) => { const amt = parseAmount(o.amount), del = (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther; return { [window.tr("ت")]: i+1, [window.tr("البيج")]: o.constant||"", [window.tr("حالة الطلب")]: window.tr(o.status||"جديد"), [window.tr("اسم الزبون")]: o.name||"", [window.tr("الهاتف")]: o.phone1, [window.tr("العنوان")]: o.gov||"", [window.tr("الطلب")]: o.type||"", [window.tr("العدد")]: parseInt(o.qty)||1, [window.tr("الكلي")]: amt, [window.tr("التوصيل")]: del, [window.tr("الصافي")]: amt-del, [window.tr("ملاحظات")]: o.note||"" }; }); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), window.tr("السحابة")); XLSX.writeFile(wb, window.tr("أرشيف_السحابة.xlsx")); }
+window.exportCloudToExcel = function() {
+    const qt = document.getElementById('cloudSearchInput').value.toLowerCase();
+    const pF = document.getElementById('cloudPageFilter').value;
+    const sF = document.getElementById('cloudStatusFilter').value;
+    let f = allCloudOrders.filter(o => ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF));
+    if(f.length === 0) return;
+    let exp = f.map((o, i) => {
+        const amt = parseAmount(o.amount), del = (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther;
+        return {
+            [window.tr("ت")]: i+1,
+            [window.tr("تسلسل الزبون")]: o.id||"",
+            [window.tr("البيج")]: o.constant||"",
+            [window.tr("حالة الطلب")]: statusLabel(o.status),
+            [window.tr("اسم الزبون")]: o.name||"",
+            [window.tr("الهاتف")]: o.phone1||"",
+            [window.tr("العنوان")]: o.gov||"",
+            [window.tr("الطلب")]: orderItemsReadable(o.type),
+            [window.tr("العدد")]: parseInt(o.qty)||1,
+            [window.tr("الكلي")]: amt,
+            [window.tr("التوصيل")]: del,
+            [window.tr("الصافي")]: amt-del,
+            [window.tr("ملاحظات")]: o.note||""
+        };
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), window.tr("الطلبات"));
+    XLSX.writeFile(wb, exportFileName('xlsx', sF));
+}
 window.openAdvancedExportModal = function() { document.getElementById('advancedExportModal').style.display = 'flex'; }
 window.closeAdvancedExportModal = function() { document.getElementById('advancedExportModal').style.display = 'none'; }
-window.executeAdvancedExport = function() { const sF = document.getElementById('exportStatusFilter').value; const fDate = document.getElementById('exportDateFrom').value; const tDate = document.getElementById('exportDateTo').value; const format = document.getElementById('exportFormat').value; let fromDate = fDate ? new Date(fDate) : null; if(fromDate) fromDate.setHours(0,0,0,0); let toDate = tDate ? new Date(tDate) : null; if(toDate) toDate.setHours(23,59,59,999); let filtered = allCloudOrders.filter(o => { let matchStatus = (sF === "all" || (o.status || "جديد") === sF); let matchDate = true; if(fromDate || toDate) { if(!o.timestamp?.seconds) { matchDate = false; } else { const d = new Date(o.timestamp.seconds * 1000); if(fromDate && d < fromDate) matchDate = false; if(toDate && d > toDate) matchDate = false; } } return matchStatus && matchDate; }); if (filtered.length === 0) { alert("⚠️ لا توجد طلبات مطابقة للبيانات المحددة!"); return; } document.body.style.cursor = 'wait'; if (format === 'excel') { let exp = filtered.map((o, i) => { const amt = parseAmount(o.amount); const del = (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther; const dateStr = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString(window.getLocale()) : '-'; return { [window.tr("ت")]: i+1, [window.tr("البيج")]: o.constant||"", [window.tr("حالة الطلب")]: window.tr(o.status||"جديد"), [window.tr("اسم الزبون")]: o.name||"", [window.tr("الهاتف")]: o.phone1, [window.tr("العنوان")]: o.gov||"", [window.tr("الطلب")]: o.type||"", [window.tr("العدد")]: parseInt(o.qty)||1, [window.tr("الكلي")]: amt, [window.tr("التوصيل")]: del, [window.tr("الصافي")]: amt-del, [window.tr("ملاحظات")]: o.note||"", [window.tr("التاريخ")]: dateStr }; }); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), window.tr("الطلبات")); XLSX.writeFile(wb, window.tr(`تصدير_مخصص_${new Date().toLocaleDateString(window.getLocale())}.xlsx`)); document.body.style.cursor = 'default'; window.closeAdvancedExportModal(); window.showSuccessToast(`تم تصدير ${filtered.length} طلب كملف Excel 🎉`); } else if (format === 'pdf') { const tempDiv = document.createElement('div'); tempDiv.style.padding = '20px'; tempDiv.style.background = '#ffffff'; tempDiv.style.color = '#000000'; tempDiv.style.direction = 'rtl'; tempDiv.style.fontFamily = 'Arial, sans-serif'; const title = document.createElement('h2'); title.innerText = 'تقرير الطلبات المخصص'; title.style.textAlign = 'center'; title.style.marginBottom = '20px'; tempDiv.appendChild(title); let tableHtml = '<table style="width:100%; border-collapse: collapse; font-size: 11px;" border="1"><thead style="background:#f2f2f2;"><tr><th style="padding:8px;">ت</th><th style="padding:8px;">البيج</th><th style="padding:8px;">الزبون</th><th style="padding:8px;">الهاتف</th><th style="padding:8px;">العنوان</th><th style="padding:8px;">الطلب</th><th style="padding:8px;">المبلغ</th><th style="padding:8px;">الحالة</th><th style="padding:8px;">التاريخ</th></tr></thead><tbody>'; filtered.forEach((o, i) => { const dateStr = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString(window.getLocale()) : '-'; tableHtml += `<tr><td style="padding:6px; text-align:center;">${i+1}</td><td style="padding:6px; text-align:center;">${esc(o.constant||'-')}</td><td style="padding:6px; text-align:center;">${esc(o.name||'-')}</td><td style="padding:6px; text-align:center;" dir="ltr">${esc(o.phone1||'-')}</td><td style="padding:6px; text-align:center;">${esc(o.gov||'-')}</td><td style="padding:6px; text-align:center;">${esc(o.type||'-')}</td><td style="padding:6px; text-align:center;">${esc(o.amount||'-')}</td><td style="padding:6px; text-align:center;">${esc(o.status||'جديد')}</td><td style="padding:6px; text-align:center;">${dateStr}</td></tr>`; }); tableHtml += '</tbody></table>'; tempDiv.innerHTML += tableHtml; document.body.appendChild(tempDiv); const opt = { margin: 10, filename: window.tr(`تقرير_مخصص_${new Date().toLocaleDateString(window.getLocale())}.pdf`), image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }; html2pdf().set(opt).from(tempDiv).save().then(() => { document.body.removeChild(tempDiv); document.body.style.cursor = 'default'; window.closeAdvancedExportModal(); window.showSuccessToast(`تم تصدير ${filtered.length} طلب كملف PDF 📄`); }).catch(err => { console.error(err); document.body.style.cursor = 'default'; alert("حدث خطأ أثناء تصدير الـ PDF"); }); } }
+window.executeAdvancedExport = function() {
+    const sF = document.getElementById('exportStatusFilter').value;
+    const fDate = document.getElementById('exportDateFrom').value;
+    const tDate = document.getElementById('exportDateTo').value;
+    const format = document.getElementById('exportFormat').value;
+    let fromDate = fDate ? new Date(fDate) : null; if(fromDate) fromDate.setHours(0,0,0,0);
+    let toDate = tDate ? new Date(tDate) : null; if(toDate) toDate.setHours(23,59,59,999);
+    let filtered = allCloudOrders.filter(o => {
+        let matchStatus = (sF === "all" || (o.status || "جديد") === sF);
+        let matchDate = true;
+        if(fromDate || toDate) {
+            if(!o.timestamp?.seconds) { matchDate = false; }
+            else {
+                const d = new Date(o.timestamp.seconds * 1000);
+                if(fromDate && d < fromDate) matchDate = false;
+                if(toDate && d > toDate) matchDate = false;
+            }
+        }
+        return matchStatus && matchDate;
+    });
+    if (filtered.length === 0) { alert("⚠️ لا توجد طلبات مطابقة للبيانات المحددة!"); return; }
+    document.body.style.cursor = 'wait';
+    if (format === 'excel') {
+        let exp = filtered.map((o, i) => {
+            const amt = parseAmount(o.amount);
+            const del = (o.gov || "").includes("بغداد") ? feeBaghdad : feeOther;
+            const dateStr = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString(window.getLocale()) : '-';
+            return {
+                [window.tr("ت")]: i+1,
+                [window.tr("تسلسل الزبون")]: o.id||"",
+                [window.tr("البيج")]: o.constant||"",
+                [window.tr("حالة الطلب")]: statusLabel(o.status),
+                [window.tr("اسم الزبون")]: o.name||"",
+                [window.tr("الهاتف")]: o.phone1||"",
+                [window.tr("العنوان")]: o.gov||"",
+                [window.tr("الطلب")]: orderItemsReadable(o.type),
+                [window.tr("العدد")]: parseInt(o.qty)||1,
+                [window.tr("الكلي")]: amt,
+                [window.tr("التوصيل")]: del,
+                [window.tr("الصافي")]: amt-del,
+                [window.tr("ملاحظات")]: o.note||"",
+                [window.tr("التاريخ")]: dateStr
+            };
+        });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exp), window.tr("الطلبات"));
+        XLSX.writeFile(wb, exportFileName('xlsx', sF));
+        document.body.style.cursor = 'default';
+        window.closeAdvancedExportModal();
+        window.showSuccessToast(`تم تصدير ${filtered.length} طلب كملف Excel 🎉`);
+    } else if (format === 'pdf') {
+        const tempDiv = document.createElement('div');
+        tempDiv.style.padding = '20px';
+        tempDiv.style.background = '#ffffff';
+        tempDiv.style.color = '#000000';
+        tempDiv.style.direction = 'rtl';
+        tempDiv.style.fontFamily = 'Arial, sans-serif';
+        const title = document.createElement('h2');
+        title.innerText = (sF === 'all' ? window.tr('تقرير الطلبات المخصص') : window.tr('الطلبات') + ' — ' + statusLabel(sF));
+        title.style.textAlign = 'center';
+        title.style.marginBottom = '20px';
+        tempDiv.appendChild(title);
+        let tableHtml = '<table style="width:100%; border-collapse: collapse; font-size: 11px;" border="1"><thead style="background:#f2f2f2;"><tr><th style="padding:8px;">ت</th><th style="padding:8px;">تسلسل الزبون</th><th style="padding:8px;">البيج</th><th style="padding:8px;">الزبون</th><th style="padding:8px;">الهاتف</th><th style="padding:8px;">العنوان</th><th style="padding:8px;">الطلب</th><th style="padding:8px;">المبلغ</th><th style="padding:8px;">الحالة</th><th style="padding:8px;">التاريخ</th></tr></thead><tbody>';
+        filtered.forEach((o, i) => {
+            const dateStr = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString(window.getLocale()) : '-';
+            tableHtml += `<tr><td style="padding:6px; text-align:center;">${i+1}</td><td style="padding:6px; text-align:center;">${esc(o.id||'-')}</td><td style="padding:6px; text-align:center;">${esc(o.constant||'-')}</td><td style="padding:6px; text-align:center;">${esc(o.name||'-')}</td><td style="padding:6px; text-align:center;" dir="ltr">${esc(o.phone1||'-')}</td><td style="padding:6px; text-align:center;">${esc(o.gov||'-')}</td><td style="padding:6px; text-align:center;">${esc(orderItemsReadable(o.type)||'-')}</td><td style="padding:6px; text-align:center;">${esc(o.amount||'-')}</td><td style="padding:6px; text-align:center;">${esc(statusLabel(o.status))}</td><td style="padding:6px; text-align:center;">${dateStr}</td></tr>`;
+        });
+        tableHtml += '</tbody></table>';
+        tempDiv.innerHTML += tableHtml;
+        document.body.appendChild(tempDiv);
+        const opt = { margin: 10, filename: exportFileName('pdf', sF), image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } };
+        html2pdf().set(opt).from(tempDiv).save().then(() => {
+            document.body.removeChild(tempDiv);
+            document.body.style.cursor = 'default';
+            window.closeAdvancedExportModal();
+            window.showSuccessToast(`تم تصدير ${filtered.length} طلب كملف PDF 📄`);
+        }).catch(err => {
+            console.error(err);
+            document.body.style.cursor = 'default';
+            alert("حدث خطأ أثناء تصدير الـ PDF");
+        });
+    }
+}
 
 // =========================================
 // التقارير العامة ومالية المخزن
