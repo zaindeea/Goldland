@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
     getFirestore, collection, addDoc, serverTimestamp, getDocs, query, 
-    deleteDoc, doc, updateDoc, onSnapshot, where, setDoc, getDoc, orderBy, limit, writeBatch, runTransaction, arrayUnion 
+    deleteDoc, doc, updateDoc, onSnapshot, where, setDoc, getDoc, orderBy, limit, writeBatch, runTransaction, arrayUnion, deleteField 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // =========================================
@@ -39,10 +40,10 @@ const firebaseConfig = {
     appId: "1:580003463235:web:4ebb43e8f3db552b3294f6"
 };
 
-let db;
+let db, app;
 let cloudOrdersUnsubscribe = null, stockUnsubscribe = null, transactionsUnsubscribe = null;
 try {
-    const app = initializeApp(firebaseConfig);
+    app = initializeApp(firebaseConfig);
     db = getFirestore(app);
 
     // =========================================
@@ -75,7 +76,7 @@ try {
         startDate.setDate(startDate.getDate() - 10); 
         startDate.setHours(0,0,0,0);
         
-        const q = query(collection(db, "orders"), where("timestamp", ">=", startDate), limit(500));
+        const q = query(collection(db, "orders"), where("timestamp", ">=", startDate), limit(1000));
         let isFirstLoad = true;
         cloudOrdersUnsubscribe = onSnapshot(q, (snapshot) => {
             snapshot.docChanges().forEach((change) => {
@@ -135,6 +136,151 @@ try {
 } catch(e) { console.warn("Firebase Init Error", e); }
 
 // =========================================
+// الأمان: مصادقة مجهولة + تشفير كلمات المرور
+// =========================================
+const PASS_SALT = 'GoldLand::pw::v2::';
+const ADMIN_PATH = ['system_settings', 'admin_credentials'];
+
+let authReady = false;
+let adminProfile = { username: '', passHash: '', legacyPass: '' };
+let adminDocLoaded = false;
+let isManager = false;
+
+window.ensureAuth = async function () {
+    if (authReady) return true;
+    if (!app) return false;
+    try {
+        await signInAnonymously(getAuth(app));
+        authReady = true;
+    } catch (e) {
+        console.warn('Anonymous auth unavailable (فعّل Anonymous في Firebase):', e && e.code ? e.code : e);
+    }
+    return authReady;
+};
+
+const SHA_K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+
+// SHA-256 نقي بالجافاسكربت (يعمل حتى بدون HTTPS أو WebCrypto)
+function sha256Hex(msg) {
+    const data = new TextEncoder().encode(String(msg));
+    const blocks = ((data.length + 8) >> 6) + 1;
+    const bytes = new Uint8Array(blocks * 64);
+    bytes.set(data);
+    bytes[data.length] = 0x80;
+    const dv = new DataView(bytes.buffer);
+    const bitLen = data.length * 8;
+    dv.setUint32(bytes.length - 8, Math.floor(bitLen / 4294967296), false);
+    dv.setUint32(bytes.length - 4, bitLen >>> 0, false);
+
+    const h = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+    const w = new Uint32Array(64);
+    for (let off = 0; off < bytes.length; off += 64) {
+        for (let i = 0; i < 16; i++) w[i] = dv.getUint32(off + i * 4, false);
+        for (let i = 16; i < 64; i++) {
+            const a15 = w[i - 15], a2 = w[i - 2];
+            const s0 = ((a15 >>> 7) | (a15 << 25)) ^ ((a15 >>> 18) | (a15 << 14)) ^ (a15 >>> 3);
+            const s1 = ((a2 >>> 17) | (a2 << 15)) ^ ((a2 >>> 19) | (a2 << 13)) ^ (a2 >>> 10);
+            w[i] = (w[i - 16] + s0 + w[i - 7] + s1) >>> 0;
+        }
+        let [a, b, c, d, e, f, g, hh] = h;
+        for (let i = 0; i < 64; i++) {
+            const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+            const ch = (e & f) ^ (~e & g);
+            const t1 = (hh + S1 + ch + SHA_K[i] + w[i]) >>> 0;
+            const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+            const maj = (a & b) ^ (a & c) ^ (b & c);
+            const t2 = (S0 + maj) >>> 0;
+            hh = g; g = f; f = e; e = (d + t1) >>> 0;
+            d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+        }
+        h[0] = (h[0] + a) >>> 0; h[1] = (h[1] + b) >>> 0; h[2] = (h[2] + c) >>> 0; h[3] = (h[3] + d) >>> 0;
+        h[4] = (h[4] + e) >>> 0; h[5] = (h[5] + f) >>> 0; h[6] = (h[6] + g) >>> 0; h[7] = (h[7] + hh) >>> 0;
+    }
+    return h.map(x => x.toString(16).padStart(8, '0')).join('');
+}
+
+function hashPass(p) { return sha256Hex(PASS_SALT + String(p)); }
+window.hashPass = hashPass;
+
+async function loadAdminProfile() {
+    try {
+        const snap = await getDoc(doc(db, ADMIN_PATH[0], ADMIN_PATH[1]));
+        adminDocLoaded = true;
+        if (!snap.exists()) return false;
+        const d = snap.data();
+        adminProfile.username = d.username || '';
+        adminProfile.passHash = d.passHash || '';
+        adminProfile.legacyPass = d.password || '';
+        return true;
+    } catch (e) {
+        adminDocLoaded = false;
+        return null;
+    }
+}
+
+// يتحقق من كلمة مرور المدير ويُرقّي التخزين القديم (نص صريح) إلى بصمة مشفّرة
+async function verifyAdminPass(pass) {
+    if (adminProfile.passHash) return hashPass(pass) === adminProfile.passHash;
+    if (adminProfile.legacyPass && pass === adminProfile.legacyPass) {
+        try {
+            const h = hashPass(pass);
+            await updateDoc(doc(db, ADMIN_PATH[0], ADMIN_PATH[1]), { passHash: h, password: deleteField() });
+            adminProfile.passHash = h;
+            adminProfile.legacyPass = '';
+        } catch (e) { console.warn('admin password migration failed', e); }
+        return true;
+    }
+    return false;
+}
+
+window.createAdminAccount = async function () {
+    const u = document.getElementById('setupAdminUser').value.trim();
+    const p = document.getElementById('setupAdminPass').value;
+    const p2 = document.getElementById('setupAdminPass2').value;
+    const err = document.getElementById('setup-error');
+    err.style.display = 'none';
+    const fail = m => { err.innerText = m; err.style.display = 'block'; };
+    if (!u) return fail('أدخل اسم المدير');
+    if (!p || p.length < 6) return fail('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    if (p !== p2) return fail('كلمتا المرور غير متطابقتين');
+    await window.ensureAuth();
+    try {
+        const ref = doc(db, ADMIN_PATH[0], ADMIN_PATH[1]);
+        const cur = await getDoc(ref);
+        if (cur.exists()) return fail('يوجد حساب مدير مسبقاً، سجّل الدخول به');
+        const h = hashPass(p);
+        await setDoc(ref, { username: u, passHash: h, createdAt: serverTimestamp() });
+        adminProfile = { username: u, passHash: h, legacyPass: '' };
+        adminDocLoaded = true;
+        document.getElementById('adminSetupBox').style.display = 'none';
+        document.getElementById('loginFormBox').style.display = 'block';
+        document.getElementById('username').value = u;
+        window.showSuccessToast('تم إنشاء حساب المدير، سجّل الدخول الآن');
+    } catch (e) {
+        console.error(e);
+        fail('تعذر الحفظ في السحابة: ' + (e && e.code ? e.code : ''));
+    }
+};
+
+// فحص أول تشغيل: إن لم يوجد حساب مدير نعرض شاشة الإنشاء
+(async function bootSecurity() {
+    await window.ensureAuth();
+    const has = await loadAdminProfile();
+    if (has === false) {
+        const loginBox = document.getElementById('loginFormBox');
+        const setupBox = document.getElementById('adminSetupBox');
+        if (loginBox && setupBox) { loginBox.style.display = 'none'; setupBox.style.display = 'block'; }
+    }
+})();
+
+// =========================================
 // PWA & Utils
 // =========================================
 let deferredPrompt; 
@@ -148,8 +294,36 @@ let currentThemeMode = safeGetStorage('gl_theme_mode', 'auto');
 window.applyThemeMode = function(mode) {
     currentThemeMode = mode; safeSetStorage('gl_theme_mode', mode); let isDark = false; if (mode === 'dark') { isDark = true; } else if (mode === 'light') { isDark = false; } else { const hour = new Date().getHours(); isDark = (hour >= 18 || hour < 6); }
     if (isDark) { document.body.classList.add('dark-mode'); } else { document.body.classList.remove('dark-mode'); }
-    document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active')); const activeBtn = document.getElementById('theme-btn-' + mode); if(activeBtn) activeBtn.classList.add('active');
+    document.querySelectorAll('[id^="theme-btn-"]').forEach(btn => btn.classList.toggle('active', btn.id === 'theme-btn-' + mode));
+    const meta = document.getElementById('themeColorMeta');
+    if (meta) meta.setAttribute('content', isDark ? '#0d0e12' : '#eef2f9');
+    window.dispatchEvent(new CustomEvent('gl-theme-changed', { detail: { dark: isDark } }));
 }
+
+// =========================================
+// شكل العرض: جوال / كمبيوتر
+// =========================================
+let currentLayoutMode = safeGetStorage('gl_layout_mode', 'auto');
+const desktopQuery = window.matchMedia('(min-width: 1024px)');
+
+window.applyLayoutMode = function(mode) {
+    currentLayoutMode = (mode === 'mobile' || mode === 'desktop') ? mode : 'auto';
+    safeSetStorage('gl_layout_mode', currentLayoutMode);
+    const resolved = currentLayoutMode === 'auto' ? (desktopQuery.matches ? 'desktop' : 'mobile') : currentLayoutMode;
+    document.documentElement.dataset.layout = resolved;
+    document.querySelectorAll('[data-layout-btn]').forEach(btn => btn.classList.toggle('active', btn.dataset.layoutBtn === currentLayoutMode));
+    const icon = document.getElementById('layoutIcon');
+    if (icon) icon.textContent = resolved === 'desktop' ? '🖥️' : '📱';
+};
+window.toggleLayoutMode = function() {
+    window.applyLayoutMode((document.documentElement.dataset.layout === 'desktop') ? 'mobile' : 'desktop');
+};
+window.toggleThemeQuick = function() {
+    const dark = document.body.classList.contains('dark-mode');
+    window.applyThemeMode(dark ? 'light' : 'dark');
+};
+window.applyLayoutMode(currentLayoutMode);
+if (desktopQuery.addEventListener) desktopQuery.addEventListener('change', () => { if (currentLayoutMode === 'auto') window.applyLayoutMode('auto'); });
 window.applyThemeMode(currentThemeMode); setInterval(() => { if(currentThemeMode === 'auto') window.applyThemeMode('auto'); }, 60000);
 setInterval(() => { const timeEl = document.getElementById('globalTime'); if(timeEl) { const now = new Date(); timeEl.innerText = `🕒 ${now.toLocaleTimeString(window.getLocale())} - 📅 ${now.toLocaleDateString(window.getLocale())}`; } }, 1000);
 
@@ -168,7 +342,6 @@ window.playAudioNotification = function() {
     } catch (e) {}
 }
 
-const ADMIN_USER = "Zain"; const ADMIN_PASS = "327798";
 let additionalUsers = [], configuredOrderTypes = [], configuredPages = [], inventoryCatalog = [];
 let loggedInUser = "";
 
@@ -181,6 +354,7 @@ let feeBaghdad = 5000, feeOther = 8000; let currentSessionId = null;
 let currentChatId = null; let allSystemUsersList = []; let allChatMessages = [];
 let allCloudOrders = []; let currentConfirmAction = null; let currentEditDocId = null;
 let financialChartInstance = null; let itemsPieChartInstance = null; let whStockPieChartInstance = null;
+let statusDonutChartInstance = null; let statusAmountChartInstance = null;
 let inventoryStock = []; let inventoryTransactions = [];
 
 function waUrl(phone) { let p = String(phone || '').replace(/\D/g, ''); if (p.startsWith('00')) p = p.substring(2); if (p.startsWith('07')) p = '964' + p.substring(1); else if (p.length === 10 && p.startsWith('7')) p = '964' + p; return 'https://wa.me/' + p; }
@@ -189,7 +363,7 @@ window.saveDeliveryFees = async function() { feeBaghdad = parseInt(document.getE
 window.showConfirmDialog = function(msg, callback) { document.getElementById('confirmMessage').innerText = msg; currentConfirmAction = callback; document.getElementById('confirmModal').style.display = 'flex'; document.getElementById('confirmYesBtn').onclick = function() { const cb = currentConfirmAction; window.closeConfirmModal(); if(cb) cb(); }; }
 window.closeConfirmModal = function() { document.getElementById('confirmModal').style.display = 'none'; currentConfirmAction = null; }
 window.handleEnter = function(event) { if (event.key === "Enter") window.login(); }
-window.formatAmount = function(input) { let val = input.value.trim(); if (!val) return; let num = parseAmount(val); if (num > 0 && num < 1000) input.value = (num * 1000).toString(); }
+window.formatAmount = function(input) { const val = input.value.trim(); if (!val) return; input.value = String(parseAmount(val)); }
 window.toggleOrderInput = function(btn) { let c = btn.parentElement, s = c.querySelector('.orderTypeSelect'), i = c.querySelector('.orderTypeCustomInput'); if(s.style.display !== 'none') { s.style.display = 'none'; i.style.display = 'block'; i.focus(); btn.innerHTML = '📋'; } else { i.style.display = 'none'; i.value = ''; s.style.display = 'block'; btn.innerHTML = '✍️'; } }
 window.startSessionTracking = async function() { try { const loginTimestamp = Date.now(); const docRef = await addDoc(collection(db, "user_sessions"), { username: loggedInUser, loginTime: loginTimestamp, lastActive: loginTimestamp, dateStr: new Date().toLocaleDateString('en-CA') }); currentSessionId = docRef.id; } catch(e) {} };
 let lastUserActivity = Date.now();
@@ -200,66 +374,88 @@ setInterval(async () => { if(currentSessionId && document.visibilityState === 'v
 // الدخول والتنقل
 // =========================================
 window.login = async function() {
-    const user = document.getElementById("username").value.trim(), pass = document.getElementById("password").value.trim(), errorMsg = document.getElementById("login-error"), btn = document.getElementById("loginBtn");
-    if(!user || !pass) return; let isManager = (user === ADMIN_USER && pass === ADMIN_PASS); btn.innerText = "جاري التحقق... ⏳"; btn.disabled = true;
+    const user = document.getElementById("username").value.trim(), pass = document.getElementById("password").value, errorMsg = document.getElementById("login-error"), btn = document.getElementById("loginBtn");
+    if(!user || !pass) { errorMsg.innerText = "أدخل اسم المستخدم وكلمة المرور"; errorMsg.style.display = "block"; return; }
+    btn.innerText = "جاري التحقق... ⏳"; btn.disabled = true; errorMsg.style.display = "none";
+
+    const restoreBtn = () => { btn.innerText = "تسجيل الدخول"; btn.disabled = false; };
+    const failLogin = (msg) => { errorMsg.innerText = msg; errorMsg.style.display = "block"; restoreBtn(); };
 
     const completeLogin = () => {
         document.getElementById('globalUserBar').style.display = 'flex'; document.getElementById('globalUserName').innerText = '👤 ' + loggedInUser;
         window.listenToCloudOrders(); window.initGlobalChatListener(); window.listenToInventory(); window.startSessionTracking();
-        window.showDashboard(); errorMsg.style.display = "none"; btn.innerText = "تسجيل الدخول"; btn.disabled = false; window.applyThemeMode(currentThemeMode);
+        window.showDashboard(); errorMsg.style.display = "none"; restoreBtn(); window.applyThemeMode(currentThemeMode);
     };
 
     try {
+        await window.ensureAuth();
+        if (!adminDocLoaded) await loadAdminProfile();
+
+        let manager = false;
+        if (adminProfile.username && user.toLowerCase() === adminProfile.username.toLowerCase()) {
+            manager = await verifyAdminPass(pass);
+        }
+
         if(window.loadSystemDataFromFirebase) {
             const cloudData = await window.loadSystemDataFromFirebase();
-            if(!cloudData.ok && !isManager) { errorMsg.innerText = "تعذر الاتصال بالسحابة، تحقق من الإنترنت"; errorMsg.style.display = "block"; btn.innerText = "تسجيل الدخول"; btn.disabled = false; return; }
+            if(!cloudData.ok && !manager) { failLogin("تعذر الاتصال بالسحابة، تحقق من الإنترنت"); return; }
             additionalUsers = cloudData.users; configuredOrderTypes = cloudData.types; configuredPages = cloudData.pages;
             document.getElementById('feeBaghdadInput').value = feeBaghdad; document.getElementById('feeOtherInput').value = feeOther; window.updateOrderTypeSelects(); window.updatePagesDropdown();
-            window.renderWhCatalogSettings(); 
+            window.renderWhCatalogSettings();
         }
-        try {
-            const adminDoc = await getDoc(doc(db, "system_settings", "admin_credentials"));
-            if(adminDoc.exists() && adminDoc.data().username === user && adminDoc.data().password === pass) {
-                 isManager = true;
-            }
-        } catch(e) {}
-        if (isManager) { 
-            loggedInUser = user; loggedInUserCanDelete = true; loggedInUserCanEdit = true; loggedInUserCanSettings = true; loggedInUserCanReports = true; loggedInUserCanChat = true; loggedInUserCanAdd = true; loggedInUserCanFetchOld = true; loggedInUserCanImportExport = true; loggedInUserCanEditType = true; loggedInUserCanPurchase = true; loggedInUserCanConsume = true; 
-            completeLogin(); return; 
+
+        if (manager) {
+            isManager = true; loggedInUser = adminProfile.username;
+            loggedInUserCanDelete = loggedInUserCanEdit = loggedInUserCanSettings = loggedInUserCanReports = loggedInUserCanChat = true;
+            loggedInUserCanAdd = loggedInUserCanFetchOld = loggedInUserCanImportExport = loggedInUserCanEditType = loggedInUserCanPurchase = loggedInUserCanConsume = true;
+            completeLogin(); return;
         }
-        const q = query(collection(db, "system_users"), where("username", "==", user), where("password", "==", pass));
+
+        const q = query(collection(db, "system_users"), where("username", "==", user), limit(1));
         const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) { 
-            const userData = querySnapshot.docs[0].data();
-            loggedInUser = user; 
-            loggedInUserCanDelete = userData.canDeleteCloud || false; 
-            loggedInUserCanEdit = userData.canEditCloud || false; 
-            loggedInUserCanSettings = userData.canAccessSettings || false; 
-            loggedInUserCanReports = userData.canAccessReports || false; 
-            loggedInUserCanChat = userData.canAccessChat || false; 
-            loggedInUserCanAdd = userData.canAddOrders || false; 
-            loggedInUserCanFetchOld = userData.canFetchOld || false; 
-            loggedInUserCanImportExport = userData.canImportExport || false; 
-            loggedInUserCanEditType = userData.canEditOrderType || false; 
-            loggedInUserCanPurchase = userData.canPurchase || false; 
-            loggedInUserCanConsume = userData.canConsume || false;
-            completeLogin(); 
-        } else { errorMsg.innerText = "بيانات الدخول غير صحيحة!"; errorMsg.style.display = "block"; btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
-    } catch (err) { alert("خطأ بالاتصال"); btn.innerText = "تسجيل الدخول"; btn.disabled = false; }
+        if (querySnapshot.empty) { failLogin("بيانات الدخول غير صحيحة!"); return; }
+
+        const userDoc = querySnapshot.docs[0], userData = userDoc.data();
+        let ok = false;
+        if (userData.passHash) {
+            ok = hashPass(pass) === userData.passHash;
+        } else if (userData.password) {
+            ok = (pass === userData.password);
+            if (ok) {
+                // ترقية تلقائية: تحويل كلمة المرور القديمة (نص صريح) إلى بصمة مشفّرة
+                try { await updateDoc(doc(db, "system_users", userDoc.id), { passHash: hashPass(pass), password: deleteField() }); } catch(e) { console.warn(e); }
+            }
+        }
+        if (!ok) { failLogin("بيانات الدخول غير صحيحة!"); return; }
+
+        isManager = false; loggedInUser = user;
+        loggedInUserCanDelete = userData.canDeleteCloud || false;
+        loggedInUserCanEdit = userData.canEditCloud || false;
+        loggedInUserCanSettings = userData.canAccessSettings || false;
+        loggedInUserCanReports = userData.canAccessReports || false;
+        loggedInUserCanChat = userData.canAccessChat || false;
+        loggedInUserCanAdd = userData.canAddOrders || false;
+        loggedInUserCanFetchOld = userData.canFetchOld || false;
+        loggedInUserCanImportExport = userData.canImportExport || false;
+        loggedInUserCanEditType = userData.canEditOrderType || false;
+        loggedInUserCanPurchase = userData.canPurchase || false;
+        loggedInUserCanConsume = userData.canConsume || false;
+        completeLogin();
+    } catch (err) { console.error(err); failLogin("خطأ بالاتصال، حاول مرة أخرى"); }
 }
 
 window.showDashboard = function() { document.getElementById("login-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
-window.openDistribution = function() { if(!loggedInUserCanAdd && loggedInUser !== ADMIN_USER) { alert("❌ ليس لديك صلاحية للدخول إلى إضافة الطلبات"); return; } document.getElementById("main-menu-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "block"; }
+window.openDistribution = function() { if(!loggedInUserCanAdd && !isManager) { alert("❌ ليس لديك صلاحية للدخول إلى إضافة الطلبات"); return; } document.getElementById("main-menu-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "block"; }
 window.backToMainMenuFrom = function(sectionId) { document.getElementById(sectionId).style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
 window.backToMainMenuFromChat = function() { currentChatId = null; window.backToMainMenuFrom('chat-section'); }
-window.logout = function() { window.showConfirmDialog("تأكيد تسجيل الخروج؟", function() { currentSessionId = null; loggedInUser = ""; allCloudOrders = []; inventoryStock = []; inventoryTransactions = []; loggedInUserCanDelete = false; loggedInUserCanEdit = false; loggedInUserCanSettings = false; loggedInUserCanReports = false; loggedInUserCanChat = false; loggedInUserCanAdd = false; loggedInUserCanFetchOld = false; loggedInUserCanImportExport = false; loggedInUserCanEditType = false; loggedInUserCanPurchase = false; loggedInUserCanConsume = false; if(stockUnsubscribe) { stockUnsubscribe(); stockUnsubscribe = null; } if(transactionsUnsubscribe) { transactionsUnsubscribe(); transactionsUnsubscribe = null; } if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; } if(chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; } currentChatId = null; allChatMessages = []; myGroupIds = new Set(); lastLowKey = ''; document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); const _cb = document.getElementById('chatBadge'); if(_cb) _cb.style.display = 'none'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('globalUserBar').style.display = 'none'; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("archive-section").style.display = "none"; document.getElementById("reports-section").style.display = "none"; document.getElementById("settings-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "none"; document.getElementById("chat-section").style.display = "none"; document.getElementById("warehouse-section").style.display = "none"; document.getElementById("login-section").style.display = "flex"; window.clearForm(); }); }
+window.logout = function() { window.showConfirmDialog("تأكيد تسجيل الخروج؟", function() { currentSessionId = null; loggedInUser = ""; isManager = false; allCloudOrders = []; inventoryStock = []; inventoryTransactions = []; loggedInUserCanDelete = false; loggedInUserCanEdit = false; loggedInUserCanSettings = false; loggedInUserCanReports = false; loggedInUserCanChat = false; loggedInUserCanAdd = false; loggedInUserCanFetchOld = false; loggedInUserCanImportExport = false; loggedInUserCanEditType = false; loggedInUserCanPurchase = false; loggedInUserCanConsume = false; if(stockUnsubscribe) { stockUnsubscribe(); stockUnsubscribe = null; } if(transactionsUnsubscribe) { transactionsUnsubscribe(); transactionsUnsubscribe = null; } if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; } if(chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; } currentChatId = null; allChatMessages = []; myGroupIds = new Set(); lastLowKey = ''; document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); const _cb = document.getElementById('chatBadge'); if(_cb) _cb.style.display = 'none'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('globalUserBar').style.display = 'none'; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("archive-section").style.display = "none"; document.getElementById("reports-section").style.display = "none"; document.getElementById("settings-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "none"; document.getElementById("chat-section").style.display = "none"; document.getElementById("warehouse-section").style.display = "none"; document.getElementById("login-section").style.display = "flex"; window.clearForm(); }); }
 
 window.openProfile = function() {
     let currentUserData = additionalUsers.find(u => u.username === loggedInUser) || {};
-    if(loggedInUser === ADMIN_USER) currentUserData = { username: ADMIN_USER, jobTitle: 'مدير عام', location: 'المقر الرئيسي', gender: 'ذكر', phone: '-' };
+    if(isManager) currentUserData = { username: adminProfile.username, jobTitle: 'مدير عام', location: 'المقر الرئيسي', gender: 'ذكر', phone: '-' };
     document.getElementById('profileUsername').innerText = currentUserData.username || loggedInUser; document.getElementById('profileJob').innerText = currentUserData.jobTitle || 'موظف'; document.getElementById('profileLocation').innerText = currentUserData.location || '-'; document.getElementById('profileGender').innerText = currentUserData.gender || '-'; document.getElementById('profilePhone').innerText = currentUserData.phone || '-'; document.getElementById('profileAvatar').innerText = (currentUserData.gender === 'أنثى') ? '👩' : '👨';
     let permsHtml = [];
-    if(loggedInUser === ADMIN_USER) { permsHtml.push('<span class="status-badge active">مدير نظام (كافة الصلاحيات)</span>'); } 
+    if(isManager) { permsHtml.push('<span class="status-badge active">مدير نظام (كافة الصلاحيات)</span>'); } 
     else {
         if(loggedInUserCanDelete) permsHtml.push('<span class="status-badge active">مسح</span>'); if(loggedInUserCanEdit) permsHtml.push('<span class="status-badge active">تعديل شامل</span>'); if(loggedInUserCanEditType) permsHtml.push('<span class="status-badge active">تعديل الطلب</span>'); if(loggedInUserCanSettings) permsHtml.push('<span class="status-badge active">إعدادات</span>'); if(loggedInUserCanReports) permsHtml.push('<span class="status-badge active">تقارير</span>'); if(loggedInUserCanChat) permsHtml.push('<span class="status-badge active">الدردشة</span>'); if(loggedInUserCanAdd) permsHtml.push('<span class="status-badge active">إضافة طلبات</span>'); if(loggedInUserCanPurchase) permsHtml.push('<span class="status-badge active" style="color:var(--primary-blue);">إدخال مخزن</span>'); if(loggedInUserCanConsume) permsHtml.push('<span class="status-badge active" style="color:#e74c3c;">سحب مخزن</span>');
         if(permsHtml.length === 0) permsHtml.push('<span class="status-badge inactive">لا توجد صلاحيات إضافية</span>');
@@ -322,12 +518,12 @@ window.addToTable = async function() {
 // المخزن وإدارة المواد
 // =========================================
 window.openWarehouse = function() {
-    if(!loggedInUserCanPurchase && !loggedInUserCanConsume && loggedInUser !== ADMIN_USER) { alert("❌ ليس لديك صلاحية للدخول إلى المخزن"); return; }
+    if(!loggedInUserCanPurchase && !loggedInUserCanConsume && !isManager) { alert("❌ ليس لديك صلاحية للدخول إلى المخزن"); return; }
     document.getElementById("main-menu-section").style.display = "none";
     document.getElementById("warehouse-section").style.display = "flex";
     
-    document.getElementById('btn-wh-purchase').style.display = (loggedInUserCanPurchase || loggedInUser === ADMIN_USER) ? 'inline-block' : 'none';
-    document.getElementById('btn-wh-consume').style.display = (loggedInUserCanConsume || loggedInUser === ADMIN_USER) ? 'inline-block' : 'none';
+    document.getElementById('btn-wh-purchase').style.display = (loggedInUserCanPurchase || isManager) ? 'inline-block' : 'none';
+    document.getElementById('btn-wh-consume').style.display = (loggedInUserCanConsume || isManager) ? 'inline-block' : 'none';
     
     window.renderWarehouseStock(); window.updateConsumeSelect(); window.renderWarehouseLogs(); window.checkLowStockAlerts(true);
     if(document.getElementById('whPurchaseItemsContainer').innerHTML.trim() === '') window.addWhPurchaseRow();
@@ -478,7 +674,7 @@ let chatUnsubscribe = null; let chatFirstLoad = true; let myGroupIds = new Set()
 window.isChatRelevant = function(chatId) {
     if (!chatId) return false;
     if (chatId === 'general') return true;
-    if (chatId.startsWith('group_')) return loggedInUser === ADMIN_USER || myGroupIds.has(chatId);
+    if (chatId.startsWith('group_')) return isManager || myGroupIds.has(chatId);
     return chatId.split('_').includes(loggedInUser);
 };
 window.refreshMyGroups = async function() {
@@ -513,7 +709,7 @@ window.initGlobalChatListener = function() {
         window.updateChatBadges();
         if (currentChatId) { window.renderCurrentChatMessages(); window.markChatAsRead(currentChatId); }
     }, (error) => console.error(error));
-    if (loggedInUser === ADMIN_USER) { setTimeout(window.cleanupOldChats, 10000); }
+    if (isManager) { setTimeout(window.cleanupOldChats, 10000); }
 }
 window.cleanupOldChats = async function() { try { const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7); const q = query(collection(db, "chat_messages"), where("timestamp", "<", sevenDaysAgo)); const snap = await getDocs(q); if(snap.size > 0) { snap.forEach(d => deleteDoc(doc(db, "chat_messages", d.id))); } } catch(e) {} }
 window.markChatAsRead = function(chatId) {
@@ -543,7 +739,7 @@ window.renderCurrentChatMessages = function() {
     area.innerHTML = html;
     area.scrollTop = stick ? area.scrollHeight : prevTop;
 }
-window.openChatSection = async function() { if(!loggedInUserCanChat && loggedInUser !== ADMIN_USER) { alert("❌ ليس لديك صلاحية للدخول للدردشة"); return; } document.getElementById("main-menu-section").style.display = "none"; document.getElementById("chat-section").style.display = "flex"; if(additionalUsers.length === 0 && window.loadSystemDataFromFirebase) { const cloudData = await window.loadSystemDataFromFirebase(); additionalUsers = cloudData.users || []; } allSystemUsersList = [ADMIN_USER, ...additionalUsers.map(u => u.username)]; const privateUsers = allSystemUsersList.filter(u => u !== loggedInUser); let unreadPerChat = {}; allChatMessages.forEach(msg => { if(msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) { unreadPerChat[msg.chatId] = (unreadPerChat[msg.chatId] || 0) + 1; } }); let privateHtml = ''; privateUsers.forEach(u => { const chatId = [loggedInUser, u].sort().join('_'); const unreadCount = unreadPerChat[chatId] || 0; const badgeStyle = unreadCount > 0 ? 'inline-flex' : 'none'; privateHtml += `<div class="chat-list-item" id="chatItem_${esc(chatId)}" data-chat-id="${esc(chatId)}" data-title="${esc(u)}" onclick="window.openChat(this.dataset.chatId, this.dataset.title)"><div class="chat-avatar">${esc(u.charAt(0))}</div><div class="chat-info" style="width: 100%; display: flex; justify-content: space-between; align-items: center;"><h4>${esc(u)}</h4><span class="chat-unread-badge" id="badge_${esc(chatId)}" style="display:${badgeStyle};">${unreadCount}</span></div></div>`; }); if(privateHtml === '') privateHtml = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size:12px;">لا يوجد مستخدمين آخرين</div>'; document.getElementById('chatListPrivate').innerHTML = privateHtml; window.loadChatGroups(); window.switchChatTab('general'); window.openChat('general', 'الدردشة العامة'); }
+window.openChatSection = async function() { if(!loggedInUserCanChat && !isManager) { alert("❌ ليس لديك صلاحية للدخول للدردشة"); return; } document.getElementById("main-menu-section").style.display = "none"; document.getElementById("chat-section").style.display = "flex"; if(additionalUsers.length === 0 && window.loadSystemDataFromFirebase) { const cloudData = await window.loadSystemDataFromFirebase(); additionalUsers = cloudData.users || []; } allSystemUsersList = [adminProfile.username, ...additionalUsers.map(u => u.username)].filter(Boolean); const privateUsers = allSystemUsersList.filter(u => u !== loggedInUser); let unreadPerChat = {}; allChatMessages.forEach(msg => { if(msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) { unreadPerChat[msg.chatId] = (unreadPerChat[msg.chatId] || 0) + 1; } }); let privateHtml = ''; privateUsers.forEach(u => { const chatId = [loggedInUser, u].sort().join('_'); const unreadCount = unreadPerChat[chatId] || 0; const badgeStyle = unreadCount > 0 ? 'inline-flex' : 'none'; privateHtml += `<div class="chat-list-item" id="chatItem_${esc(chatId)}" data-chat-id="${esc(chatId)}" data-title="${esc(u)}" onclick="window.openChat(this.dataset.chatId, this.dataset.title)"><div class="chat-avatar">${esc(u.charAt(0))}</div><div class="chat-info" style="width: 100%; display: flex; justify-content: space-between; align-items: center;"><h4>${esc(u)}</h4><span class="chat-unread-badge" id="badge_${esc(chatId)}" style="display:${badgeStyle};">${unreadCount}</span></div></div>`; }); if(privateHtml === '') privateHtml = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size:12px;">لا يوجد مستخدمين آخرين</div>'; document.getElementById('chatListPrivate').innerHTML = privateHtml; window.loadChatGroups(); window.switchChatTab('general'); window.openChat('general', 'الدردشة العامة'); }
 window.switchChatTab = function(tab) { document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active')); document.getElementById('chatListGeneral').style.display = 'none'; document.getElementById('chatListPrivate').style.display = 'none'; document.getElementById('chatListGroups').style.display = 'none'; if(tab === 'general') { document.getElementById('tabGeneral').classList.add('active'); document.getElementById('chatListGeneral').style.display = 'block'; } else if(tab === 'private') { document.getElementById('tabPrivate').classList.add('active'); document.getElementById('chatListPrivate').style.display = 'block'; } else if(tab === 'groups') { document.getElementById('tabGroups').classList.add('active'); window.loadChatGroups(); document.getElementById('chatListGroups').style.display = 'block'; } }
 window.openChat = function(chatId, title) { currentChatId = chatId; lastRenderedChatId = null; document.getElementById('currentChatTitle').innerText = title; document.querySelectorAll('.chat-list-item').forEach(el => el.classList.remove('active')); const activeItem = document.getElementById(`chatItem_${chatId}`); if(activeItem) activeItem.classList.add('active'); if(window.innerWidth <= 768) { document.getElementById('chatSidebar').classList.add('hidden'); } window.renderCurrentChatMessages(); window.markChatAsRead(currentChatId); }
 window.sendMessage = async function() { const input = document.getElementById('chatInput'); const text = input.value.trim(); if(text === '' || !currentChatId) return; input.value = ''; try { await addDoc(collection(db, "chat_messages"), { chatId: currentChatId, sender: loggedInUser, text: text, timestamp: serverTimestamp(), readBy: [] }); } catch(e) { console.error(e); window.showSuccessToast("فشل إرسال الرسالة."); } }
@@ -551,17 +747,17 @@ window.showChatSidebar = function() { document.getElementById('chatSidebar').cla
 window.showCreateGroupModal = function() { document.getElementById('newGroupName').value = ''; const container = document.getElementById('groupMembersSelection'); container.innerHTML = ''; const otherUsers = allSystemUsersList.filter(u => u !== loggedInUser); otherUsers.forEach(u => { container.innerHTML += `<label class="permission-badge" style="justify-content: flex-start;"><input type="checkbox" class="group-member-cb" value="${esc(u)}"> ${esc(u)}</label>`; }); document.getElementById('createGroupModal').style.display = 'flex'; }
 window.closeCreateGroupModal = function() { document.getElementById('createGroupModal').style.display = 'none'; }
 window.createChatGroup = async function() { const groupName = document.getElementById('newGroupName').value.trim(); if(!groupName) { alert("يرجى إدخال اسم المجموعة"); return; } let members = [loggedInUser]; document.querySelectorAll('.group-member-cb:checked').forEach(cb => members.push(cb.value)); try { await addDoc(collection(db, "chat_groups"), { name: groupName, createdBy: loggedInUser, members: members, timestamp: serverTimestamp() }); window.showSuccessToast("تم إنشاء المجموعة!"); window.closeCreateGroupModal(); window.loadChatGroups(); } catch(e) { console.error(e); } }
-window.loadChatGroups = async function() { try { const snap = await getDocs(query(collection(db, "chat_groups"))); let groupsHtml = ''; let unreadPerChat = {}; allChatMessages.forEach(msg => { if(msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) { unreadPerChat[msg.chatId] = (unreadPerChat[msg.chatId] || 0) + 1; } }); snap.forEach(doc => { const data = doc.data(); if((data.members && data.members.includes(loggedInUser)) || loggedInUser === ADMIN_USER) { const chatId = 'group_' + doc.id; if(data.members && data.members.includes(loggedInUser)) myGroupIds.add(chatId); const unreadCount = unreadPerChat[chatId] || 0; const badgeStyle = unreadCount > 0 ? 'inline-flex' : 'none'; groupsHtml += `<div class="chat-list-item" id="chatItem_${esc(chatId)}" data-chat-id="${esc(chatId)}" data-title="${esc(data.name)}" onclick="window.openChat(this.dataset.chatId, this.dataset.title)"><div class="chat-avatar" style="background: linear-gradient(135deg, #00b09b, #96c93d);">👥</div><div class="chat-info" style="width: 100%; display: flex; justify-content: space-between; align-items: center;"><div><h4>${esc(data.name)}</h4><p>${data.members.length} أعضاء</p></div><span class="chat-unread-badge" id="badge_${esc(chatId)}" style="display:${badgeStyle};">${unreadCount}</span></div></div>`; } }); if(groupsHtml === '') groupsHtml = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size:12px;">لا توجد مجموعات بعد</div>'; document.getElementById('groupsListContainer').innerHTML = groupsHtml; } catch(e) { console.error(e); } }
+window.loadChatGroups = async function() { try { const snap = await getDocs(query(collection(db, "chat_groups"))); let groupsHtml = ''; let unreadPerChat = {}; allChatMessages.forEach(msg => { if(msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) { unreadPerChat[msg.chatId] = (unreadPerChat[msg.chatId] || 0) + 1; } }); snap.forEach(doc => { const data = doc.data(); if((data.members && data.members.includes(loggedInUser)) || isManager) { const chatId = 'group_' + doc.id; if(data.members && data.members.includes(loggedInUser)) myGroupIds.add(chatId); const unreadCount = unreadPerChat[chatId] || 0; const badgeStyle = unreadCount > 0 ? 'inline-flex' : 'none'; groupsHtml += `<div class="chat-list-item" id="chatItem_${esc(chatId)}" data-chat-id="${esc(chatId)}" data-title="${esc(data.name)}" onclick="window.openChat(this.dataset.chatId, this.dataset.title)"><div class="chat-avatar" style="background: linear-gradient(135deg, #00b09b, #96c93d);">👥</div><div class="chat-info" style="width: 100%; display: flex; justify-content: space-between; align-items: center;"><div><h4>${esc(data.name)}</h4><p>${data.members.length} أعضاء</p></div><span class="chat-unread-badge" id="badge_${esc(chatId)}" style="display:${badgeStyle};">${unreadCount}</span></div></div>`; } }); if(groupsHtml === '') groupsHtml = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size:12px;">لا توجد مجموعات بعد</div>'; document.getElementById('groupsListContainer').innerHTML = groupsHtml; } catch(e) { console.error(e); } }
 
 // =========================================
 // الأرشيف والمتابعة
 // =========================================
 window.openCloudOrders = function() { 
     document.getElementById("main-menu-section").style.display = "none"; document.getElementById("archive-section").style.display = "flex";
-    document.getElementById('bulkDeleteBtn').style.display = loggedInUserCanDelete || loggedInUser === ADMIN_USER ? 'inline-flex' : 'none'; 
-    document.getElementById('bulkEditBtn').style.display = loggedInUserCanEdit || loggedInUser === ADMIN_USER ? 'inline-flex' : 'none'; 
-    document.getElementById('btn-fetch-old').style.display = loggedInUserCanFetchOld || loggedInUser === ADMIN_USER ? 'flex' : 'none';
-    document.getElementById('btn-group-import-export').style.display = loggedInUserCanImportExport || loggedInUser === ADMIN_USER ? 'flex' : 'none';
+    document.getElementById('bulkDeleteBtn').style.display = loggedInUserCanDelete || isManager ? 'inline-flex' : 'none'; 
+    document.getElementById('bulkEditBtn').style.display = loggedInUserCanEdit || isManager ? 'inline-flex' : 'none'; 
+    document.getElementById('btn-fetch-old').style.display = loggedInUserCanFetchOld || isManager ? 'flex' : 'none';
+    document.getElementById('btn-group-import-export').style.display = loggedInUserCanImportExport || isManager ? 'flex' : 'none';
     window.filterCloudOrders(); 
 }
 window.openArchiveFetchModal = function() { document.getElementById('archiveFetchModal').style.display = 'flex'; }
@@ -573,7 +769,7 @@ window.reloadCurrentMonth = function() { window.listenToCloudOrders(); window.cl
 window.filterCloudOrders = function() {
     const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), pF = document.getElementById('cloudPageFilter').value, sF = document.getElementById('cloudStatusFilter').value;
     const tb = document.getElementById('cloudOrdersTbody'); tb.innerHTML = ''; document.getElementById('selectAllCb').checked = false; 
-    let sortedOrders = [...allCloudOrders].sort((a, b) => { let idA = parseInt(a.id) || 0; let idB = parseInt(b.id) || 0; return idA - idB; });
+    let sortedOrders = [...allCloudOrders].sort((a, b) => String(a.id || '').localeCompare(String(b.id || ''), 'ar', { numeric: true, sensitivity: 'base' }));
     let filtered = sortedOrders.filter(o => { return ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || String(o.id||"").includes(qt)) && (pF === "" || (o.constant||"") === pF) && (sF === "" || (o.status||"جديد") === sF); });
     filtered.forEach(o => {
         const tr = document.createElement('tr'); const dateStr = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString(window.getLocale()) : '-';
@@ -587,7 +783,7 @@ window.openOrderDetailsModal = function(docId) { let order = allCloudOrders.find
 window.closeOrderDetailsModal = function() { document.getElementById('orderDetailsModal').style.display = 'none'; };
 
 
-window.openQuickTypeEditModal = function(docId) { if(!loggedInUserCanEditType && loggedInUser !== ADMIN_USER) { alert("❌ ليس لديك صلاحية لتعديل نوع الطلب."); return; } let order = allCloudOrders.find(o => o.id_doc === docId); if(!order) return; currentEditDocId = docId; document.getElementById('quickTypeDynamicRowsWrapper').innerHTML = ''; window.fillOrderRows(order.type, 'addQuickTypeOrderItemRow'); document.getElementById('quickTypeEditModal').style.display = 'flex'; }
+window.openQuickTypeEditModal = function(docId) { if(!loggedInUserCanEditType && !isManager) { alert("❌ ليس لديك صلاحية لتعديل نوع الطلب."); return; } let order = allCloudOrders.find(o => o.id_doc === docId); if(!order) return; currentEditDocId = docId; document.getElementById('quickTypeDynamicRowsWrapper').innerHTML = ''; window.fillOrderRows(order.type, 'addQuickTypeOrderItemRow'); document.getElementById('quickTypeEditModal').style.display = 'flex'; }
 window.closeQuickTypeEditModal = function() { document.getElementById('quickTypeEditModal').style.display = 'none'; currentEditDocId = null; }
 window.saveQuickTypeEdit = async function() { if(!currentEditDocId) return; let arr = [], totQty = 0; document.querySelectorAll('#quickTypeDynamicRowsWrapper .order-item-row').forEach(r => { let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim(); let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim(); let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1; if (tv !== "") { let ft = configuredOrderTypes.find(t => t.name === tv), cd = ft ? ft.code : tv, colorText = cv ? ` ${cv}` : ""; arr.push(`[${cd} (${qv})${colorText}]`); totQty += qv; } }); const newData = { type: arr.join(' + '), qty: totQty }; document.body.style.cursor = 'wait'; if(window.updateOrderInFirebase) { try { await window.updateOrderInFirebase(currentEditDocId, newData); window.closeQuickTypeEditModal(); window.showSuccessToast("تم تحديث الطلب بنجاح! ✏️"); } catch(e) { alert("خطأ."); } } document.body.style.cursor = 'default'; }
 
@@ -714,8 +910,97 @@ window.executeAdvancedExport = function() { const sF = document.getElementById('
 // =========================================
 // التقارير العامة ومالية المخزن
 // =========================================
-window.openReports = async function() { if (!loggedInUserCanReports && loggedInUser !== ADMIN_USER) { alert("❌ ليس لديك صلاحية."); return; } document.getElementById("main-menu-section").style.display = "none"; document.getElementById("reports-section").style.display = "flex"; let pagesHtml = '<option value="all">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join(''); document.getElementById('repPageFilter').innerHTML = pagesHtml; document.getElementById('repFinPageFilter').innerHTML = pagesHtml; document.getElementById('repChartsPageFilter').innerHTML = pagesHtml; let typesHtml = '<option value="all">-- كل الطلبات --</option>' + configuredOrderTypes.map(t => `<option value="${esc(t.code)}">${esc(t.name)} (${esc(t.code)})</option>`).join('') + '<option value="أخرى">أخرى (غير مسجلة)</option>'; document.getElementById('repTypeFilter').innerHTML = typesHtml; document.getElementById('repPageTypeFilter').innerHTML = typesHtml; let empHtml = '<option value="">-- اختر الموظف --</option>'; let allEmpNames = [ADMIN_USER, ...additionalUsers.map(u => u.username)]; allEmpNames.forEach(name => { empHtml += `<option value="${esc(name)}">${esc(name)}</option>`; }); document.getElementById('repEmpSelect').innerHTML = empHtml; window.generateReports(); }
+window.openReports = async function() { if (!loggedInUserCanReports && !isManager) { alert("❌ ليس لديك صلاحية."); return; } document.getElementById("main-menu-section").style.display = "none"; document.getElementById("reports-section").style.display = "flex"; let pagesHtml = '<option value="all">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join(''); document.getElementById('repPageFilter').innerHTML = pagesHtml; document.getElementById('repFinPageFilter').innerHTML = pagesHtml; document.getElementById('repChartsPageFilter').innerHTML = pagesHtml; let typesHtml = '<option value="all">-- كل الطلبات --</option>' + configuredOrderTypes.map(t => `<option value="${esc(t.code)}">${esc(t.name)} (${esc(t.code)})</option>`).join('') + '<option value="أخرى">أخرى (غير مسجلة)</option>'; document.getElementById('repTypeFilter').innerHTML = typesHtml; document.getElementById('repPageTypeFilter').innerHTML = typesHtml; let empHtml = '<option value="">-- اختر الموظف --</option>'; let allEmpNames = [adminProfile.username, ...additionalUsers.map(u => u.username)].filter(Boolean); allEmpNames.forEach(name => { empHtml += `<option value="${esc(name)}">${esc(name)}</option>`; }); document.getElementById('repEmpSelect').innerHTML = empHtml; window.generateReports(); }
 window.switchReportTab = function(tabId, btn) { document.querySelectorAll('#reports-section .tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('#reports-section .tab-pane').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); if(tabId === 'repWhTab') window.generateWarehouseReports(); else window.generateReports(); }
+
+const STATUS_ORDER = ['جديد', 'قيد التجهيز', 'مسلم للمندوب', 'تم التوصيل', 'راجع', 'راجع مخزن'];
+const STATUS_COLORS = { 'جديد': '#407bff', 'قيد التجهيز': '#f39c12', 'مسلم للمندوب': '#9b59b6', 'تم التوصيل': '#2ecc71', 'راجع': '#ff4757', 'راجع مخزن': '#e67e22' };
+const STATUS_OTHER_COLOR = '#8e8aa8';
+
+window.renderStatusCharts = function (orders) {
+    const counts = {}, amounts = {}, order = STATUS_ORDER.slice();
+    orders.forEach(o => {
+        const s = o.status || 'جديد';
+        if (!order.includes(s)) order.push(s);
+        counts[s] = (counts[s] || 0) + 1;
+        amounts[s] = (amounts[s] || 0) + parseAmount(o.amount);
+    });
+    const labels = order.filter(s => counts[s] > 0);
+    const total = orders.length;
+    const isDark = document.body.classList.contains('dark-mode');
+    const textColor = isDark ? '#e6e6f0' : '#333333';
+    const trST = s => (window.tr ? window.tr(s) : s);
+    const trWord = w => (window.tr ? window.tr(w) : w);
+
+    if (statusDonutChartInstance) { statusDonutChartInstance.destroy(); statusDonutChartInstance = null; }
+    if (statusAmountChartInstance) { statusAmountChartInstance.destroy(); statusAmountChartInstance = null; }
+
+    const empty = document.getElementById('statusChartEmpty');
+    const donutCanvas = document.getElementById('statusDonutChart');
+    const amountCanvas = document.getElementById('statusAmountChart');
+    const breakdown = document.getElementById('statusBreakdown');
+    const donutWrap = donutCanvas ? donutCanvas.parentElement : null;
+    const amountCard = document.getElementById('statusAmountCard');
+
+    if (labels.length === 0) {
+        if (empty) empty.style.display = 'block';
+        if (donutWrap) donutWrap.style.display = 'none';
+        if (amountCard) amountCard.style.display = 'none';
+        if (breakdown) breakdown.innerHTML = '';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    if (donutWrap) donutWrap.style.display = 'block';
+    if (amountCard) amountCard.style.display = '';
+
+    Chart.defaults.color = textColor;
+    Chart.defaults.font.family = "'Segoe UI', sans-serif";
+    const colors = labels.map(s => STATUS_COLORS[s] || STATUS_OTHER_COLOR);
+
+    if (donutCanvas) {
+        statusDonutChartInstance = new Chart(donutCanvas, {
+            type: 'doughnut',
+            data: { labels: labels.map(trST), datasets: [{ data: labels.map(s => counts[s]), backgroundColor: colors, borderColor: isDark ? '#29283e' : '#eef2f9', borderWidth: 3, hoverOffset: 6 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '58%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12, color: textColor } },
+                    tooltip: { callbacks: { label: c => `${c.label}: ${c.parsed} ${trWord('طلب')} (${Math.round(c.parsed / total * 1000) / 10}%)` } }
+                }
+            }
+        });
+    }
+
+    if (amountCanvas) {
+        statusAmountChartInstance = new Chart(amountCanvas, {
+            type: 'bar',
+            data: { labels: labels.map(trST), datasets: [{ data: labels.map(s => amounts[s]), backgroundColor: colors, borderRadius: 8, maxBarThickness: 34 }] },
+            options: {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: c => `${c.parsed.x.toLocaleString()} ${trWord('دينار')} — ${counts[labels[c.dataIndex]]} ${trWord('طلب')}` } }
+                },
+                scales: {
+                    x: { beginAtZero: true, ticks: { color: textColor, maxRotation: 0, maxTicksLimit: 4, callback: v => { const n = Number(v); if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 ? 1 : 0) + 'M'; if (n >= 1000) return Math.round(n / 1000) + 'K'; return n; } }, grid: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' } },
+                    y: { ticks: { color: textColor, font: { weight: '600' } }, grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    if (breakdown) {
+        breakdown.innerHTML = labels.map(s => {
+            const pct = Math.round((counts[s] / total) * 1000) / 10;
+            return `<div class="sb-chip"><span class="sb-dot" style="background:${STATUS_COLORS[s] || STATUS_OTHER_COLOR}"></span><span class="sb-name">${esc(trST(s))}</span><span class="sb-count">${counts[s]} ${esc(trWord('طلب'))} · ${pct}%</span><span class="sb-amt">${amounts[s].toLocaleString()}</span></div>`;
+        }).join('');
+    }
+};
+
+window.addEventListener('gl-theme-changed', () => {
+    const rep = document.getElementById('reports-section');
+    if (rep && rep.style.display === 'flex' && document.getElementById('repChartsTab').classList.contains('active')) window.generateReports();
+});
 
 window.generateReports = function() { 
     const fromVal = document.getElementById('repDateFrom').value, toVal = document.getElementById('repDateTo').value; 
@@ -731,6 +1016,7 @@ window.generateReports = function() {
     
     if(document.getElementById('repChartsTab').classList.contains('active')) {
         let chartsSelPage = document.getElementById('repChartsPageFilter').value; let chartsTargetOrders = targetOrders; if(chartsSelPage && chartsSelPage !== "all") { chartsTargetOrders = chartsTargetOrders.filter(o => o.constant === chartsSelPage); } 
+        window.renderStatusCharts(chartsTargetOrders);
         let completed = chartsTargetOrders.filter(o => o.status === 'تم التوصيل'); let pageRevenues = {}; completed.forEach(o => { let net = (parseAmount(o.amount)) - ((o.gov || "").includes("بغداد") ? feeBaghdad : feeOther); let pageName = o.constant ? o.constant : "غير محدد"; pageRevenues[pageName] = (pageRevenues[pageName] || 0) + net; }); if(financialChartInstance) financialChartInstance.destroy(); let fcCanvas = document.getElementById('financialChart'); if(fcCanvas) { financialChartInstance = new Chart(fcCanvas, { type: 'bar', data: { labels: Object.keys(pageRevenues), datasets: [{ label: window.tr('الصافي (دينار)'), data: Object.values(pageRevenues), backgroundColor: '#407bff', borderRadius: 5, maxBarThickness: 60 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } }); } 
         let itemStats = {}; completed.forEach(o => { if(o.type) { parseTypeItems(o.type).forEach(it => { { let code = it.code; let qty = it.qty; let isConfigured = configuredOrderTypes.some(t => t.code === code); if(isConfigured) { itemStats[code] = (itemStats[code] || 0) + qty; } else { itemStats['أخرى'] = (itemStats['أخرى'] || 0) + qty; } } }); } }); let topItems = Object.entries(itemStats).sort((a,b)=>b[1]-a[1]).slice(0,5); let chartLabels = topItems.map(i => { if(i[0] === 'أخرى') return 'أخرى'; let t = configuredOrderTypes.find(x => x.code === i[0]); return t ? t.name : i[0]; }); if(itemsPieChartInstance) itemsPieChartInstance.destroy(); let pcCanvas = document.getElementById('itemsPieChart'); if(pcCanvas) { itemsPieChartInstance = new Chart(pcCanvas, { type: 'doughnut', data: { labels: chartLabels, datasets: [{ data: topItems.map(i=>i[1]), backgroundColor: ['#ffd700','#407bff','#2ecc71','#e74c3c','#9b59b6'] }] }, options: { responsive: true, maintainAspectRatio: false } }); }
     }
@@ -771,13 +1057,13 @@ window.exportEmployeeReportPDF = function() { const selEmp = document.getElement
 // الإعدادات (Settings)
 // =========================================
 window.openSettings = function() { 
-    if (!loggedInUserCanSettings && loggedInUser !== ADMIN_USER) { alert("❌ ليس لديك صلاحية."); return; }
+    if (!loggedInUserCanSettings && !isManager) { alert("❌ ليس لديك صلاحية."); return; }
     document.getElementById("main-menu-section").style.display = "none"; document.getElementById("settings-section").style.display = "flex";
     document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; 
     window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); window.renderWhCatalogSettings(); 
 }
 
-window.verifySettingsPass = function() { if (document.getElementById('settingsPass').value === ADMIN_PASS) { document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); window.renderWhCatalogSettings(); } else { document.getElementById('settings-error').style.display = 'block'; } }
+window.verifySettingsPass = async function() { const okPass = await verifyAdminPass(document.getElementById('settingsPass').value); if (okPass) { document.getElementById('settingsPass').value = ''; document.getElementById('settings-error').style.display = 'none'; document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); window.renderWhCatalogSettings(); } else { document.getElementById('settings-error').style.display = 'block'; } }
 window.switchTab = function(tabId, btn) { document.querySelectorAll('#settings-section .tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('#settings-section .tab-pane').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); }
 window.addPageType = async function() { const val = document.getElementById('newPageName').value.trim(); if(val && window.addSystemPageToFirebase) { const r = await window.addSystemPageToFirebase({name: val}); configuredPages.push({id: r.id, name: val}); window.renderPagesSettings(); window.updatePagesDropdown(); } }
 window.deletePageType = async function(idx) { window.showConfirmDialog("حذف البيج؟", async function() { await window.deleteSystemPageFromFirebase(configuredPages[idx].id); configuredPages.splice(idx, 1); window.renderPagesSettings(); window.updatePagesDropdown(); }); }
@@ -835,9 +1121,10 @@ window.renderWhCatalogSettings = function() {
 window.toggleEmployeeSection = function(sec) { document.getElementById('add-employee-sec').style.display = (sec === 'add') ? 'block' : 'none'; document.getElementById('list-employee-sec').style.display = (sec === 'list') ? 'block' : 'none'; document.getElementById('btn-sec-list').style.background = (sec === 'list') ? 'var(--button-gradient)' : 'transparent'; document.getElementById('btn-sec-list').style.color = (sec === 'list') ? 'white' : 'var(--text-muted)'; document.getElementById('btn-sec-add').style.background = (sec === 'add') ? 'var(--button-gradient)' : 'transparent'; document.getElementById('btn-sec-add').style.color = (sec === 'add') ? 'white' : 'var(--text-muted)'; if(sec === 'add' && !document.getElementById('emp-edit-id').value) { document.getElementById('emp-form-title').innerText = "إضافة موظف جديد"; document.getElementById('save-emp-btn').innerText = "حفظ الموظف ➕"; } }
 window.saveEmployee = async function() {
     const editId = document.getElementById("emp-edit-id").value;
+    const passVal = document.getElementById("emp-pass").value.trim();
     const data = {
         username: document.getElementById("emp-name").value.trim(), gender: document.getElementById("emp-gender").value, phone: document.getElementById("emp-phone").value.trim(),
-        location: document.getElementById("emp-location").value.trim(), jobTitle: document.getElementById("emp-job").value.trim(), password: document.getElementById("emp-pass").value.trim(),
+        location: document.getElementById("emp-location").value.trim(), jobTitle: document.getElementById("emp-job").value.trim(),
         canDeleteCloud: document.getElementById("emp-can-delete").checked, canEditCloud: document.getElementById("emp-can-edit").checked,
         canEditOrderType: document.getElementById("emp-can-edit-type").checked, canAccessSettings: document.getElementById("emp-can-settings").checked,
         canAccessReports: document.getElementById("emp-can-reports").checked, canAccessChat: document.getElementById("emp-can-chat").checked,
@@ -845,13 +1132,23 @@ window.saveEmployee = async function() {
         canImportExport: document.getElementById("emp-can-import-export").checked,
         canPurchase: document.getElementById("emp-can-purchase").checked, canConsume: document.getElementById("emp-can-consume").checked
     };
-    if (data.username === "" || data.password === "") { alert("يرجى إدخال الاسم وكلمة المرور"); return; }
-    if (data.username === ADMIN_USER) { alert("هذا الاسم محجوز للمدير، اختر اسماً آخر"); return; }
+    if (!data.username) { alert("يرجى إدخال اسم الموظف"); return; }
+    if (!editId && !passVal) { alert("يرجى إدخال كلمة المرور"); return; }
+    if (passVal && passVal.length < 4) { alert("كلمة المرور يجب أن تكون 4 أحرف على الأقل"); return; }
+    if (data.username.toLowerCase() === (adminProfile.username || '').toLowerCase()) { alert("هذا الاسم محجوز للمدير، اختر اسماً آخر"); return; }
     if (additionalUsers.some(u => u.username === data.username && u.id !== editId)) { alert("يوجد موظف بنفس الاسم، اختر اسماً آخر"); return; }
     document.body.style.cursor = 'wait';
     try {
-        if (editId) { await window.updateSystemUserInFirebase(editId, data); const idx = additionalUsers.findIndex(u => u.id === editId); if (idx > -1) additionalUsers[idx] = { id: editId, ...data }; window.showSuccessToast("تم تحديث بيانات الموظف بنجاح!"); }
-        else { const r = await window.addSystemUserToFirebase(data); additionalUsers.push({ id: r.id, ...data }); window.showSuccessToast("تمت إضافة الموظف بنجاح!"); }
+        if (editId) {
+            const payload = passVal ? { ...data, passHash: hashPass(passVal), password: deleteField() } : data;
+            await window.updateSystemUserInFirebase(editId, payload);
+            const idx = additionalUsers.findIndex(u => u.id === editId); if (idx > -1) additionalUsers[idx] = { ...additionalUsers[idx], ...data };
+            window.showSuccessToast("تم تحديث بيانات الموظف بنجاح!");
+        }
+        else {
+            const payload = { ...data, passHash: hashPass(passVal), createdAt: serverTimestamp() };
+            const r = await window.addSystemUserToFirebase(payload); additionalUsers.push({ id: r.id, ...data }); window.showSuccessToast("تمت إضافة الموظف بنجاح!");
+        }
     } catch (e) { console.error(e); alert("حدث خطأ أثناء حفظ الموظف"); return; }
     finally { document.body.style.cursor = 'default'; }
     ['emp-name', 'emp-phone', 'emp-location', 'emp-job', 'emp-pass', 'emp-edit-id'].forEach(id => document.getElementById(id).value = '');
@@ -861,7 +1158,7 @@ window.saveEmployee = async function() {
 window.editEmployee = function(idx) {
     const u = additionalUsers[idx];
     document.getElementById("emp-edit-id").value = u.id; document.getElementById("emp-name").value = u.username || ''; document.getElementById("emp-gender").value = u.gender || 'ذكر';
-    document.getElementById("emp-phone").value = u.phone || ''; document.getElementById("emp-location").value = u.location || ''; document.getElementById("emp-job").value = u.jobTitle || ''; document.getElementById("emp-pass").value = u.password || '';
+    document.getElementById("emp-phone").value = u.phone || ''; document.getElementById("emp-location").value = u.location || ''; document.getElementById("emp-job").value = u.jobTitle || ''; document.getElementById("emp-pass").value = '';
     document.getElementById("emp-can-delete").checked = u.canDeleteCloud || false; document.getElementById("emp-can-edit").checked = u.canEditCloud || false; document.getElementById("emp-can-edit-type").checked = u.canEditOrderType || false; document.getElementById("emp-can-settings").checked = u.canAccessSettings || false; document.getElementById("emp-can-reports").checked = u.canAccessReports || false; document.getElementById("emp-can-chat").checked = u.canAccessChat || false; document.getElementById("emp-can-add").checked = u.canAddOrders || false; document.getElementById("emp-can-fetch-old").checked = u.canFetchOld || false; document.getElementById("emp-can-import-export").checked = u.canImportExport || false;
     document.getElementById("emp-can-purchase").checked = u.canPurchase || false; document.getElementById("emp-can-consume").checked = u.canConsume || false;
     document.getElementById('emp-form-title').innerText = "تحديث بيانات الموظف"; document.getElementById('save-emp-btn').innerText = "تحديث البيانات 💾"; window.toggleEmployeeSection('add');
@@ -882,7 +1179,7 @@ window.viewEmployeeProfile = function(idx) {
     if(u.canDeleteCloud) perms.push('<span class="status-badge active">حذف</span>'); if(u.canEditCloud) perms.push('<span class="status-badge active">تعديل</span>'); if(u.canEditOrderType) perms.push('<span class="status-badge active">تعديل الطلب</span>'); if(u.canAccessSettings) perms.push('<span class="status-badge active">إعدادات</span>'); if(u.canAccessReports) perms.push('<span class="status-badge active">تقارير</span>'); if(u.canAccessChat) perms.push('<span class="status-badge active">دردشة</span>'); if(u.canAddOrders) perms.push('<span class="status-badge active">إضافة</span>'); if(u.canFetchOld) perms.push('<span class="status-badge active">أرشيف</span>'); if(u.canImportExport) perms.push('<span class="status-badge active">تصدير</span>'); if(u.canPurchase) perms.push('<span class="status-badge active">إدخال مخزن</span>'); if(u.canConsume) perms.push('<span class="status-badge active">سحب مخزن</span>');
     if(perms.length === 0) perms.push('<span style="font-size:12px; color:#aaa;">لا يملك صلاحيات</span>');
     document.getElementById('view-emp-perms').innerHTML = perms.join('');
-    document.getElementById('view-emp-pass').value = u.password; document.getElementById('view-emp-pass').type = "password";
+    
     document.getElementById('view-emp-edit-btn').onclick = function() { window.closeEmployeeProfileModal(); window.editEmployee(idx); }; document.getElementById('view-emp-del-btn').onclick = function() { window.closeEmployeeProfileModal(); window.deleteEmployee(idx); };
     document.getElementById('employeeProfileModal').style.display = 'flex';
 }
