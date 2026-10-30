@@ -3,15 +3,20 @@
 <head>
     <script>try{if(localStorage.getItem('gl_lang')==='en'){document.documentElement.lang='en';document.documentElement.dir='ltr';}}catch(e){}</script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Gold Land Zain</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>جولد لاند | Gold Land</title>
+    <meta name="description" content="نظام جولد لاند لإدارة الطلبات والمخزن والتقارير والدردشة">
+    <meta name="color-scheme" content="light dark">
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#407bff">
+    <meta id="themeColorMeta" name="theme-color" content="#0d0e12">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Gold Land">
-    <link rel="apple-touch-icon" href="gl.png">
+    <link rel="icon" href="favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -22,22 +27,40 @@
 
     <div id="printReceipt" class="print-only" data-no-i18n></div>
 
-    <div id="globalUserBar" class="global-user-bar no-print" style="display:none; position:relative;">
-        <span id="globalUserName" style="color: var(--primary-blue);">👤 المستخدم</span>
-        <span id="globalTime" style="font-size: 13px; font-weight: bold; color: var(--text-muted); position:absolute; left:50%; transform:translateX(-50%); text-align:center;">🕒 00:00 - 📅 0/0/0</span>
-<button type="button" class="lang-toggle-btn" data-no-i18n onclick="toggleLanguage()" style="margin-inline-start: auto;">EN</button>
+    <div id="globalUserBar" class="global-user-bar no-print" style="display:none;">
+        <span id="globalUserName" class="user-bar-name">👤 المستخدم</span>
+        <span id="globalTime" class="user-bar-time">🕒 00:00 - 📅 0/0/0</span>
+        <div class="user-bar-actions">
+            <button type="button" class="icon-toggle" data-no-i18n onclick="toggleThemeQuick()" title="الوضع الليلي" aria-label="الوضع الليلي">🌓</button>
+            <button type="button" class="icon-toggle" data-no-i18n onclick="toggleLayoutMode()" title="تغيير شكل العرض" aria-label="تغيير شكل العرض"><span id="layoutIcon">🖥️</span></button>
+            <button type="button" class="lang-toggle-btn" data-no-i18n onclick="toggleLanguage()">EN</button>
+        </div>
     </div>
 
     <!-- تسجيل الدخول -->
     <div class="login-wrapper no-print" id="login-section">
         <div class="login-box">
 <div style="text-align: end; margin-bottom: 5px;"><button type="button" class="lang-toggle-btn" data-no-i18n onclick="toggleLanguage()">EN</button></div>
-            <div class="css-logo main-logo"><div class="logo-inner">GL</div></div>
+            <div class="brand-logo main-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="120" height="120"></div>
             <h2 class="login-title">Gold Land</h2>
-            <div class="login-input-group"><input type="text" id="username" placeholder="اسم المستخدم"></div>
-            <div class="login-input-group"><input type="password" id="password" placeholder="كلمة المرور" onkeypress="handleEnter(event)"></div>
-            <div style="display: flex; gap: 15px; margin-top: 25px;"><button id="loginBtn" onclick="login()" style="flex: 2; padding: 18px; border-radius: 50px;">تسجيل الدخول</button></div>
-            <div class="error-msg" id="login-error">بيانات الدخول غير صحيحة!</div>
+            <div id="loginFormBox">
+                <div class="login-input-group"><input type="text" id="username" placeholder="اسم المستخدم" autocomplete="username"></div>
+                <div class="login-input-group"><input type="password" id="password" placeholder="كلمة المرور" autocomplete="current-password" onkeypress="handleEnter(event)"></div>
+                <div style="display: flex; gap: 15px; margin-top: 25px;"><button id="loginBtn" onclick="login()" style="flex: 2; padding: 18px; border-radius: 50px;">تسجيل الدخول</button></div>
+                <div class="error-msg" id="login-error">بيانات الدخول غير صحيحة!</div>
+            </div>
+
+            <!-- إعداد حساب المدير: يظهر مرة واحدة فقط عند أول تشغيل -->
+            <div id="adminSetupBox" class="admin-setup" style="display:none;">
+                <h3 class="admin-setup-title">🔐 إعداد حساب المدير</h3>
+                <p class="admin-setup-hint">لم يتم إنشاء حساب مدير بعد. أنشئه الآن — لا يمكن لأحد إنشاء حساب مدير آخر لاحقاً.</p>
+                <div class="login-input-group"><input type="text" id="setupAdminUser" placeholder="اسم المدير" autocomplete="username"></div>
+                <div class="login-input-group"><input type="password" id="setupAdminPass" placeholder="كلمة مرور المدير" autocomplete="new-password"></div>
+                <div class="login-input-group"><input type="password" id="setupAdminPass2" placeholder="تأكيد كلمة المرور" autocomplete="new-password"></div>
+                <button onclick="createAdminAccount()" style="width:100%; padding: 18px; border-radius: 50px;">إنشاء الحساب ✅</button>
+                <div class="error-msg" id="setup-error">تعذر إنشاء الحساب</div>
+            </div>
+
             <div style="margin-top: 35px; padding-top: 20px; display: flex; gap: 10px; justify-content: center;">
                 <button onclick="showInstallInstructions('android')" class="install-btn">📱 تثبيت التطبيق</button>
                 <button onclick="showInstallInstructions('ios')" class="install-btn">🍏 آيفون</button>
@@ -48,7 +71,7 @@
     <!-- القائمة الرئيسية -->
     <div class="menu-wrapper no-print" id="main-menu-section" style="display: none;">
         <div class="menu-glass-card">
-            <div class="css-logo main-logo menu-logo"><div class="logo-inner">GL</div></div>
+            <div class="brand-logo main-logo menu-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="120" height="120"></div>
             <div class="menu-items">
                 <button class="menu-btn btn-blue" onclick="openDistribution()"><span class="icon">📄</span> <span>إضافة الطلبات</span></button>
                 <button class="menu-btn" onclick="openChatSection()"><span class="icon" style="position:relative;">💬<span class="badge" id="chatBadge" style="display:none;">0</span></span> <span>الدردشة</span></button>
@@ -74,11 +97,11 @@
                 <p><strong>الجنس:</strong> <span id="profileGender">-</span></p>
                 <p><strong>رقم الهاتف:</strong> <span id="profilePhone" dir="ltr">-</span></p>
             </div>
-            <div style="background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); margin-bottom: 20px;">
+            <div style="background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); margin-bottom: 20px;">
                 <p style="margin: 0 0 10px 0; color: var(--text-muted); font-size: 13px;"><strong>الصلاحيات الممنوحة:</strong></p>
                 <div id="profilePermissions" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;"></div>
             </div>
-            <div class="report-card" style="background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
+            <div class="report-card" style="background: var(--bg-color); box-shadow: 0 4px 10px rgba(0,0,0,0.03);">
                 <h4 style="font-size: 13px;">إجمالي الطلبات المُدخلة (آخر 10 أيام)</h4>
                 <div class="val" id="profileOrderCount" style="color: #2ecc71;">0</div>
             </div>
@@ -88,7 +111,7 @@
     <!-- 1. التوزيع الذكي -->
     <div class="container no-print" id="dashboard-section" style="display: none;">
         <div class="header-dash">
-            <div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">التوزيع الذكي</h2></div>
+            <div style="display: flex; align-items: center; gap: 15px;"><div class="brand-logo dash-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="50" height="50"></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">التوزيع الذكي</h2></div>
             <div><button class="btn-outline" onclick="backToMainMenuFrom('dashboard-section')" style="padding: 10px 15px;">🔙 القائمة</button></div>
         </div>
         <div class="card">
@@ -124,7 +147,7 @@
     <!-- 2. المخزن وإدارة المواد -->
     <div class="container no-print" id="warehouse-section" style="display: none; flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
-            <div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">📦 المخزن وإدارة المواد</h2></div>
+            <div style="display: flex; align-items: center; gap: 15px;"><div class="brand-logo dash-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="50" height="50"></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">📦 المخزن وإدارة المواد</h2></div>
             <div><button class="btn-outline" onclick="backToMainMenuFrom('warehouse-section')" style="padding: 10px 15px;">🔙 القائمة</button></div>
         </div>
 
@@ -199,7 +222,7 @@
 
     <!-- 3. الدردشة -->
     <div class="container no-print" id="chat-section" style="display: none; height: calc(100vh - 80px); height: calc(100dvh - 80px); padding: 15px; flex-direction: column;">
-        <div class="header-dash" style="margin-bottom: 15px;"><div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الدردشة</h2></div><div><button class="btn-outline" onclick="backToMainMenuFromChat()" style="padding: 10px 15px;">🔙 القائمة</button></div></div>
+        <div class="header-dash" style="margin-bottom: 15px;"><div style="display: flex; align-items: center; gap: 15px;"><div class="brand-logo dash-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="50" height="50"></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الدردشة</h2></div><div><button class="btn-outline" onclick="backToMainMenuFromChat()" style="padding: 10px 15px;">🔙 القائمة</button></div></div>
         <div class="chat-container">
             <div class="chat-sidebar" id="chatSidebar">
                 <div class="chat-tabs"><button class="chat-tab active" id="tabGeneral" onclick="switchChatTab('general')">عام</button><button class="chat-tab" id="tabPrivate" onclick="switchChatTab('private')">خاص</button><button class="chat-tab" id="tabGroups" onclick="switchChatTab('groups')">مجموعات</button></div>
@@ -218,14 +241,14 @@
     <!-- 4. الأرشيف -->
     <div class="container no-print" id="archive-section" style="display: none; height: calc(100vh - 80px); height: calc(100dvh - 80px); flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
-            <div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الأرشيف والمتابعة</h2></div>
+            <div style="display: flex; align-items: center; gap: 15px;"><div class="brand-logo dash-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="50" height="50"></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الأرشيف والمتابعة</h2></div>
             <div><button class="btn-outline" onclick="backToMainMenuFrom('archive-section')" style="padding: 10px 15px;">🔙 القائمة</button></div>
         </div>
         <div class="card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 15px;">
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: var(--bg-color); padding: 10px; border-radius: 15px; box-shadow: var(--inner-shadow); align-items: center;">
-                <div id="btn-fetch-old" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);"><button class="action-icon-btn btn-blue" onclick="openArchiveFetchModal()">🕰️</button></div>
-                <div id="btn-group-import-export" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);"><button class="action-icon-btn" onclick="downloadExcelTemplate()">⬇️</button><label class="action-icon-btn btn-blue" style="cursor: pointer; margin:0;">📤<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile(event)"></label><button class="action-icon-btn" onclick="exportCloudToExcel()" style="color:#2ecc71;">📊</button><button class="action-icon-btn btn-export" onclick="openAdvancedExportModal()" style="color:#fff;">📤</button></div>
-                <div style="display:flex; gap: 10px; align-items: center;"><button class="action-icon-btn" onclick="bulkEditOrder()" id="bulkEditBtn">✏️</button><button class="action-icon-btn" onclick="showBulkStatusModal()">🔄</button><button class="action-icon-btn" onclick="bulkPrintOrders()" style="color: #b8860b;">🖨️</button><button class="action-icon-btn" onclick="bulkExportPDF()" style="color: #2ecc71;">📄</button><button class="action-icon-btn btn-danger" onclick="bulkDeleteOrders()" id="bulkDeleteBtn">🗑️</button></div>
+                <div id="btn-fetch-old" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);"><button class="action-icon-btn btn-blue" onclick="openArchiveFetchModal()" title="جلب الطلبات القديمة" aria-label="جلب الطلبات القديمة">🕰️</button></div>
+                <div id="btn-group-import-export" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);"><button class="action-icon-btn" onclick="downloadExcelTemplate()" title="تحميل قالب Excel" aria-label="تحميل قالب Excel">⬇️</button><label class="action-icon-btn btn-blue" style="cursor: pointer; margin:0;" title="رفع ملف Excel" aria-label="رفع ملف Excel">📤<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile(event)"></label><button class="action-icon-btn" onclick="exportCloudToExcel()" style="color:#2ecc71;" title="تصدير Excel" aria-label="تصدير Excel">📊</button><button class="action-icon-btn btn-export" onclick="openAdvancedExportModal()" style="color:#fff;" title="تصدير متقدم" aria-label="تصدير متقدم">📤</button></div>
+                <div style="display:flex; gap: 10px; align-items: center;"><button class="action-icon-btn" onclick="bulkEditOrder()" id="bulkEditBtn" title="تعديل المحدد" aria-label="تعديل المحدد">✏️</button><button class="action-icon-btn" onclick="showBulkStatusModal()" title="تغيير حالة المحدد" aria-label="تغيير حالة المحدد">🔄</button><button class="action-icon-btn" onclick="bulkPrintOrders()" style="color: #b8860b;" title="طباعة المحدد" aria-label="طباعة المحدد">🖨️</button><button class="action-icon-btn" onclick="bulkExportPDF()" style="color: #2ecc71;" title="تصدير PDF" aria-label="تصدير PDF">📄</button><button class="action-icon-btn btn-danger" onclick="bulkDeleteOrders()" id="bulkDeleteBtn" title="حذف المحدد" aria-label="حذف المحدد">🗑️</button></div>
             </div>
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
                 <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، التسلسل..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 150px;">
@@ -244,7 +267,7 @@
     <!-- 5. التقارير والإحصائيات -->
     <div class="container no-print" id="reports-section" style="display: none; height: calc(100vh - 80px); height: calc(100dvh - 80px); flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
-            <div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">📊 التقارير والإحصائيات</h2></div>
+            <div style="display: flex; align-items: center; gap: 15px;"><div class="brand-logo dash-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="50" height="50"></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">📊 التقارير والإحصائيات</h2></div>
             <div><button class="btn-outline" onclick="backToMainMenuFrom('reports-section')" style="padding: 10px 15px;">🔙 القائمة</button></div>
         </div>
         <div class="card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 15px;">
@@ -267,7 +290,31 @@
                     <table id="pageReportTable"><thead><tr><th>نوع الطلب</th><th>العدد</th><th>المبلغ</th></tr></thead><tbody id="repPageTbody"></tbody><tfoot><tr><td>المجموع الكلي</td><td id="totalPageQty">0</td><td id="totalPageAmount">0</td></tr></tfoot></table>
                 </div>
                 <div id="repTypeTab" class="tab-pane" style="text-align: start;"><select id="repTypeFilter" onchange="generateReports()" style="width: 100%; margin-bottom: 20px;"></select><div id="repTypeCardsContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;"></div></div>
-                <div id="repChartsTab" class="tab-pane" style="text-align: center;"><div style="display: flex; gap: 10px; margin-bottom: 15px;"><select id="repChartsPageFilter" onchange="generateReports()" style="flex: 1;"></select></div><div style="display:flex; flex-wrap: wrap; gap:20px;"><div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);"><h4 style="margin-bottom: 15px;">المبيعات (المالية)</h4><div style="position: relative; height: 250px; width: 100%;"><canvas id="financialChart"></canvas></div></div><div style="flex:1; min-width: 300px; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--outer-shadow);"><h4 style="margin-bottom: 15px;">أكثر الأصناف مبيعاً (القطع)</h4><div style="position: relative; height: 250px; width: 100%;"><canvas id="itemsPieChart"></canvas></div></div></div></div>
+                <div id="repChartsTab" class="tab-pane" style="text-align: center;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;"><select id="repChartsPageFilter" onchange="generateReports()" style="flex: 1;"></select></div>
+                    <div class="chart-grid">
+                        <div class="chart-card">
+                            <h4>توزيع الطلبات حسب الحالة</h4>
+                            <div id="statusChartEmpty" class="chart-empty" style="display: none;">لا توجد طلبات مطابقة</div>
+                            <div style="position: relative; height: 280px; width: 100%;"><canvas id="statusDonutChart"></canvas></div>
+                        </div>
+                        <div class="chart-card" id="statusAmountCard">
+                            <h4>قيمة الطلبات حسب الحالة (دينار)</h4>
+                            <div style="position: relative; height: 280px; width: 100%;"><canvas id="statusAmountChart"></canvas></div>
+                        </div>
+                    </div>
+                    <div id="statusBreakdown" class="status-breakdown"></div>
+                    <div class="chart-grid" style="margin-top: 20px;">
+                        <div class="chart-card">
+                            <h4>المبيعات (المالية)</h4>
+                            <div style="position: relative; height: 250px; width: 100%;"><canvas id="financialChart"></canvas></div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>أكثر الأصناف مبيعاً (القطع)</h4>
+                            <div style="position: relative; height: 250px; width: 100%;"><canvas id="itemsPieChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
                 <div id="repFinTab" class="tab-pane" style="text-align: start;"><div style="display: flex; gap: 10px; margin-bottom: 15px;"><select id="repFinPageFilter" onchange="generateReports()" style="flex: 1;"></select></div><div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;" id="repFinCards"><div class="report-card"><h4>الطلبات المكتملة</h4><div class="val" id="finCount">0</div></div><div class="report-card"><h4>القطع المباعة</h4><div class="val" id="finQty">0</div></div><div class="report-card"><h4>الإجمالي</h4><div class="val" id="finGross">0</div></div><div class="report-card"><h4>أجور المندوب</h4><div class="val" id="finDelivery" style="color:#ff4757;">0</div></div><div class="report-card"><h4>الصافي</h4><div class="val" id="finNet" style="color:#2ecc71;">0</div></div></div></div>
                 <div id="repEmpTab" class="tab-pane" style="text-align: start;"><div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;"><select id="repEmpSelect" onchange="generateEmployeeReport()" style="flex: 2;"></select><button class="btn-export" onclick="exportEmployeeReportPDF()" style="flex: 1;">PDF 📄</button></div><div id="employeeReportContent" style="display: none;"><div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 20px;"><div class="report-card"><h4>ساعات العمل ⏱️</h4><div class="val" id="empRepHours">0</div></div><div class="report-card"><h4>الطلبات المضافة ➕</h4><div class="val" id="empRepAdded">0</div></div></div><table id="empAddedOrdersTable"><thead><tr><th>التسلسل</th><th>الزبون</th><th>البيج</th><th>المبلغ</th><th>الحالة</th></tr></thead><tbody id="empAddedOrdersTbody"></tbody></table></div><div id="empRepNoData" style="text-align: center;">الرجاء اختيار اسم الموظف.</div></div>
                 
@@ -295,7 +342,7 @@
     <!-- 6. الإعدادات -->
     <div class="container no-print" id="settings-section" style="display: none; flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
-            <div style="display: flex; align-items: center; gap: 15px;"><div class="css-logo dash-logo"><div class="logo-inner">GL</div></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">⚙️ الإعدادات</h2></div>
+            <div style="display: flex; align-items: center; gap: 15px;"><div class="brand-logo dash-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="50" height="50"></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">⚙️ الإعدادات</h2></div>
             <div><button class="btn-outline" onclick="backToMainMenuFrom('settings-section')" style="padding: 10px 15px;">🔙 القائمة</button></div>
         </div>
         <div class="card" style="padding: 20px;">
@@ -312,14 +359,28 @@
                     <button class="tab-btn" onclick="switchTab('usersTab', this)">المستخدمين</button>
                     <button class="tab-btn" onclick="switchTab('deliveryTab', this)">التوصيل</button>
                     <button class="tab-btn" onclick="switchTab('whItemsTab', this)">مواد المخزن</button>
-<button class="tab-btn" onclick="switchTab('langTab', this)">🌐 اللغة</button>
+<button class="tab-btn" onclick="switchTab('langTab', this)">🎨 المظهر</button>
                 </div>
                 <div class="tab-content">
                     <div id="langTab" class="tab-pane" style="text-align: start;">
-<h3 style="margin-top: 0;">🌐 لغة البرنامج</h3>
-<p style="color: var(--text-muted); font-size: 14px;">اختر لغة واجهة البرنامج. يتم حفظ الاختيار على هذا الجهاز.</p>
+<h3 style="margin-top: 0;">🎨 المظهر والعرض</h3>
+<p class="setting-desc">هذه الإعدادات تُحفظ على هذا الجهاز فقط.</p>
+<label class="setting-label">اللغة</label>
 <div class="form-group"><select id="appLangSelect" data-no-i18n onchange="setAppLanguage(this.value)"><option value="ar">العربية</option><option value="en">English</option></select></div>
-<p style="color: var(--text-muted); font-size: 13px;">ملاحظة: الوصولات المطبوعة تبقى بالعربية دائماً.</p>
+<label class="setting-label">الوضع</label>
+<div class="choice-row">
+  <button class="choice-btn" id="theme-btn-auto" onclick="applyThemeMode('auto')">تلقائي 🕐</button>
+  <button class="choice-btn" id="theme-btn-light" onclick="applyThemeMode('light')">نهاري ☀️</button>
+  <button class="choice-btn" id="theme-btn-dark" onclick="applyThemeMode('dark')">ليلي 🌙</button>
+</div>
+<label class="setting-label">شكل العرض</label>
+<p class="setting-desc">اختيار "كمبيوتر" يوسّع الواجهة ويحوّل القائمة إلى شبكة مناسبة للشاشات الكبيرة. "تلقائي" يختار حسب حجم الشاشة.</p>
+<div class="choice-row">
+  <button class="choice-btn" data-layout-btn="auto" onclick="applyLayoutMode('auto')">تلقائي</button>
+  <button class="choice-btn" data-layout-btn="mobile" onclick="applyLayoutMode('mobile')">جوال 📱</button>
+  <button class="choice-btn" data-layout-btn="desktop" onclick="applyLayoutMode('desktop')">كمبيوتر 🖥️</button>
+</div>
+<p class="setting-desc" style="margin-top:18px;">ملاحظة: الوصولات المطبوعة تبقى بالعربية دائماً.</p>
 </div>
 <div id="pagesTab" class="tab-pane active" style="text-align: start;"><input type="text" id="newPageName" placeholder="اسم البيج" style="width:100%; margin-bottom:15px;"><button onclick="addPageType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button><ul id="pagesListDisplay"></ul></div>
                     
@@ -335,7 +396,7 @@
                             <button id="btn-sec-wh-list" onclick="toggleWhItemSection('list')" style="flex: 1; padding: 12px; font-size: 14px; border-radius: 12px; background: var(--button-gradient); color: white;">قائمة المواد 📋</button>
                             <button id="btn-sec-wh-add" onclick="toggleWhItemSection('add')" style="flex: 1; padding: 12px; font-size: 14px; border-radius: 12px; background: transparent; color: var(--text-muted); box-shadow: none;">إضافة مادة ➕</button>
                         </div>
-                        <div id="add-whitem-sec" style="display: none; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03);">
+                        <div id="add-whitem-sec" style="display: none; background: var(--bg-color); padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.03);">
                             <input type="hidden" id="whcat-edit-id" value="">
                             <h4 id="whcat-form-title" style="text-align: center; color: var(--primary-blue); margin-bottom: 20px; margin-top: 0;">تعريف مادة جديدة</h4>
                             <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -364,7 +425,7 @@
                                 <div class="form-group"><label>رقم الهاتف</label><input type="text" id="emp-phone" dir="ltr"></div>
                                 <div class="form-group"><label>مكان العمل</label><input type="text" id="emp-location"></div>
                                 <div class="form-group" style="grid-column: 1 / -1;"><label>الوظيفة</label><input type="text" id="emp-job"></div>
-                                <div class="form-group" style="grid-column: 1 / -1;"><label>كلمة المرور</label><input type="text" id="emp-pass"></div>
+                                <div class="form-group" style="grid-column: 1 / -1;"><label>كلمة المرور</label><input type="password" id="emp-pass" autocomplete="new-password" placeholder="اتركه فارغاً للإبقاء على الكلمة الحالية"></div>
                             </div>
                             <label>الصلاحيات الأساسية:</label>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; background: var(--bg-color); padding: 15px; border-radius: 15px;">
@@ -432,7 +493,7 @@
             </div>
             <div id="view-emp-wa"></div>
             <div class="employee-perms-box"><div id="view-emp-perms" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;"></div></div>
-            <div class="employee-pass-box"><strong>كلمة المرور:</strong><input type="password" id="view-emp-pass" readonly style="width: auto; flex: 1; margin: 0 10px; box-shadow: none; background: transparent; padding: 5px;"><button type="button" class="pass-eye-btn" onclick="togglePasswordVisibility('view-emp-pass')">👁️</button></div>
+            <div class="employee-pass-box"><strong>كلمة المرور:</strong><span class="pass-locked">🔒 مشفّرة — لا يمكن عرضها</span></div>
             <div style="display: flex; gap: 10px;"><button id="view-emp-edit-btn" class="btn-outline" style="flex: 1;">✏️ تعديل</button><button id="view-emp-del-btn" class="btn-danger" style="flex: 1;">🗑️ حذف</button></div>
         </div>
     </div>
