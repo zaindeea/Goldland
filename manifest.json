@@ -1,20 +1,22 @@
 {
-  "id": "./",
-  "name": "Gold Land",
+  "id": "/",
+  "name": "جولد لاند — Gold Land",
   "short_name": "Gold Land",
-  "description": "تطبيق إدارة طلبات وعمليات كولد لاند",
-  "start_url": "./",
+  "description": "نظام جولد لاند لإدارة الطلبات والمخزن والتقارير والدردشة",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#eef2f9",
-  "theme_color": "#407bff",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "lang": "ar",
   "dir": "rtl",
+  "categories": ["business", "productivity"],
   "icons": [
     { "src": "icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "icon-maskable-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-maskable-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
