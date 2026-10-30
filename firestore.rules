@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// قواعد Firestore لجولد لاند
+// الهدف: منع أي وصول من خارج التطبيق (يتطلب مصادقة Firebase، حتى المجهولة)
+// التفعيل: Firebase Console > Authentication > Sign-in method > Anonymous = Enable
+// ثم: firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // بيانات المدير: يمكن إنشاؤها مرة واحدة فقط (أول تشغيل) ثم تعديلها من داخل التطبيق
+    match /system_settings/admin_credentials {
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /system_settings/{docId} {
+      allow read, create, update: if signedIn();
+      allow delete: if false;
+    }
+
+    match /system_users/{docId} {
+      allow read, create, update: if signedIn();
+      allow delete: if signedIn();
+    }
+
+    match /orders/{docId} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    match /inventory_catalog/{docId} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    match /inventory_stock/{docId} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    match /inventory_transactions/{docId} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    match /order_types/{docId} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    match /system_pages/{docId} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    match /chat_messages/{docId} {
+      allow read, create, update: if signedIn();
+      allow delete: if signedIn();
+    }
+
+    match /chat_groups/{docId} {
+      allow read, create, update, delete: if signedIn();
+    }
+
+    match /user_sessions/{docId} {
+      allow read, create, update: if signedIn();
+      allow delete: if signedIn();
+    }
+
+    match /action_logs/{docId} {
+      allow read, create: if signedIn();
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

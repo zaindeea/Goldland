@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Gold Land">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F6DDA2"/>
+      <stop offset="0.55" stop-color="#E2B45F"/>
+      <stop offset="1" stop-color="#B8862B"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#gold)">
+    <path d="M558 512A193 193 0 1 1 461.5 344.9" fill="none" stroke="url(#gold)" stroke-width="74"/>
+    <rect x="362" y="475" width="242" height="74" rx="4"/>
+    <rect x="676" y="282" width="74" height="460" rx="4"/>
+    <rect x="676" y="668" width="220" height="74" rx="4"/>
+  </g>
+</svg>
