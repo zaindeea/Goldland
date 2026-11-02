@@ -238,10 +238,30 @@
         </div>
     </div>
 
-    <!-- 4. الأرشيف -->
+<!-- 4. الأرشيف -->
     <div class="container no-print" id="archive-section" style="display: none; height: calc(100vh - 80px); height: calc(100dvh - 80px); flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
-            <div style="display: flex; align-items: center; gap: 15px;"><div class="brand-logo dash-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="50" height="50"></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الأرشيف والمتابعة</h2></div>
+            <div style="display: flex; align-items: center; gap: 15px; width: 100%;">
+                <div class="brand-logo dash-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="50" height="50"></div>
+                <h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الأرشيف والمتابعة</h2>
+                
+                <!-- حاوية العدادات (مضادة للتشوه) -->
+                <div style="display: flex; gap: 15px; margin-right: auto; padding-right: 20px;">
+                    
+                    <!-- الدائرة الزرقاء: العدد الكلي -->
+                    <div title="العدد الكلي للطلبات المعروضة" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                        <div id="totalCountCircle" style="width: 45px; height: 45px; min-width: 45px; min-height: 45px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--primary-blue); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; color: var(--primary-blue); background: rgba(64,123,255,0.05); box-shadow: var(--outer-shadow); transition: background 0.3s, color 0.3s;">0</div>
+                        <span style="font-size: 11px; color: var(--text-muted); font-weight: bold;">الكلي</span>
+                    </div>
+
+                    <!-- الدائرة الذهبية: العدد المحدد -->
+                    <div title="عدد الطلبات التي قمت بتحديدها" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                        <div id="selectedCountCircle" style="width: 45px; height: 45px; min-width: 45px; min-height: 45px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 2px solid #b8860b; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; color: #b8860b; background: rgba(184, 134, 11, 0.05); box-shadow: var(--outer-shadow); transition: background 0.3s, color 0.3s;">0</div>
+                        <span style="font-size: 11px; color: var(--text-muted); font-weight: bold;">المحدد</span>
+                    </div>
+
+                </div>
+            </div>
             <div><button class="btn-outline" onclick="backToMainMenuFrom('archive-section')" style="padding: 10px 15px;">🔙 القائمة</button></div>
         </div>
         <div class="card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 15px;">
@@ -263,7 +283,6 @@
             </div>
         </div>
     </div>
-
     <!-- 5. التقارير والإحصائيات -->
     <div class="container no-print" id="reports-section" style="display: none; height: calc(100vh - 80px); height: calc(100dvh - 80px); flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
