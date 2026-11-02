@@ -748,7 +748,11 @@ window.filterCloudOrders = function() {
         
         tr.innerHTML = `
             <td style="text-align: center;"><input type="checkbox" class="order-cb" value="${esc(o.id_doc)}" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></td>
-            <td><span style="color:var(--primary-blue); font-weight:bold;">${esc(o.id||'-')}</span></td>
+            <td style="cursor: pointer; text-align: center;" onclick="window.openOrderDetailsModal('${esc(o.id_doc)}')">
+    <span style="display:inline-block; padding: 5px 10px; background: rgba(64,123,255,0.1); color:var(--primary-blue); font-weight:bold; border-radius: 8px; text-decoration: underline;" title="اضغط لعرض التفاصيل">
+        ${esc(o.id||'-')}
+    </span>
+</td>
             <td>${statusSelectHtml}</td>
             <td style="color:var(--primary-blue); font-weight:bold;">${esc(o.constant||'-')}</td>
             <td>${esc(o.name||'-')}</td>
@@ -767,16 +771,124 @@ window.filterCloudOrders = function() {
             <td style="font-size:12px; color:var(--text-muted);">${dateStr}</td>
         `;
         
-        tr.style.cursor = 'pointer';
-        tr.onclick = function(event) {
-            const tag = event.target.tagName.toLowerCase();
-            if (tag === 'input' || tag === 'select' || tag === 'option' || tag === 'a' || event.target.closest('td:nth-child(8)')) return;
-            window.openEditModal(o.id_doc);
-        };
         tb.appendChild(tr);
     });
+    // إضافة تحديث الدوائر هنا
+    if (typeof window.updateArchiveCounts === 'function') {
+        window.updateArchiveCounts();
+    }
 }
-window.openOrderDetailsModal = function(docId) { let order = allCloudOrders.find(o => o.id_doc === docId); if(!order) return; const dateStr = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleString(window.getLocale()) : '-'; let contentHtml = `<div><strong>التسلسل:</strong> ${esc(order.id || '-')}</div><div><strong>حالة الطلب:</strong> ${esc(order.status || 'جديد')}</div><div><strong>البيج:</strong> ${esc(order.constant || '-')}</div><div><strong>اسم الزبون:</strong> ${esc(order.name || '-')}</div><div><strong>الهاتف الأول:</strong> <span dir="ltr">${esc(order.phone1 || '-')}</span></div><div><strong>الهاتف الثاني:</strong> <span dir="ltr">${esc(order.phone2 || '-')}</span></div><div><strong>المحافظة:</strong> ${esc(order.gov || '-')}</div><div><strong>المنطقة:</strong> ${esc(order.area || '-')}</div><div><strong>تفاصيل الطلب:</strong> <span dir="ltr">${esc(orderItemsReadable(order.type) || '-')}</span></div><div><strong>الكمية الكلية:</strong> ${esc(order.qty || 1)}</div><div><strong>المبلغ الكلي:</strong> ${esc(order.amount || '-')}</div><div><strong>ملاحظات:</strong> ${esc(order.note || 'لا يوجد')}</div><div><strong>المستخدم المضيف:</strong> ${esc(order.addedBy || '-')}</div><div><strong>التاريخ:</strong> ${dateStr}</div>`; document.getElementById('orderDetailsContent').innerHTML = contentHtml; document.getElementById('orderDetailsModal').style.display = 'flex'; };
+// =========================================
+// دوال تحديث أرقام الأرشيف (الدوائر)
+// =========================================
+window.updateArchiveCounts = function() {
+    // حساب العدد الكلي المعروض في الجدول
+    const displayedRows = document.querySelectorAll('#cloudOrdersTbody tr').length;
+    
+    // حساب عدد الطلبات المحددة 
+    const selectedRows = document.querySelectorAll('.order-cb:checked').length;
+
+    const totalCircle = document.getElementById('totalCountCircle');
+    const selectedCircle = document.getElementById('selectedCountCircle');
+
+    if (totalCircle) {
+        totalCircle.innerText = displayedRows;
+    }
+    
+    if (selectedCircle) {
+        selectedCircle.innerText = selectedRows;
+        
+        // تغيير اللون فقط عند التحديد بدون تكبير الحجم لتجنب التشوه
+        if (selectedRows > 0) {
+            selectedCircle.style.background = '#ccbc2e'; // لون أخضر عند التحديد (أو يمكنك وضع #b8860b للذهبي)
+            selectedCircle.style.color = '#0c0303';
+            selectedCircle.style.borderColor = '#f59f00';
+        } else {
+            // العودة للشكل الطبيعي
+            selectedCircle.style.background = 'rgba(184, 134, 11, 0.05)';
+            selectedCircle.style.color = '#b8860b';
+            selectedCircle.style.borderColor = '#b8860b';
+        }
+    }
+};
+
+// مراقبة النقر على أي Checkbox لتحديث دائرة "العدد المحدد" فوراً
+document.addEventListener('change', function(e) {
+    // التحقق مما إذا كان العنصر الذي تم النقر عليه هو checkbox خاص بالطلبات أو زر تحديد الكل
+    if (e.target && (e.target.classList.contains('order-cb') || e.target.id === 'selectAllCb')) {
+        window.updateArchiveCounts();
+    }
+});
+window.openOrderDetailsModal = function(docId) { 
+    let order = allCloudOrders.find(o => o.id_doc === docId); 
+    if(!order) return; 
+    
+    const dateStr = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleString(window.getLocale()) : '-'; 
+    let amt = parseAmount(order.amount);
+    
+    // تصميم البطاقة التي سيتم تصديرها كملف (خلفية بيضاء لضمان وضوح الطباعة)
+    let contentHtml = `
+    <div id="exportableOrderDetails" style="background: #fff; color: #000; padding: 25px; border-radius: 10px; direction: rtl; font-family: Arial, sans-serif; box-sizing: border-box;">
+        <h2 style="text-align: center; margin: 0 0 5px 0; font-size: 22px;">Gold Land</h2>
+        <p style="text-align: center; margin: 0 0 15px 0; font-size: 11px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">تفاصيل الطلب المستلم</p>
+        
+        <div style="margin-bottom: 10px;"><strong>التسلسل:</strong> ${esc(order.id || '-')}</div>
+        <div style="margin-bottom: 10px;"><strong>حالة الطلب:</strong> ${esc(order.status || 'جديد')}</div>
+        <div style="margin-bottom: 10px;"><strong>البيج:</strong> ${esc(order.constant || '-')}</div>
+        <div style="margin-bottom: 10px;"><strong>اسم الزبون:</strong> ${esc(order.name || '-')}</div>
+        <div style="margin-bottom: 10px;"><strong>الهاتف:</strong> <span dir="ltr">${esc(order.phone1 || '-')}</span> ${order.phone2 ? ' / <span dir="ltr">' + esc(order.phone2) + '</span>' : ''}</div>
+        <div style="margin-bottom: 10px;"><strong>العنوان:</strong> ${esc(order.gov || '-')} - ${esc(order.area || '-')}</div>
+        <div style="margin-bottom: 10px; line-height: 1.6;"><strong>الطلبات:</strong> <span dir="ltr">${esc(orderItemsReadable(order.type) || '-')}</span></div>
+        <div style="margin-bottom: 10px;"><strong>العدد الكلي:</strong> ${esc(order.qty || 1)}</div>
+        <div style="margin-bottom: 10px; color: #b8860b; font-size: 16px;"><strong>المبلغ الكلي:</strong> ${amt.toLocaleString()} دينار</div>
+        <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;"><strong>ملاحظات:</strong> ${esc(order.note || 'لا يوجد')}</div>
+        
+        <div style="font-size: 11px; color: #666; text-align: center;">
+            تم الإدخال بواسطة: ${esc(order.addedBy || '-')} <br> التاريخ: ${dateStr}
+        </div>
+    </div>`; 
+
+    // أزرار التحكم (لا تظهر في ملف الـ PDF)
+    let actionsHtml = `
+    <div style="display:flex; gap:10px; margin-top:15px;" class="no-print">
+        <button class="btn-parse" style="flex:1; background: #2ecc71; color: white;" onclick="window.exportOrderDetailsPDF('${esc(order.id || '')}')">📄 حفظ كـ PDF</button>
+    </div>`;
+
+    let container = document.getElementById('orderDetailsContent');
+    container.innerHTML = contentHtml + actionsHtml; 
+    
+    // إزالة الحواف الظلّية الافتراضية من الحاوية لضمان شكل جميل للطباعة
+    container.style.background = 'transparent';
+    container.style.boxShadow = 'none';
+    container.style.padding = '0';
+
+    document.getElementById('orderDetailsModal').style.display = 'flex'; 
+};
+
+window.exportOrderDetailsPDF = function(orderId) {
+    const element = document.getElementById('exportableOrderDetails');
+    if(!element) return;
+    
+    // تغيير المؤشر لدلالة على التحميل
+    document.body.style.cursor = 'wait';
+    
+    const opt = {
+        margin: 5,
+        filename: `طلب_رقم_${orderId}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+        document.body.style.cursor = 'default';
+        window.showSuccessToast("تم حفظ الطلب بنجاح! 📄");
+    }).catch(err => {
+        document.body.style.cursor = 'default';
+        alert("حدث خطأ أثناء التصدير.");
+    });
+};
+
 window.closeOrderDetailsModal = function() { document.getElementById('orderDetailsModal').style.display = 'none'; };
 
 window.openQuickTypeEditModal = function(docId) { if(!loggedInUserCanEditType && !isManager) { alert("❌ ليس لديك صلاحية لتعديل نوع الطلب."); return; } let order = allCloudOrders.find(o => o.id_doc === docId); if(!order) return; currentEditDocId = docId; document.getElementById('quickTypeDynamicRowsWrapper').innerHTML = ''; window.fillOrderRows(order.type, 'addQuickTypeOrderItemRow'); document.getElementById('quickTypeEditModal').style.display = 'flex'; }
