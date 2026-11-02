@@ -826,7 +826,7 @@ window.openOrderDetailsModal = function(docId) {
     const dateStr = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleString(window.getLocale()) : '-'; 
     let amt = parseAmount(order.amount);
     
-    // تصميم البطاقة التي سيتم تصديرها كملف (خلفية بيضاء لضمان وضوح الطباعة)
+    // تصميم البطاقة التي سيتم تصديرها كملف
     let contentHtml = `
     <div id="exportableOrderDetails" style="background: #fff; color: #000; padding: 25px; border-radius: 10px; direction: rtl; font-family: Arial, sans-serif; box-sizing: border-box;">
         <h2 style="text-align: center; margin: 0 0 5px 0; font-size: 22px;">Gold Land</h2>
@@ -836,7 +836,13 @@ window.openOrderDetailsModal = function(docId) {
         <div style="margin-bottom: 10px;"><strong>حالة الطلب:</strong> ${esc(order.status || 'جديد')}</div>
         <div style="margin-bottom: 10px;"><strong>البيج:</strong> ${esc(order.constant || '-')}</div>
         <div style="margin-bottom: 10px;"><strong>اسم الزبون:</strong> ${esc(order.name || '-')}</div>
-        <div style="margin-bottom: 10px;"><strong>الهاتف:</strong> <span dir="ltr">${esc(order.phone1 || '-')}</span> ${order.phone2 ? ' / <span dir="ltr">' + esc(order.phone2) + '</span>' : ''}</div>
+        
+        <!-- إضافة أرقام الهواتف بشكل واضح -->
+        <div style="margin-bottom: 10px;">
+            <strong>الهاتف الأول:</strong> <span dir="ltr">${esc(order.phone1 || '-')}</span>
+        </div>
+        ${order.phone2 ? `<div style="margin-bottom: 10px;"><strong>الهاتف الثاني:</strong> <span dir="ltr">${esc(order.phone2)}</span></div>` : ''}
+        
         <div style="margin-bottom: 10px;"><strong>العنوان:</strong> ${esc(order.gov || '-')} - ${esc(order.area || '-')}</div>
         <div style="margin-bottom: 10px; line-height: 1.6;"><strong>الطلبات:</strong> <span dir="ltr">${esc(orderItemsReadable(order.type) || '-')}</span></div>
         <div style="margin-bottom: 10px;"><strong>العدد الكلي:</strong> ${esc(order.qty || 1)}</div>
