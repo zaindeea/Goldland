@@ -361,3 +361,95 @@ select option { background: var(--bg-color); color: var(--text-color); }
     .chart-card { padding: 12px; }
     .sb-chip { padding: 8px 11px; font-size: 12px; }
 }
+/* ===== وضع الكمبيوتر ===== */
+html[data-layout="desktop"] .login-box { 
+    max-width: 480px; 
+    padding: 44px 38px; 
+}
+
+html[data-layout="desktop"] .menu-glass-card { 
+    max-width: 1200px; /* تم التكبير من 900px */
+    width: 90%; /* سيأخذ 90% من الشاشة حتى يصل للحد الأقصى */
+    padding: 50px 40px; 
+    border-radius: 44px; 
+}
+
+html[data-layout="desktop"] .menu-items { 
+    display: grid; 
+    /* استخدام auto-fit بدلاً من 3 أعمدة ثابتة ليتمدد عدد الأزرار حسب عرض الشاشة */
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+    gap: 20px; 
+}
+
+html[data-layout="desktop"] .menu-btn { 
+    flex-direction: column; 
+    justify-content: center; 
+    gap: 10px; 
+    height: 140px; 
+    padding: 16px 10px; 
+    font-size: 16px; 
+    border-radius: 24px; 
+    text-align: center; 
+}
+
+html[data-layout="desktop"] .menu-btn .icon { 
+    font-size: 32px; 
+}
+
+html[data-layout="desktop"] .menu-btn-logout { 
+    margin-top: 30px; 
+    flex-direction: row; 
+    justify-content: center; 
+    gap: 10px; 
+}
+
+html[data-layout="desktop"] .container { 
+    max-width: 96%; /* تم التعديل من 1240px ليأخذ معظم مساحة المتصفح */
+    padding: 30px 40px; 
+}
+
+html[data-layout="desktop"] table { 
+    display: table; 
+    width: 100%;
+}
+
+html[data-layout="desktop"] th, 
+html[data-layout="desktop"] td { 
+    padding: 16px 20px; 
+    font-size: 15px; 
+}
+
+html[data-layout="desktop"] .modal-content { 
+    max-width: 1000px; /* تم التكبير من 720px لتستوعب الجداول بداخلها براحة */
+    width: 90%;
+}
+
+html[data-layout="desktop"] .form-grid { 
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* تكبير حقول الإدخال لتتناسب مع العرض */
+}
+
+html[data-layout="desktop"] .settings-tabs { 
+    justify-content: flex-start; 
+}
+
+html[data-layout="desktop"] .settings-tabs .tab-btn { 
+    flex: 0 0 auto; 
+    padding-inline: 26px; 
+}
+
+html[data-layout="desktop"] .chat-container { 
+    height: calc(100dvh - 140px); 
+}
+
+html[data-layout="desktop"] .header-dash h2 { 
+    font-size: 24px; 
+}
+
+@media (max-width: 900px) {
+    html[data-layout="desktop"] .menu-items { 
+        grid-template-columns: repeat(2, minmax(0, 1fr)); 
+    }
+    html[data-layout="desktop"] .menu-btn { 
+        height: 120px; 
+    }
+}
