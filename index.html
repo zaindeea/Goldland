@@ -24,6 +24,23 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
+    <!-- شاشة مقدمة ZAIN -->
+    <div id="splash-intro" class="intro-overlay">
+        <div class="intro-container">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120000 80000" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd">
+                <g id="Layer_x0020_1">
+                    <polygon class="fil0" points="1502.76,21489.12 11858.86,34598.56 12516.38,33831.44 12516.38,27475.39 29721.49,27584.98 15310.85,44735.34 21064.14,44790.14 38707.63,26817.87 38707.63,21489.12 "/>
+                    <polygon class="fil1" points="39282.97,52926.99 28926.88,39817.55 28269.36,40584.66 28269.36,46940.72 11064.24,46831.12 25474.88,29680.76 19721.59,29625.97 2078.11,47598.24 2078.11,52926.99 "/>
+                    <polygon class="fil1" points="88837.45,52926.99 95007.12,52926.99 95007.12,33110.47 110432.9,52933.86 115883.37,52926.99 115883.37,22194.77 109713.7,22194.77 109713.7,41958.31 94322.22,22194.77 88837.45,22194.77 "/>
+                    <polygon class="fil0" points="41876.85,52926.99 56478.93,22194.77 62759.65,22194.77 48664.12,52926.99 "/>
+                    <polygon class="fil1" points="77293.59,52926.99 62759.65,22194.77 59540.76,29212.9 64985.73,41023.41 54136.79,40995.12 51727.52,46247.99 67287.24,46249.81 70403.82,52926.99 "/>
+                    <polygon class="fil1" points="86243.57,33785.18 86243.57,52926.99 79887.48,52926.99 79887.48,27886.55 "/>
+                    <polygon class="fil0" points="79887.48,22194.77 86243.57,22194.77 86243.57,31065.64 79887.48,25167.01 "/>
+                </g>
+            </svg>
+        </div>
+    </div>
+    <!-- نهاية شاشة المقدمة -->
 
     <div id="printReceipt" class="print-only" data-no-i18n></div>
 
@@ -272,7 +289,17 @@
             </div>
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
                 <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، التسلسل..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 150px;">
-                <select id="cloudStatusFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل الحالات --</option><option value="جديد">جديد</option><option value="قيد التجهيز">قيد التجهيز</option><option value="مسلم للمندوب">مسلم للمندوب</option><option value="تم التوصيل">تم التوصيل</option><option value="راجع">راجع</option><option value="راجع مخزن">راجع مخزن</option></select>
+                <select id="cloudStatusFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;">
+                    <option value="">-- كل الحالات --</option>
+                    <option value="جديد">جديد</option>
+                    <option value="قيد التجهيز">قيد التجهيز</option>
+                    <option value="مسلم للمندوب">مسلم للمندوب</option>
+                    <option value="تم التوصيل">تم التوصيل</option>
+                    <option value="راجع">راجع</option>
+                    <option value="راجع مخزن">راجع مخزن</option>
+                    <option value="تم المحاسبة">تم المحاسبة</option>
+                    <option value="قديم">قديم</option>
+                </select>
                 <select id="cloudPageFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;"><option value="">-- كل البيجات --</option></select>
             </div>
             <div style="overflow-y: auto; flex: 1;">
@@ -491,11 +518,39 @@
     <div class="modal-overlay no-print" id="confirmModal"><div class="modal-content" style="text-align:center;"><p id="confirmMessage" style="margin-bottom:20px; font-weight:bold;"></p><div style="display:flex; gap:10px;"><button id="confirmYesBtn" class="btn-danger" style="flex:1;">نعم</button><button class="btn-outline" onclick="closeConfirmModal()" style="flex:1;">إلغاء</button></div></div></div>
     
     <!-- النوافذ المنبثقة للتحرير وتغيير الحالة والتصدير -->
-    <div class="modal-overlay no-print" id="orderDetailsModal" style="z-index: 13500;"><div class="modal-content" style="max-width: 500px; text-align: start;"><span class="close-modal" onclick="closeOrderDetailsModal()">&times;</span><h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">📋 تفاصيل الطلب الكاملة</h3><div id="orderDetailsContent" style="display: flex; flex-direction: column; gap: 12px; background: var(--bg-color); padding: 20px; border-radius: 15px; box-shadow: var(--inner-shadow); font-size: 14px;"></div><button class="btn-parse" onclick="closeOrderDetailsModal()" style="width: 100%; margin-top: 20px;">إغلاق</button></div></div>
+    <div class="modal-overlay no-print" id="orderDetailsModal" style="z-index: 13500;"><div class="modal-content" style="max-width: 500px; text-align: start;"><span class="close-modal" onclick="closeOrderDetailsModal()">&times;</span><h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">📋 تفاصيل الطلب الكاملة</h3><div id="orderDetailsContent" style="display: flex; flex-direction: column; gap: 12px; background: var(--bg-color); padding: 20px; border-radius: 15px; box-shadow: var(--inner-shadow); font-size: 14px;"></div></div></div>
     <div class="modal-overlay no-print" id="quickTypeEditModal" style="z-index: 11500;"><div class="modal-content" style="max-width: 600px; text-align: start;"><span class="close-modal" onclick="closeQuickTypeEditModal()">&times;</span><h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">✏️ تعديل الطلب واللون والعدد</h3><div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><button type="button" class="btn-outline" onclick="addQuickTypeOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></div><div id="quickTypeDynamicRowsWrapper"></div></div><button class="btn-parse" onclick="saveQuickTypeEdit()" style="width: 100%; margin-top: 15px;">حفظ التعديلات 💾</button></div></div>
-    <div class="modal-overlay no-print" id="editOrderModal" style="z-index: 11000;"><div class="modal-content" style="max-width: 600px; text-align: start;"><span class="close-modal" onclick="closeEditModal()">&times;</span><h3 style="margin-bottom: 20px; text-align: center;">✏️ تحديث الطلب</h3><div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;"><label style="color: var(--primary-blue);">حالة الطلب</label><select id="editStatus" style="font-weight: bold;"><option value="جديد">جديد</option><option value="قيد التجهيز">قيد التجهيز</option><option value="مسلم للمندوب">مسلم للمندوب</option><option value="تم التوصيل">تم التوصيل</option><option value="راجع">راجع</option><option value="راجع مخزن">راجع مخزن</option></select></div><div class="form-grid"><div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div><div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div><div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr"></div><div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr"></div><div class="form-group"><label>المحافظة</label><input type="text" id="editGov"></div><div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div></div><div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><button type="button" class="btn-outline" onclick="addEditOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></div><div id="editDynamicRowsWrapper"></div></div><div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount"></div><button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التحديثات 💾</button></div></div>
-    <div class="modal-overlay no-print" id="bulkStatusModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 350px; text-align: center;"><span class="close-modal" onclick="closeBulkStatusModal()">&times;</span><h3 style="margin-bottom: 15px;">تغيير حالة الطلبات المحددة</h3><select id="bulkStatusSelect" style="margin-bottom: 25px; width: 100%; padding: 15px; border-radius: 15px;"><option value="جديد">جديد</option><option value="قيد التجهيز">قيد التجهيز</option><option value="مسلم للمندوب">مسلم للمندوب</option><option value="تم التوصيل">تم التوصيل</option><option value="راجع">راجع</option><option value="راجع مخزن">راجع مخزن</option></select><button class="btn-parse" onclick="saveBulkStatus()" style="width: 100%;">تطبيق على الكل 💾</button></div></div>
-    <div class="modal-overlay no-print" id="advancedExportModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 400px; text-align: start;"><span class="close-modal" onclick="closeAdvancedExportModal()">&times;</span><h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">📤 تصدير البيانات المتقدم</h3><div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;"><label>تحديد الحالة:</label><select id="exportStatusFilter" style="font-weight: bold;"><option value="all">-- كل الحالات --</option><option value="جديد">جديد</option><option value="قيد التجهيز">قيد التجهيز</option><option value="مسلم للمندوب">مسلم للمندوب</option><option value="تم التوصيل">تم التوصيل</option><option value="راجع">راجع</option><option value="راجع مخزن">راجع مخزن</option></select></div><div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;"><div class="form-group"><label>من تاريخ:</label><input type="date" id="exportDateFrom" dir="ltr"></div><div class="form-group"><label>إلى تاريخ:</label><input type="date" id="exportDateTo" dir="ltr"></div></div><div class="form-group" style="margin-top: 15px;"><label>صيغة التصدير:</label><select id="exportFormat"><option value="excel">ملف Excel 📊</option><option value="pdf">ملف PDF 📄</option></select></div><button class="btn-parse" onclick="executeAdvancedExport()" style="width: 100%; margin-top: 20px; font-size: 16px;">تصدير الآن 🚀</button></div></div>
+    <div class="modal-overlay no-print" id="editOrderModal" style="z-index: 11000;"><div class="modal-content" style="max-width: 600px; text-align: start;"><span class="close-modal" onclick="closeEditModal()">&times;</span><h3 style="margin-bottom: 20px; text-align: center;">✏️ تحديث الطلب</h3><div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;"><label style="color: var(--primary-blue);">حالة الطلب</label><select id="editStatus" style="font-weight: bold;">
+        <option value="جديد">جديد</option>
+        <option value="قيد التجهيز">قيد التجهيز</option>
+        <option value="مسلم للمندوب">مسلم للمندوب</option>
+        <option value="تم التوصيل">تم التوصيل</option>
+        <option value="راجع">راجع</option>
+        <option value="راجع مخزن">راجع مخزن</option>
+        <option value="تم المحاسبة">تم المحاسبة</option>
+        <option value="قديم">قديم</option>
+    </select></div><div class="form-grid"><div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div><div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div><div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr"></div><div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr"></div><div class="form-group"><label>المحافظة</label><input type="text" id="editGov"></div><div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div></div><div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><button type="button" class="btn-outline" onclick="addEditOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></div><div id="editDynamicRowsWrapper"></div></div><div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount"></div><button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التحديثات 💾</button></div></div>
+    <div class="modal-overlay no-print" id="bulkStatusModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 350px; text-align: center;"><span class="close-modal" onclick="closeBulkStatusModal()">&times;</span><h3 style="margin-bottom: 15px;">تغيير حالة الطلبات المحددة</h3><select id="bulkStatusSelect" style="margin-bottom: 25px; width: 100%; padding: 15px; border-radius: 15px;">
+        <option value="جديد">جديد</option>
+        <option value="قيد التجهيز">قيد التجهيز</option>
+        <option value="مسلم للمندوب">مسلم للمندوب</option>
+        <option value="تم التوصيل">تم التوصيل</option>
+        <option value="راجع">راجع</option>
+        <option value="راجع مخزن">راجع مخزن</option>
+        <option value="تم المحاسبة">تم المحاسبة</option>
+        <option value="قديم">قديم</option>
+    </select><button class="btn-parse" onclick="saveBulkStatus()" style="width: 100%;">تطبيق على الكل 💾</button></div></div>
+    <div class="modal-overlay no-print" id="advancedExportModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 400px; text-align: start;"><span class="close-modal" onclick="closeAdvancedExportModal()">&times;</span><h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">📤 تصدير البيانات المتقدم</h3><div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;"><label>تحديد الحالة:</label><select id="exportStatusFilter" style="font-weight: bold;">
+        <option value="all">-- كل الحالات --</option>
+        <option value="جديد">جديد</option>
+        <option value="قيد التجهيز">قيد التجهيز</option>
+        <option value="مسلم للمندوب">مسلم للمندوب</option>
+        <option value="تم التوصيل">تم التوصيل</option>
+        <option value="راجع">راجع</option>
+        <option value="راجع مخزن">راجع مخزن</option>
+        <option value="تم المحاسبة">تم المحاسبة</option>
+        <option value="قديم">قديم</option>
+    </select></div><div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 10px;"><div class="form-group"><label>من تاريخ:</label><input type="date" id="exportDateFrom" dir="ltr"></div><div class="form-group"><label>إلى تاريخ:</label><input type="date" id="exportDateTo" dir="ltr"></div></div><div class="form-group" style="margin-top: 15px;"><label>صيغة التصدير:</label><select id="exportFormat"><option value="excel">ملف Excel 📊</option><option value="pdf">ملف PDF 📄</option></select></div><button class="btn-parse" onclick="executeAdvancedExport()" style="width: 100%; margin-top: 20px; font-size: 16px;">تصدير الآن 🚀</button></div></div>
     <div class="modal-overlay no-print" id="createGroupModal" style="z-index: 12000;"><div class="modal-content" style="max-width: 400px; text-align: start;"><span class="close-modal" onclick="closeCreateGroupModal()">&times;</span><h3 style="text-align: center; margin-bottom: 20px;">👥 مجموعة جديدة</h3><div class="form-group"><label>اسم المجموعة</label><input type="text" id="newGroupName" placeholder="مثال: فريق المبيعات"></div><div class="form-group"><label>اختر الأعضاء</label><div id="groupMembersSelection" style="max-height: 180px; overflow-y: auto; background: var(--bg-color); box-shadow: var(--inner-shadow); padding: 15px; border-radius: 15px; display: flex; flex-direction: column; gap: 10px;"></div></div><button class="btn-parse" onclick="createChatGroup()" style="width: 100%; margin-top: 15px;">إنشاء المجموعة ➕</button></div></div>
 
     <!-- بروفايل الموظف -->
@@ -514,6 +569,21 @@
             <div class="employee-perms-box"><div id="view-emp-perms" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;"></div></div>
             <div class="employee-pass-box"><strong>كلمة المرور:</strong><span class="pass-locked">🔒 مشفّرة — لا يمكن عرضها</span></div>
             <div style="display: flex; gap: 10px;"><button id="view-emp-edit-btn" class="btn-outline" style="flex: 1;">✏️ تعديل</button><button id="view-emp-del-btn" class="btn-danger" style="flex: 1;">🗑️ حذف</button></div>
+        </div>
+    </div>
+
+    <!-- نافذة سجل تفاصيل الحالة للطلب (جديد) -->
+    <div class="modal-overlay no-print" id="orderHistoryModal" style="z-index: 14000;">
+        <div class="modal-content" style="max-width: 500px; text-align: start;">
+            <span class="close-modal" onclick="closeOrderHistoryModal()">&times;</span>
+            <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">📜 تفاصيل وتاريخ الحالة</h3>
+            <div id="orderHistoryContainer" style="max-height: 350px; overflow-y: auto; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--inner-shadow); display: flex; flex-direction: column; margin-bottom: 15px;">
+                <!-- سيتم وضع تفاصيل التعديلات والتعليقات هنا -->
+            </div>
+            <div class="chat-input-area" style="padding:0; border:none; background:transparent;">
+                <input type="text" id="orderCommentInput" placeholder="اكتب تعليقاً أو رداً على هذه الحالة..." style="box-shadow: var(--outer-shadow);" onkeypress="if(event.key==='Enter') addOrderComment()">
+                <button class="btn-parse send-btn" onclick="addOrderComment()" style="min-width: 80px; padding: 15px 20px;">إرسال</button>
+            </div>
         </div>
     </div>
 
