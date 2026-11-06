@@ -20,7 +20,6 @@ function parseAmount(v) {
 
 const arabicToEnglish = s => s.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
 
-// تحليل نص الطلب بمرونة وذكاء (يدعم الأقواس ويدعم النص المفصول بـ +)
 function parseTypeItems(typeStr) {
     const items = [];
     if (!typeStr) return items;
@@ -38,7 +37,6 @@ function parseTypeItems(typeStr) {
         });
     }
     
-    // المعالجة الذكية للنصوص التي لا تحتوي على أقواس وتفصل بينها علامة +
     if (!hasBrackets && typeStr.includes('+')) {
         typeStr.split('+').forEach(part => {
             const cleaned = part.trim();
@@ -53,7 +51,6 @@ function parseTypeItems(typeStr) {
 
 function colVal(row, ar) { return row[ar] ?? row[window.trEn(ar)]; }
 
-// كتابة الطلب بالصيغة المطلوبة: [الرمز (العدد) اللون]
 function orderItemsReadable(typeStr) {
     if (!typeStr) return '';
     const items = parseTypeItems(typeStr);
@@ -84,22 +81,52 @@ const firebaseConfig = {
 
 let db, app;
 let cloudOrdersUnsubscribe = null, stockUnsubscribe = null, transactionsUnsubscribe = null;
+window.isShowingOldArchive = false; // متحكم إظهار الحالات المؤرشفة
+
 try {
     app = initializeApp(firebaseConfig); db = getFirestore(app);
     window.logActionToCloud = async function(actionType, detailsStr) {
         if(!loggedInUser) return;
         try { await addDoc(collection(db, "action_logs"), { username: loggedInUser, action: actionType, details: detailsStr, timestamp: serverTimestamp() }); } catch(e) { console.error(e); }
     };
+    
     window.saveDataToFirebase = async function(orderData) { 
         try { orderData.timestamp = serverTimestamp(); await addDoc(collection(db, "orders"), orderData); window.logActionToCloud("إضافة طلب", `تم إضافة طلب للزبون: ${orderData.name}`); return true; 
         } catch (e) { window.showSuccessToast("حدث خطأ أثناء الحفظ"); return false; } 
     };
+    
     window.deleteOrderFromFirebase = async function(docId) { try { await deleteDoc(doc(db, "orders", docId)); window.logActionToCloud("حذف طلب", `تم مسح طلب نهائياً`); } catch (e) { console.error(e); } };
-    window.updateOrderInFirebase = async function(docId, newData) { try { await updateDoc(doc(db, "orders", docId), newData); const _li = allCloudOrders.findIndex(o => o.id_doc === docId); if(_li > -1) Object.assign(allCloudOrders[_li], newData); if(document.getElementById('archive-section').style.display === 'flex') window.filterCloudOrders(); let actType = newData.status ? "تغيير حالة" : "تعديل طلب"; window.logActionToCloud(actType, `تعديل/تحديث بيانات طلب`); } catch(e) { console.error(e); throw e; } };
+    
+    window.updateOrderInFirebase = async function(docId, newData) { 
+        try { 
+            // تسجيل تفاصيل الحالة إذا تم تغييرها
+            if (newData.status) {
+                let oldOrder = allCloudOrders.find(o => o.id_doc === docId);
+                if (oldOrder && oldOrder.status !== newData.status) {
+                    await addDoc(collection(db, "order_history"), {
+                        orderId: docId,
+                        type: 'status_change',
+                        oldStatus: oldOrder.status || 'جديد',
+                        newStatus: newData.status,
+                        addedBy: loggedInUser,
+                        timestamp: serverTimestamp()
+                    });
+                }
+            }
+            
+            await updateDoc(doc(db, "orders", docId), newData); 
+            const _li = allCloudOrders.findIndex(o => o.id_doc === docId); 
+            if(_li > -1) Object.assign(allCloudOrders[_li], newData); 
+            if(document.getElementById('archive-section').style.display === 'flex') window.filterCloudOrders(); 
+            let actType = newData.status ? "تغيير حالة" : "تعديل طلب"; 
+            window.logActionToCloud(actType, `تعديل/تحديث بيانات طلب`); 
+        } catch(e) { console.error(e); throw e; } 
+    };
     
     window.listenToCloudOrders = function() {
         if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; }
         allCloudOrders = []; 
+        window.isShowingOldArchive = false; // الوضع الافتراضي إخفاء الأرشيف القديم
         const startDate = new Date(); startDate.setDate(startDate.getDate() - 10); startDate.setHours(0,0,0,0);
         const q = query(collection(db, "orders"), where("timestamp", ">=", startDate), limit(1000));
         let isFirstLoad = true;
@@ -155,6 +182,52 @@ try {
     window.updateWhCatalogItemInFirebase = async function(docId, data) { await updateDoc(doc(db, "inventory_catalog", docId), data); };
     window.deleteWhCatalogItemFromFirebase = async function(docId) { await deleteDoc(doc(db, "inventory_catalog", docId)); };
 } catch(e) { console.warn("Firebase Init Error", e); }
+
+// =========================================
+// حقن الخيارات الجديدة (تحديث واجهة HTML)
+// =========================================
+window.injectNewStatuses = function() {
+    const newStatuses = [
+        {val: 'تم المحاسبة', text: 'تم المحاسبة'},
+        {val: 'قديم', text: 'قديم'}
+    ];
+    const selects = ['cloudStatusFilter', 'editStatus', 'bulkStatusSelect', 'exportStatusFilter'];
+    selects.forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel) {
+            newStatuses.forEach(s => {
+                if (!Array.from(sel.options).some(o => o.value === s.val)) {
+                    sel.add(new Option(s.text, s.val));
+                }
+            });
+        }
+    });
+};
+
+// إنشاء قالب نافذة تفاصيل الحالة وإضافته للمستند
+window.injectStatusHistoryModal = function() {
+    if (!document.getElementById('statusHistoryModal')) {
+        const modalHtml = `
+        <div class="modal-overlay no-print" id="statusHistoryModal" style="z-index: 14000;">
+            <div class="modal-content" style="max-width: 500px; text-align: start; display: flex; flex-direction: column; max-height: 90vh;">
+                <span class="close-modal" onclick="document.getElementById('statusHistoryModal').style.display='none'">&times;</span>
+                <h3 style="margin-bottom: 15px; text-align: center; color: var(--primary-blue);">🕒 تفاصيل الحالة والردود</h3>
+                <div id="statusHistoryContent" style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 15px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px; min-height: 250px;">
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="statusCommentInput" placeholder="اكتب رداً أو تعليقاً..." style="flex: 1; margin:0;" onkeypress="if(event.key==='Enter') window.addStatusComment()">
+                    <button class="btn-parse" onclick="window.addStatusComment()" style="margin:0; padding:10px 20px;">إرسال ✈️</button>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+    window.injectNewStatuses();
+    window.injectStatusHistoryModal();
+});
 
 // =========================================
 // الأمان: مصادقة مجهولة + تشفير كلمات المرور
@@ -306,6 +379,8 @@ setInterval(async () => { if(currentSessionId && document.visibilityState === 'v
 // الدخول والتنقل
 // =========================================
 window.login = async function() {
+    window.injectNewStatuses();
+    window.injectStatusHistoryModal();
     const user = document.getElementById("username").value.trim(), pass = document.getElementById("password").value, errorMsg = document.getElementById("login-error"), btn = document.getElementById("loginBtn");
     if(!user || !pass) { errorMsg.innerText = "أدخل اسم المستخدم وكلمة المرور"; errorMsg.style.display = "block"; return; }
     btn.innerText = "جاري التحقق... ⏳"; btn.disabled = true; errorMsg.style.display = "none";
@@ -401,7 +476,6 @@ window.parseText = function() {
 
     let extType = window.extractValueSmart(txt, 'نوع');
     
-    // إذا لم يجد كلمة "الطلب" في النص، لكنه وجد أصناف بين أقواس يتم استخراجها تلقائياً
     if (!extType) {
         const bracketMatches = txt.match(/\[.*?\s*\(\s*(?:\d+|[٠-٩]+)\s*\).*?\]/g);
         if (bracketMatches && bracketMatches.length > 0) {
@@ -435,7 +509,6 @@ window.buildOrderItemRow = function(wrapperId, tName = "", tQty = 1, tColor = ""
     wr.appendChild(r); window.updateOrderTypeSelects();
     const sel = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), tb = r.querySelector('.toggle-custom-btn');
     
-    // عند استخراج الرمز (في حال كان موجوداً ككود مباشر) نحاول العثور على اسمه من الإعدادات
     if (tName) { 
         const matchedType = configuredOrderTypes.find(t => t.code === tName || t.name === tName);
         const nameToSelect = matchedType ? matchedType.name : tName;
@@ -699,7 +772,7 @@ window.createChatGroup = async function() { const groupName = document.getElemen
 window.loadChatGroups = async function() { try { const snap = await getDocs(query(collection(db, "chat_groups"))); let groupsHtml = ''; let unreadPerChat = {}; allChatMessages.forEach(msg => { if(msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) { unreadPerChat[msg.chatId] = (unreadPerChat[msg.chatId] || 0) + 1; } }); snap.forEach(doc => { const data = doc.data(); if((data.members && data.members.includes(loggedInUser)) || isManager) { const chatId = 'group_' + doc.id; if(data.members && data.members.includes(loggedInUser)) myGroupIds.add(chatId); const unreadCount = unreadPerChat[chatId] || 0; const badgeStyle = unreadCount > 0 ? 'inline-flex' : 'none'; groupsHtml += `<div class="chat-list-item" id="chatItem_${esc(chatId)}" data-chat-id="${esc(chatId)}" data-title="${esc(data.name)}" onclick="window.openChat(this.dataset.chatId, this.dataset.title)"><div class="chat-avatar" style="background: linear-gradient(135deg, #00b09b, #96c93d);">👥</div><div class="chat-info" style="width: 100%; display: flex; justify-content: space-between; align-items: center;"><div><h4>${esc(data.name)}</h4><p>${data.members.length} أعضاء</p></div><span class="chat-unread-badge" id="badge_${esc(chatId)}" style="display:${badgeStyle};">${unreadCount}</span></div></div>`; } }); if(groupsHtml === '') groupsHtml = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size:12px;">لا توجد مجموعات بعد</div>'; document.getElementById('groupsListContainer').innerHTML = groupsHtml; } catch(e) {} }
 
 // =========================================
-// الأرشيف والمتابعة (تم تحسين النقر والتصدير والرموز)
+// الأرشيف والمتابعة (مع فلترة الحالات الجديدة)
 // =========================================
 window.openCloudOrders = function() { 
     document.getElementById("main-menu-section").style.display = "none"; document.getElementById("archive-section").style.display = "flex";
@@ -711,9 +784,29 @@ window.openCloudOrders = function() {
 }
 window.openArchiveFetchModal = function() { document.getElementById('archiveFetchModal').style.display = 'flex'; }
 window.closeArchiveFetchModal = function() { document.getElementById('archiveFetchModal').style.display = 'none'; }
-window.toggleAllOrders = function(source) { document.querySelectorAll('.order-cb').forEach(cb => cb.checked = source.checked); }
+window.toggleAllOrders = function(source) { document.querySelectorAll('.order-cb').forEach(cb => cb.checked = source.checked); window.updateArchiveCounts(); }
 window.updateSingleOrderStatus = async function(docId, newStatus) { if(window.updateOrderInFirebase) { try { await window.updateOrderInFirebase(docId, { status: newStatus }); window.showSuccessToast(`تم تغيير الحالة إلى ${newStatus}`); } catch(e) { alert("حدث خطأ."); window.filterCloudOrders(); } } }
-window.fetchOldOrders = async function() { const f = document.getElementById('oldOrdersFrom').value, t = document.getElementById('oldOrdersTo').value; if(!f || !t) { alert("الرجاء تحديد التاريخ"); return; } if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; } const fromD = new Date(f); fromD.setHours(0,0,0,0); const toD = new Date(t); toD.setHours(23,59,59,999); document.body.style.cursor = 'wait'; try { const q = query(collection(db, "orders"), where("timestamp", ">=", fromD), where("timestamp", "<=", toD)); const snap = await getDocs(q); allCloudOrders = []; snap.forEach(doc => { allCloudOrders.push({ id_doc: doc.id, ...doc.data() }); }); window.filterCloudOrders(); window.closeArchiveFetchModal(); window.showSuccessToast(`تم جلب ${snap.size} طلب!`); } catch(e) { console.error(e); } document.body.style.cursor = 'default'; }
+
+window.fetchOldOrders = async function() { 
+    const f = document.getElementById('oldOrdersFrom').value, t = document.getElementById('oldOrdersTo').value; 
+    if(!f || !t) { alert("الرجاء تحديد التاريخ"); return; } 
+    if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; } 
+    const fromD = new Date(f); fromD.setHours(0,0,0,0); 
+    const toD = new Date(t); toD.setHours(23,59,59,999); 
+    document.body.style.cursor = 'wait'; 
+    try { 
+        const q = query(collection(db, "orders"), where("timestamp", ">=", fromD), where("timestamp", "<=", toD)); 
+        const snap = await getDocs(q); 
+        allCloudOrders = []; 
+        snap.forEach(doc => { allCloudOrders.push({ id_doc: doc.id, ...doc.data() }); }); 
+        
+        window.isShowingOldArchive = true; // السماح بإظهار الحالات (تم المحاسبة) و (قديم)
+        window.filterCloudOrders(); 
+        window.closeArchiveFetchModal(); 
+        window.showSuccessToast(`تم جلب ${snap.size} طلب!`); 
+    } catch(e) { console.error(e); } 
+    document.body.style.cursor = 'default'; 
+}
 window.reloadCurrentMonth = function() { window.listenToCloudOrders(); window.closeArchiveFetchModal(); window.showSuccessToast("تم العودة لطلبات آخر 10 أيام 📅"); }
 
 window.filterCloudOrders = function() {
@@ -726,10 +819,19 @@ window.filterCloudOrders = function() {
     document.getElementById('selectAllCb').checked = false; 
     
     let sortedOrders = [...allCloudOrders].sort((a, b) => String(a.id || '').localeCompare(String(b.id || ''), 'ar', { numeric: true, sensitivity: 'base' }));
+    
     let filtered = sortedOrders.filter(o => { 
-        return ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || String(o.id||"").includes(qt)) && 
+        let match = ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || String(o.id||"").includes(qt)) && 
                (pF === "" || (o.constant||"") === pF) && 
                (sF === "" || (o.status||"جديد") === sF); 
+        
+        // إخفاء الحالات المؤرشفة إلا في حال جلب القديم أو إذا تم فلترتها صراحة
+        if (!window.isShowingOldArchive && sF === "") {
+            if (o.status === 'تم المحاسبة' || o.status === 'قديم') {
+                match = false;
+            }
+        }
+        return match;
     });
     
     filtered.forEach(o => {
@@ -743,8 +845,19 @@ window.filterCloudOrders = function() {
         if(st === 'تم التوصيل') statusColor = '#2ecc71'; 
         if(st === 'راجع') statusColor = '#e74c3c'; 
         if(st === 'راجع مخزن') statusColor = '#1d0c01';
+        if(st === 'تم المحاسبة') statusColor = '#00b894';
+        if(st === 'قديم') statusColor = '#e84393'; 
         
-        let statusSelectHtml = `<select onchange="window.updateSingleOrderStatus('${esc(o.id_doc)}', this.value)" style="background:${statusColor}; color:white; border:none; padding: 5px; border-radius: 10px; font-size:11px; font-weight:bold; outline:none; appearance:auto; box-shadow:none; min-width:100px;"><option value="جديد" ${st==='جديد'?'selected':''}>جديد</option><option value="قيد التجهيز" ${st==='قيد التجهيز'?'selected':''}>قيد التجهيز</option><option value="مسلم للمندوب" ${st==='مسلم للمندوب'?'selected':''}>مسلم للمندوب</option><option value="تم التوصيل" ${st==='تم التوصيل'?'selected':''}>تم التوصيل</option><option value="راجع" ${st==='راجع'?'selected':''}>راجع</option><option value="راجع مخزن" ${st==='راجع مخزن'?'selected':''}>راجع مخزن</option></select>`;
+        if(st === 'قديم') {
+            tr.style.backgroundColor = 'rgba(232, 67, 147, 0.08)'; // خلفية مميزة لحالة قديم
+        }
+        
+        let allStatusOptions = ['جديد', 'قيد التجهيز', 'مسلم للمندوب', 'تم التوصيل', 'راجع', 'راجع مخزن', 'تم المحاسبة', 'قديم'];
+        let statusSelectHtml = `<select onchange="window.updateSingleOrderStatus('${esc(o.id_doc)}', this.value)" style="background:${statusColor}; color:white; border:none; padding: 5px; border-radius: 10px; font-size:11px; font-weight:bold; outline:none; appearance:auto; box-shadow:none; min-width:100px;">`;
+        allStatusOptions.forEach(sOpt => {
+            statusSelectHtml += `<option value="${sOpt}" ${st===sOpt?'selected':''}>${sOpt}</option>`;
+        });
+        statusSelectHtml += `</select>`;
         
         tr.innerHTML = `
             <td style="text-align: center;"><input type="checkbox" class="order-cb" value="${esc(o.id_doc)}" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></td>
@@ -773,7 +886,7 @@ window.filterCloudOrders = function() {
         
         tb.appendChild(tr);
     });
-    // إضافة تحديث الدوائر هنا
+    
     if (typeof window.updateArchiveCounts === 'function') {
         window.updateArchiveCounts();
     }
@@ -782,29 +895,20 @@ window.filterCloudOrders = function() {
 // دوال تحديث أرقام الأرشيف (الدوائر)
 // =========================================
 window.updateArchiveCounts = function() {
-    // حساب العدد الكلي المعروض في الجدول
     const displayedRows = document.querySelectorAll('#cloudOrdersTbody tr').length;
-    
-    // حساب عدد الطلبات المحددة 
     const selectedRows = document.querySelectorAll('.order-cb:checked').length;
-
     const totalCircle = document.getElementById('totalCountCircle');
     const selectedCircle = document.getElementById('selectedCountCircle');
 
-    if (totalCircle) {
-        totalCircle.innerText = displayedRows;
-    }
+    if (totalCircle) totalCircle.innerText = displayedRows;
     
     if (selectedCircle) {
         selectedCircle.innerText = selectedRows;
-        
-        // تغيير اللون فقط عند التحديد بدون تكبير الحجم لتجنب التشوه
         if (selectedRows > 0) {
-            selectedCircle.style.background = '#ccbc2e'; // لون أخضر عند التحديد (أو يمكنك وضع #b8860b للذهبي)
+            selectedCircle.style.background = '#ccbc2e'; 
             selectedCircle.style.color = '#0c0303';
             selectedCircle.style.borderColor = '#f59f00';
         } else {
-            // العودة للشكل الطبيعي
             selectedCircle.style.background = 'rgba(184, 134, 11, 0.05)';
             selectedCircle.style.color = '#b8860b';
             selectedCircle.style.borderColor = '#b8860b';
@@ -812,13 +916,15 @@ window.updateArchiveCounts = function() {
     }
 };
 
-// مراقبة النقر على أي Checkbox لتحديث دائرة "العدد المحدد" فوراً
 document.addEventListener('change', function(e) {
-    // التحقق مما إذا كان العنصر الذي تم النقر عليه هو checkbox خاص بالطلبات أو زر تحديد الكل
     if (e.target && (e.target.classList.contains('order-cb') || e.target.id === 'selectAllCb')) {
         window.updateArchiveCounts();
     }
 });
+
+// =========================================
+// تفاصيل الطلب وسجل الحالة
+// =========================================
 window.openOrderDetailsModal = function(docId) { 
     let order = allCloudOrders.find(o => o.id_doc === docId); 
     if(!order) return; 
@@ -826,7 +932,6 @@ window.openOrderDetailsModal = function(docId) {
     const dateStr = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleString(window.getLocale()) : '-'; 
     let amt = parseAmount(order.amount);
     
-    // تصميم البطاقة التي سيتم تصديرها كملف
     let contentHtml = `
     <div id="exportableOrderDetails" style="background: #fff; color: #000; padding: 25px; border-radius: 10px; direction: rtl; font-family: Arial, sans-serif; box-sizing: border-box;">
         <h2 style="text-align: center; margin: 0 0 5px 0; font-size: 22px;">Gold Land</h2>
@@ -837,7 +942,6 @@ window.openOrderDetailsModal = function(docId) {
         <div style="margin-bottom: 10px;"><strong>البيج:</strong> ${esc(order.constant || '-')}</div>
         <div style="margin-bottom: 10px;"><strong>اسم الزبون:</strong> ${esc(order.name || '-')}</div>
         
-        <!-- إضافة أرقام الهواتف بشكل واضح -->
         <div style="margin-bottom: 10px;">
             <strong>الهاتف الأول:</strong> <span dir="ltr">${esc(order.phone1 || '-')}</span>
         </div>
@@ -854,16 +958,16 @@ window.openOrderDetailsModal = function(docId) {
         </div>
     </div>`; 
 
-    // أزرار التحكم (لا تظهر في ملف الـ PDF)
+    // إضافة زر "تفاصيل الحالة"
     let actionsHtml = `
     <div style="display:flex; gap:10px; margin-top:15px;" class="no-print">
-        <button class="btn-parse" style="flex:1; background: #2ecc71; color: white;" onclick="window.exportOrderDetailsPDF('${esc(order.id || '')}')">📄 حفظ كـ PDF</button>
+        <button class="btn-parse" style="flex:1; background: #2ecc71; color: white;" onclick="window.exportOrderDetailsPDF('${esc(order.id || '')}')">📄 PDF</button>
+        <button class="btn-parse" style="flex:1; background: var(--primary-blue); color: white;" onclick="window.openOrderStatusHistory('${esc(docId)}')">🕒 تفاصيل الحالة</button>
+        <button class="btn-outline" style="flex:1;" onclick="window.closeOrderDetailsModal()">إغلاق</button>
     </div>`;
 
     let container = document.getElementById('orderDetailsContent');
     container.innerHTML = contentHtml + actionsHtml; 
-    
-    // إزالة الحواف الظلّية الافتراضية من الحاوية لضمان شكل جميل للطباعة
     container.style.background = 'transparent';
     container.style.boxShadow = 'none';
     container.style.padding = '0';
@@ -874,8 +978,6 @@ window.openOrderDetailsModal = function(docId) {
 window.exportOrderDetailsPDF = function(orderId) {
     const element = document.getElementById('exportableOrderDetails');
     if(!element) return;
-    
-    // تغيير المؤشر لدلالة على التحميل
     document.body.style.cursor = 'wait';
     
     const opt = {
@@ -897,6 +999,93 @@ window.exportOrderDetailsPDF = function(orderId) {
 
 window.closeOrderDetailsModal = function() { document.getElementById('orderDetailsModal').style.display = 'none'; };
 
+window.currentHistoryOrderId = null;
+
+// دالة فتح نافذة تفاصيل الحالة وسجل التعليقات
+window.openOrderStatusHistory = function(docId) {
+    window.currentHistoryOrderId = docId;
+    window.injectStatusHistoryModal();
+    document.getElementById('statusHistoryModal').style.display = 'flex';
+    window.loadOrderStatusHistory(docId);
+}
+
+// دالة جلب السجل والتغييرات
+window.loadOrderStatusHistory = async function(docId) {
+    const container = document.getElementById('statusHistoryContent');
+    container.innerHTML = '<div style="text-align:center; color:gray; margin-top:20px;">جاري التحميل... ⏳</div>';
+    try {
+        const q = query(collection(db, "order_history"), where("orderId", "==", docId));
+        const snap = await getDocs(q);
+        let html = '';
+        if (snap.empty) {
+            html = '<div style="text-align:center; color:gray; margin-top:20px;">لا توجد تفاصيل أو ردود سابقة.</div>';
+        } else {
+            let docsData = [];
+            snap.forEach(docSnap => docsData.push(docSnap.data()));
+            
+            docsData.sort((a, b) => {
+                let t1 = a.timestamp && a.timestamp.seconds ? a.timestamp.seconds : 0;
+                let t2 = b.timestamp && b.timestamp.seconds ? b.timestamp.seconds : 0;
+                return t1 - t2; 
+            });
+
+            docsData.forEach(d => {
+                let timeStr = d.timestamp ? new Date(d.timestamp.seconds * 1000).toLocaleString(window.getLocale()) : 'الآن';
+                let userName = d.addedBy || 'مستخدم غير معروف'; 
+
+                if (d.type === 'status_change') {
+                    html += `
+                    <div style="background: rgba(64,123,255,0.1); padding: 12px; border-radius: 12px; font-size: 13px; text-align:center; border: 1px solid rgba(64,123,255,0.2); margin-bottom: 10px;">
+                        <div style="color: var(--primary-blue); font-weight: bold; margin-bottom: 5px;">🔄 تغيير حالة (${esc(userName)})</div>
+                        <div>من <span style="font-weight:bold;">${esc(d.oldStatus)}</span> إلى <span style="font-weight:bold; color:#e84393;">${esc(d.newStatus)}</span></div>
+                        <div style="font-size: 10px; color: gray; margin-top: 5px;">${timeStr}</div>
+                    </div>`;
+                } else if (d.type === 'comment') {
+                    let isMe = d.addedBy === loggedInUser;
+                    let align = isMe ? 'flex-start' : 'flex-end';
+                    let bg = isMe ? 'var(--button-gradient)' : 'var(--bg-color)';
+                    let color = isMe ? 'white' : 'var(--text-color)';
+                    let shadow = isMe ? 'var(--outer-shadow)' : 'var(--inner-shadow)';
+
+                    html += `
+                    <div style="display: flex; flex-direction: column; align-items: ${align}; margin-bottom: 10px;">
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px; padding: 0 5px; font-weight:bold;">${esc(userName)}</div>
+                        <div style="background: ${bg}; color: ${color}; padding: 10px 15px; border-radius: 15px; box-shadow: ${shadow}; font-size: 14px; max-width: 85%;">
+                            ${esc(d.text)}
+                        </div>
+                        <div style="font-size: 10px; color: gray; margin-top: 3px;">${timeStr}</div>
+                    </div>`;
+                }
+            });
+        }
+        container.innerHTML = html;
+        container.scrollTop = container.scrollHeight;
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<div style="text-align:center; color:#ff4757; margin-top:20px;">حدث خطأ أثناء تحميل السجل.</div>';
+    }
+}
+// دالة إضافة رد أو تعليق
+window.addStatusComment = async function() {
+    let input = document.getElementById('statusCommentInput');
+    let txt = input.value.trim();
+    if (!txt || !currentHistoryOrderId) return;
+    input.value = '';
+    
+    try {
+        await addDoc(collection(db, "order_history"), {
+            orderId: currentHistoryOrderId,
+            type: 'comment',
+            text: txt,
+            addedBy: loggedInUser,
+            timestamp: serverTimestamp()
+        });
+        window.loadOrderStatusHistory(currentHistoryOrderId);
+    } catch (e) {
+        window.showSuccessToast('حدث خطأ أثناء الإرسال');
+    }
+}
+
 window.openQuickTypeEditModal = function(docId) { if(!loggedInUserCanEditType && !isManager) { alert("❌ ليس لديك صلاحية لتعديل نوع الطلب."); return; } let order = allCloudOrders.find(o => o.id_doc === docId); if(!order) return; currentEditDocId = docId; document.getElementById('quickTypeDynamicRowsWrapper').innerHTML = ''; window.fillOrderRows(order.type, 'addQuickTypeOrderItemRow'); document.getElementById('quickTypeEditModal').style.display = 'flex'; }
 window.closeQuickTypeEditModal = function() { document.getElementById('quickTypeEditModal').style.display = 'none'; currentEditDocId = null; }
 window.saveQuickTypeEdit = async function() { if(!currentEditDocId) return; let arr = [], totQty = 0; document.querySelectorAll('#quickTypeDynamicRowsWrapper .order-item-row').forEach(r => { let s = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), cv = r.querySelector('.orderColorInput').value.trim(); let tv = (ci.style.display !== 'none') ? ci.value.trim() : s.value.trim(); let qv = parseInt(r.querySelector('.orderQtyInput').value) || 1; if (tv !== "") { let ft = configuredOrderTypes.find(t => t.name === tv), cd = ft ? ft.code : tv, colorText = cv ? ` ${cv}` : ""; arr.push(`[${cd} (${qv})${colorText}]`); totQty += qv; } }); const newData = { type: arr.join(' + '), qty: totQty }; document.body.style.cursor = 'wait'; if(window.updateOrderInFirebase) { try { await window.updateOrderInFirebase(currentEditDocId, newData); window.closeQuickTypeEditModal(); window.showSuccessToast("تم تحديث الطلب بنجاح! ✏️"); } catch(e) {} } document.body.style.cursor = 'default'; }
@@ -909,9 +1098,53 @@ window.bulkEditOrder = function() { let selectedIds = Array.from(document.queryS
 window.bulkPrintOrders = function() { let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value); if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لطباعتها!"); return; } let printContainer = document.getElementById('printReceipt'); printContainer.innerHTML = ''; selectedIds.forEach((id, index) => { let order = allCloudOrders.find(o => o.id_doc === id); if(order) { let amt = parseAmount(order.amount); let receiptHtml = `<div class="receipt-page" style="${index > 0 ? 'page-break-before: always;' : ''}"><h2 style="text-align: center; margin: 0; font-size: 24px;">Gold Land</h2><p style="text-align: center; margin: 5px 0 15px 0; font-size: 12px; border-bottom: 1px dashed #000; padding-bottom: 10px;">للتميز عنوان</p><div style="margin-bottom: 10px;"><strong>الزبون:</strong> ${esc(order.name || '-')}</div><div style="margin-bottom: 10px;"><strong>الهاتف:</strong> <span dir="ltr">${esc(order.phone1 || '-')}</span></div><div style="margin-bottom: 10px;"><strong>العنوان:</strong> ${esc((order.gov || '') + ' - ' + (order.area || ''))}</div><div style="margin-bottom: 10px;"><strong>الطلب:</strong> <span dir="ltr">${esc(orderItemsReadable(order.type) || '-')}</span></div><div style="margin-bottom: 15px;"><strong>الملاحظات:</strong> ${esc(order.note || 'لا يوجد')}</div><h3 style="text-align: center; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 10px 0; margin: 15px 0;">المبلغ الكلي: ${amt.toLocaleString()} دينار</h3><div style="text-align: center; margin-top: 15px;"><svg id="barcode_${id}"></svg></div><p style="text-align: center; font-size: 10px; margin-top: 10px;">تاريخ الطباعة: ${new Date().toLocaleString(window.getLocale())}</p></div>`; printContainer.innerHTML += receiptHtml; } }); selectedIds.forEach(id => { let order = allCloudOrders.find(o => o.id_doc === id); let bCode = order.id ? order.id.toString() : "0000"; JsBarcode("#barcode_" + id, bCode, { format: "CODE128", width: 1.5, height: 40, displayValue: true, fontSize: 14 }); }); window.print(); }
 window.bulkExportPDF = function() { let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value); if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لتصديرها كـ PDF!"); return; } let printContainer = document.createElement('div'); printContainer.setAttribute('data-no-i18n', ''); printContainer.style.background = '#fff'; printContainer.style.color = '#000'; printContainer.style.width = '148mm'; selectedIds.forEach((id, index) => { let order = allCloudOrders.find(o => o.id_doc === id); if(order) { let amt = parseAmount(order.amount); let receiptHtml = `<div style="width: 148mm; height: 195mm; padding: 20px; box-sizing: border-box; font-family: Arial; direction: rtl; text-align: right; margin: 0 auto; ${index > 0 ? 'page-break-before: always;' : ''}"><h2 style="text-align: center; font-size: 24px; margin:0;">Gold Land</h2><p style="text-align: center; font-size: 12px; border-bottom: 1px dashed #000; padding-bottom: 10px;">للتميز عنوان</p><div style="margin-bottom: 10px;"><strong>الزبون:</strong> ${esc(order.name || '-')}</div><div style="margin-bottom: 10px;"><strong>الهاتف:</strong> <span dir="ltr">${esc(order.phone1 || '-')}</span></div><div style="margin-bottom: 10px;"><strong>العنوان:</strong> ${esc((order.gov || '') + ' - ' + (order.area || ''))}</div><div style="margin-bottom: 10px;"><strong>الطلب:</strong> <span dir="ltr">${esc(orderItemsReadable(order.type) || '-')}</span></div><div style="margin-bottom: 15px;"><strong>الملاحظات:</strong> ${esc(order.note || 'لا يوجد')}</div><h3 style="text-align: center; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 10px 0; margin: 15px 0;">المبلغ الكلي: ${amt.toLocaleString()} دينار</h3><div style="text-align: center; margin-top: 15px;"><svg id="pdf_barcode_${id}"></svg></div><p style="text-align: center; font-size: 10px; margin-top: 10px;">تاريخ الطباعة: ${new Date().toLocaleString(window.getLocale())}</p></div>`; printContainer.innerHTML += receiptHtml; } }); document.body.appendChild(printContainer); selectedIds.forEach(id => { let order = allCloudOrders.find(o => o.id_doc === id); let bCode = order.id ? order.id.toString() : "0000"; JsBarcode("#pdf_barcode_" + id, bCode, { format: "CODE128", width: 1.5, height: 40, displayValue: true, fontSize: 14 }); }); const opt = { margin: 0, filename: window.tr(`وصولات_${new Date().toLocaleDateString(window.getLocale())}.pdf`), image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' } }; html2pdf().set(opt).from(printContainer).save().then(() => { document.body.removeChild(printContainer); }); }
 window.bulkDeleteOrders = function() { let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value); if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لحذفها!"); return; } window.showConfirmDialog(`هل أنت متأكد من حذف ${selectedIds.length} طلب بشكل نهائي؟`, async function() { document.body.style.cursor = 'wait'; try { for(let i = 0; i < selectedIds.length; i += 400) { const batch = writeBatch(db); selectedIds.slice(i, i + 400).forEach(id => batch.delete(doc(db, "orders", id))); await batch.commit(); } allCloudOrders = allCloudOrders.filter(o => !selectedIds.includes(o.id_doc)); window.logActionToCloud("حذف طلبات", `تم مسح ${selectedIds.length} طلب نهائياً`); window.filterCloudOrders(); window.showSuccessToast(`تم حذف ${selectedIds.length} طلب بنجاح! 🗑️`); } catch(e) {} document.body.style.cursor = 'default'; }); }
-window.showBulkStatusModal = function() { let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value); if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لتغيير حالتها!"); return; } document.getElementById('bulkStatusModal').style.display = 'flex'; }
+
+window.showBulkStatusModal = function() { 
+    let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value); 
+    if(selectedIds.length === 0) { alert("يرجى تحديد طلبات لتغيير حالتها!"); return; } 
+    document.getElementById('bulkStatusModal').style.display = 'flex'; 
+}
 window.closeBulkStatusModal = function() { document.getElementById('bulkStatusModal').style.display = 'none'; }
-window.saveBulkStatus = async function() { let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value); if(selectedIds.length === 0) { window.closeBulkStatusModal(); return; } let newStatus = document.getElementById('bulkStatusSelect').value; document.body.style.cursor = 'wait'; try { for(let i = 0; i < selectedIds.length; i += 400) { const batch = writeBatch(db); selectedIds.slice(i, i + 400).forEach(id => batch.update(doc(db, "orders", id), { status: newStatus })); await batch.commit(); } allCloudOrders.forEach(o => { if(selectedIds.includes(o.id_doc)) o.status = newStatus; }); window.logActionToCloud("تغيير حالة", `تغيير حالة ${selectedIds.length} طلب إلى ${newStatus}`); window.filterCloudOrders(); window.closeBulkStatusModal(); window.showSuccessToast(`تم تغيير حالة ${selectedIds.length} طلب إلى (${newStatus}) بنجاح!`); } catch(e) {} document.body.style.cursor = 'default'; }
+
+// تأكيد وحفظ التغيير الجماعي وتوثيقه في السجل
+window.saveBulkStatus = async function() { 
+    let selectedIds = Array.from(document.querySelectorAll('.order-cb:checked')).map(cb => cb.value); 
+    if(selectedIds.length === 0) { window.closeBulkStatusModal(); return; } 
+    let newStatus = document.getElementById('bulkStatusSelect').value; 
+
+    window.showConfirmDialog(`تأكيد تغيير حالة (${selectedIds.length}) طلب إلى (${newStatus})؟`, async function() {
+        document.body.style.cursor = 'wait'; 
+        try { 
+            for(let i = 0; i < selectedIds.length; i += 400) { 
+                const batch = writeBatch(db); 
+                selectedIds.slice(i, i + 400).forEach(id => {
+                    let oldOrder = allCloudOrders.find(x => x.id_doc === id);
+                    let oldStatus = oldOrder ? oldOrder.status : 'جديد';
+                    batch.update(doc(db, "orders", id), { status: newStatus }); 
+                    
+                    // توثيق التغيير في سجل الحالة
+                    if (oldStatus !== newStatus) {
+                        batch.set(doc(collection(db, "order_history")), {
+                            orderId: id,
+                            type: 'status_change',
+                            oldStatus: oldStatus || 'جديد',
+                            newStatus: newStatus,
+                            addedBy: loggedInUser,
+                            timestamp: serverTimestamp()
+                        });
+                    }
+                });
+                await batch.commit(); 
+            } 
+            allCloudOrders.forEach(o => { if(selectedIds.includes(o.id_doc)) o.status = newStatus; }); 
+            window.logActionToCloud("تغيير حالة", `تغيير حالة ${selectedIds.length} طلب إلى ${newStatus}`); 
+            window.filterCloudOrders(); 
+            window.closeBulkStatusModal(); 
+            window.showSuccessToast(`تم تغيير حالة ${selectedIds.length} طلب إلى (${newStatus}) بنجاح!`); 
+        } catch(e) {} 
+        document.body.style.cursor = 'default'; 
+    });
+}
 
 window.downloadExcelTemplate = function() { const ws = XLSX.utils.aoa_to_sheet([["تسلسل الزبون", "البيج", "اسم الزبون", "رقم الهاتف الأول", "رقم الهاتف الثاني", "المحافظة", "المنطقة", "الطلب", "العدد", "المبلغ الكلي", "ملاحظات"].map(h => window.tr(h))]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, window.tr("النموذج")); XLSX.writeFile(wb, window.tr("نموذج_رفع_الطلبات.xlsx")); }
 
@@ -943,7 +1176,6 @@ window.confirmExcelUpload = function() {
                 let formattedType = rawType;
                 let calculatedQty = parseInt(colVal(row, "العدد")) || 0;
 
-                // قراءة الطلب المرفوع وتنسيقه كطلبات متعددة إذا لزم الأمر
                 if (rawType && !rawType.includes('[')) {
                     const parts = rawType.split('+').map(p => p.trim()).filter(Boolean);
                     if (parts.length > 0) {
@@ -1099,8 +1331,8 @@ window.executeAdvancedExport = function() {
 window.openReports = async function() { if (!loggedInUserCanReports && !isManager) { alert("❌ ليس لديك صلاحية."); return; } document.getElementById("main-menu-section").style.display = "none"; document.getElementById("reports-section").style.display = "flex"; let pagesHtml = '<option value="all">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join(''); document.getElementById('repPageFilter').innerHTML = pagesHtml; document.getElementById('repFinPageFilter').innerHTML = pagesHtml; document.getElementById('repChartsPageFilter').innerHTML = pagesHtml; let typesHtml = '<option value="all">-- كل الطلبات --</option>' + configuredOrderTypes.map(t => `<option value="${esc(t.code)}">${esc(t.name)} (${esc(t.code)})</option>`).join('') + '<option value="أخرى">أخرى (غير مسجلة)</option>'; document.getElementById('repTypeFilter').innerHTML = typesHtml; document.getElementById('repPageTypeFilter').innerHTML = typesHtml; let empHtml = '<option value="">-- اختر الموظف --</option>'; let allEmpNames = [adminProfile.username, ...additionalUsers.map(u => u.username)].filter(Boolean); allEmpNames.forEach(name => { empHtml += `<option value="${esc(name)}">${esc(name)}</option>`; }); document.getElementById('repEmpSelect').innerHTML = empHtml; window.generateReports(); }
 window.switchReportTab = function(tabId, btn) { document.querySelectorAll('#reports-section .tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('#reports-section .tab-pane').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); if(tabId === 'repWhTab') window.generateWarehouseReports(); else window.generateReports(); }
 
-const STATUS_ORDER = ['جديد', 'قيد التجهيز', 'مسلم للمندوب', 'تم التوصيل', 'راجع', 'راجع مخزن'];
-const STATUS_COLORS = { 'جديد': '#407bff', 'قيد التجهيز': '#f39c12', 'مسلم للمندوب': '#9b59b6', 'تم التوصيل': '#2ecc71', 'راجع': '#ff4757', 'راجع مخزن': '#e67e22' };
+const STATUS_ORDER = ['جديد', 'قيد التجهيز', 'مسلم للمندوب', 'تم التوصيل', 'راجع', 'راجع مخزن', 'تم المحاسبة', 'قديم'];
+const STATUS_COLORS = { 'جديد': '#407bff', 'قيد التجهيز': '#f39c12', 'مسلم للمندوب': '#9b59b6', 'تم التوصيل': '#2ecc71', 'راجع': '#ff4757', 'راجع مخزن': '#e67e22', 'تم المحاسبة': '#00b894', 'قديم': '#e84393' };
 const STATUS_OTHER_COLOR = '#8e8aa8';
 
 window.renderStatusCharts = function (orders) {
@@ -1346,7 +1578,7 @@ if ('serviceWorker' in navigator) {
 }
 
 // =========================================
-// تغيير اللغة
+// تغيير اللغة والمقدمة
 // =========================================
 document.addEventListener('gl-language-changed', () => {
     try {
@@ -1359,4 +1591,13 @@ document.addEventListener('gl-language-changed', () => {
             if (window.renderWarehouseStock) window.renderWarehouseStock();
         }
     } catch (e) {}
+});
+
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        const splash = document.getElementById('splash-intro');
+        if (splash) {
+            splash.remove();
+        }
+    }, 6500);
 });
