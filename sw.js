@@ -1,4 +1,5 @@
-const CACHE_NAME = 'gold-land-v4.2';
+const CACHE_NAME = 'gold-land-v4.3';
+const NETWORK_TIMEOUT_MS = 4000;
 const urlsToCache = [
   './',
   './index.html',
@@ -57,7 +58,7 @@ self.addEventListener('fetch', event => {
 async function networkFirst(req) {
   const cache = await caches.open(CACHE_NAME);
   try {
-    const res = await fetch(req);
+    const res = await fetchWithTimeout(req, NETWORK_TIMEOUT_MS);
     if (res && res.ok && res.status === 200) cache.put(req, res.clone()).catch(() => {});
     return res;
   } catch (err) {
@@ -69,6 +70,13 @@ async function networkFirst(req) {
     }
     return new Response('Offline', { status: 503, statusText: 'Offline' });
   }
+}
+
+function fetchWithTimeout(req, ms) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms);
+    fetch(req).then(r => { clearTimeout(t); resolve(r); }, e => { clearTimeout(t); reject(e); });
+  });
 }
 
 async function cacheFirst(req) {

@@ -70,6 +70,7 @@ function exportFileName(ext, statusVal) {
     return `تصدير_${st.replace(/\s+/g, '_')}_${day}.${ext}`;
 }
 
+window.__glBooted = true;
 const firebaseConfig = {
     apiKey: "AIzaSyA-2N_HZoej2Vv3vQa0P5hu0gvmwVs0R3o",
     authDomain: "gold-land2021.firebaseapp.com",
@@ -81,7 +82,7 @@ const firebaseConfig = {
 
 let db, app;
 let cloudOrdersUnsubscribe = null, stockUnsubscribe = null, transactionsUnsubscribe = null;
-window.isShowingOldArchive = false; 
+window.isShowingOldArchive = false; // متحكم إظهار الحالات المؤرشفة
 
 try {
     app = initializeApp(firebaseConfig); db = getFirestore(app);
@@ -99,17 +100,18 @@ try {
     
     window.updateOrderInFirebase = async function(docId, newData) { 
         try { 
+            // تسجيل تفاصيل الحالة إذا تم تغييرها
             if (newData.status) {
                 let oldOrder = allCloudOrders.find(o => o.id_doc === docId);
                 if (oldOrder && oldOrder.status !== newData.status) {
-                    await addDoc(collection(db, "order_history"), {
+                    try { await addDoc(collection(db, "order_history"), {
                         orderId: docId,
                         type: 'status_change',
                         oldStatus: oldOrder.status || 'جديد',
                         newStatus: newData.status,
                         addedBy: loggedInUser,
                         timestamp: serverTimestamp()
-                    });
+                    }); } catch (he) { console.warn('order_history write failed', he); }
                 }
             }
             
@@ -125,8 +127,8 @@ try {
     window.listenToCloudOrders = function() {
         if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; }
         allCloudOrders = []; 
-        window.isShowingOldArchive = false; 
-        const startDate = new Date(); startDate.setDate(startDate.getDate() - 10); startDate.setHours(0,0,0,0);
+        window.isShowingOldArchive = false; // الوضع الافتراضي إخفاء الأرشيف القديم
+        const startDate = new Date(); startDate.setDate(startDate.getDate() - 10); startDate.setHours(0,0,0,0); window.loadedOrdersFrom = startDate;
         const q = query(collection(db, "orders"), where("timestamp", ">=", startDate), limit(1000));
         let isFirstLoad = true;
         cloudOrdersUnsubscribe = onSnapshot(q, (snapshot) => {
@@ -203,6 +205,7 @@ window.injectNewStatuses = function() {
     });
 };
 
+// إنشاء قالب نافذة تفاصيل الحالة وإضافته للمستند
 window.injectStatusHistoryModal = function() {
     if (!document.getElementById('statusHistoryModal')) {
         const modalHtml = `
@@ -731,7 +734,7 @@ window.initGlobalChatListener = function() {
     }, (error) => console.error(error));
     if (isManager) { setTimeout(window.cleanupOldChats, 10000); }
 }
-window.cleanupOldChats = async function() { try { const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7); const q = query(collection(db, "chat_messages"), where("timestamp", "<", sevenDaysAgo)); const snap = await getDocs(q); if(snap.size > 0) { snap.forEach(d => deleteDoc(doc(db, "chat_messages", d.id))); } } catch(e) {} }
+window.cleanupOldChats = async function() { try { const last = Number(localStorage.getItem('gl_chat_cleanup') || 0); if (Date.now() - last < 12 * 3600 * 1000) return; const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7); const q = query(collection(db, "chat_messages"), where("timestamp", "<", sevenDaysAgo), limit(200)); const snap = await getDocs(q); if (snap.size > 0) { await Promise.all(snap.docs.map(d => deleteDoc(doc(db, "chat_messages", d.id)))); } safeSetStorage('gl_chat_cleanup', String(Date.now())); } catch(e) {} }
 window.markChatAsRead = function(chatId) {
     allChatMessages.filter(m => m.chatId === chatId && m.sender !== loggedInUser && !(m.readBy || []).includes(loggedInUser) && !markingRead.has(m.id_doc)).forEach(async msg => {
         markingRead.add(msg.id_doc);
@@ -770,7 +773,7 @@ window.createChatGroup = async function() { const groupName = document.getElemen
 window.loadChatGroups = async function() { try { const snap = await getDocs(query(collection(db, "chat_groups"))); let groupsHtml = ''; let unreadPerChat = {}; allChatMessages.forEach(msg => { if(msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) { unreadPerChat[msg.chatId] = (unreadPerChat[msg.chatId] || 0) + 1; } }); snap.forEach(doc => { const data = doc.data(); if((data.members && data.members.includes(loggedInUser)) || isManager) { const chatId = 'group_' + doc.id; if(data.members && data.members.includes(loggedInUser)) myGroupIds.add(chatId); const unreadCount = unreadPerChat[chatId] || 0; const badgeStyle = unreadCount > 0 ? 'inline-flex' : 'none'; groupsHtml += `<div class="chat-list-item" id="chatItem_${esc(chatId)}" data-chat-id="${esc(chatId)}" data-title="${esc(data.name)}" onclick="window.openChat(this.dataset.chatId, this.dataset.title)"><div class="chat-avatar" style="background: linear-gradient(135deg, #00b09b, #96c93d);">👥</div><div class="chat-info" style="width: 100%; display: flex; justify-content: space-between; align-items: center;"><div><h4>${esc(data.name)}</h4><p>${data.members.length} أعضاء</p></div><span class="chat-unread-badge" id="badge_${esc(chatId)}" style="display:${badgeStyle};">${unreadCount}</span></div></div>`; } }); if(groupsHtml === '') groupsHtml = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size:12px;">لا توجد مجموعات بعد</div>'; document.getElementById('groupsListContainer').innerHTML = groupsHtml; } catch(e) {} }
 
 // =========================================
-// الأرشيف والمتابعة
+// الأرشيف والمتابعة (مع فلترة الحالات الجديدة)
 // =========================================
 window.openCloudOrders = function() { 
     document.getElementById("main-menu-section").style.display = "none"; document.getElementById("archive-section").style.display = "flex";
@@ -778,6 +781,7 @@ window.openCloudOrders = function() {
     document.getElementById('bulkEditBtn').style.display = loggedInUserCanEdit || isManager ? 'inline-flex' : 'none'; 
     document.getElementById('btn-fetch-old').style.display = loggedInUserCanFetchOld || isManager ? 'flex' : 'none';
     document.getElementById('btn-group-import-export').style.display = loggedInUserCanImportExport || isManager ? 'flex' : 'none';
+    { const su = document.getElementById('btn-status-upload'); if (su) su.style.display = (loggedInUserCanImportExport || isManager) ? 'flex' : 'none'; }
     window.filterCloudOrders(); 
 }
 window.openArchiveFetchModal = function() { document.getElementById('archiveFetchModal').style.display = 'flex'; }
@@ -791,6 +795,7 @@ window.fetchOldOrders = async function() {
     if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; } 
     const fromD = new Date(f); fromD.setHours(0,0,0,0); 
     const toD = new Date(t); toD.setHours(23,59,59,999); 
+    window.loadedOrdersFrom = fromD;
     document.body.style.cursor = 'wait'; 
     try { 
         const q = query(collection(db, "orders"), where("timestamp", ">=", fromD), where("timestamp", "<=", toD)); 
@@ -798,7 +803,7 @@ window.fetchOldOrders = async function() {
         allCloudOrders = []; 
         snap.forEach(doc => { allCloudOrders.push({ id_doc: doc.id, ...doc.data() }); }); 
         
-        window.isShowingOldArchive = true; 
+        window.isShowingOldArchive = true; // السماح بإظهار الحالات (تم المحاسبة) و (قديم)
         window.filterCloudOrders(); 
         window.closeArchiveFetchModal(); 
         window.showSuccessToast(`تم جلب ${snap.size} طلب!`); 
@@ -823,6 +828,7 @@ window.filterCloudOrders = function() {
                (pF === "" || (o.constant||"") === pF) && 
                (sF === "" || (o.status||"جديد") === sF); 
         
+        // إخفاء الحالات المؤرشفة إلا في حال جلب القديم أو إذا تم فلترتها صراحة
         if (!window.isShowingOldArchive && sF === "") {
             if (o.status === 'تم المحاسبة' || o.status === 'قديم') {
                 match = false;
@@ -846,23 +852,23 @@ window.filterCloudOrders = function() {
         if(st === 'قديم') statusColor = '#e84393'; 
         
         if(st === 'قديم') {
-            tr.style.backgroundColor = 'rgba(232, 67, 147, 0.08)'; 
+            tr.style.backgroundColor = 'rgba(232, 67, 147, 0.08)'; // خلفية مميزة لحالة قديم
         }
         
         let allStatusOptions = ['جديد', 'قيد التجهيز', 'مسلم للمندوب', 'تم التوصيل', 'راجع', 'راجع مخزن', 'تم المحاسبة', 'قديم'];
         let statusSelectHtml = `<select onchange="window.updateSingleOrderStatus('${esc(o.id_doc)}', this.value)" style="background:${statusColor}; color:white; border:none; padding: 5px; border-radius: 10px; font-size:11px; font-weight:bold; outline:none; appearance:auto; box-shadow:none; min-width:100px;">`;
         allStatusOptions.forEach(sOpt => {
-            statusSelectHtml += `<option value="${sOpt}" ${st===sOpt?'selected':''}>${sOpt}</option>`;
+            statusSelectHtml += `<option value="${esc(sOpt)}" ${st===sOpt?'selected':''}>${esc(sOpt)}</option>`;
         });
         statusSelectHtml += `</select>`;
         
         tr.innerHTML = `
             <td style="text-align: center;"><input type="checkbox" class="order-cb" value="${esc(o.id_doc)}" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></td>
             <td style="cursor: pointer; text-align: center;" onclick="window.openOrderDetailsModal('${esc(o.id_doc)}')">
-                <span style="display:inline-block; padding: 5px 10px; background: rgba(64,123,255,0.1); color:var(--primary-blue); font-weight:bold; border-radius: 8px; text-decoration: underline;" title="اضغط لعرض التفاصيل">
-                    ${esc(o.id||'-')}
-                </span>
-            </td>
+    <span style="display:inline-block; padding: 5px 10px; background: rgba(64,123,255,0.1); color:var(--primary-blue); font-weight:bold; border-radius: 8px; text-decoration: underline;" title="اضغط لعرض التفاصيل">
+        ${esc(o.id||'-')}
+    </span>
+</td>
             <td>${statusSelectHtml}</td>
             <td style="color:var(--primary-blue); font-weight:bold;">${esc(o.constant||'-')}</td>
             <td>${esc(o.name||'-')}</td>
@@ -888,7 +894,9 @@ window.filterCloudOrders = function() {
         window.updateArchiveCounts();
     }
 }
-
+// =========================================
+// دوال تحديث أرقام الأرشيف (الدوائر)
+// =========================================
 window.updateArchiveCounts = function() {
     const displayedRows = document.querySelectorAll('#cloudOrdersTbody tr').length;
     const selectedRows = document.querySelectorAll('.order-cb:checked').length;
@@ -953,6 +961,7 @@ window.openOrderDetailsModal = function(docId) {
         </div>
     </div>`; 
 
+    // إضافة زر "تفاصيل الحالة"
     let actionsHtml = `
     <div style="display:flex; gap:10px; margin-top:15px;" class="no-print">
         <button class="btn-parse" style="flex:1; background: #2ecc71; color: white;" onclick="window.exportOrderDetailsPDF('${esc(order.id || '')}')">📄 PDF</button>
@@ -995,6 +1004,7 @@ window.closeOrderDetailsModal = function() { document.getElementById('orderDetai
 
 window.currentHistoryOrderId = null;
 
+// دالة فتح نافذة تفاصيل الحالة وسجل التعليقات
 window.openOrderStatusHistory = function(docId) {
     window.currentHistoryOrderId = docId;
     window.injectStatusHistoryModal();
@@ -1002,6 +1012,7 @@ window.openOrderStatusHistory = function(docId) {
     window.loadOrderStatusHistory(docId);
 }
 
+// دالة جلب السجل والتغييرات
 window.loadOrderStatusHistory = async function(docId) {
     const container = document.getElementById('statusHistoryContent');
     container.innerHTML = '<div style="text-align:center; color:gray; margin-top:20px;">جاري التحميل... ⏳</div>';
@@ -1057,7 +1068,7 @@ window.loadOrderStatusHistory = async function(docId) {
         container.innerHTML = '<div style="text-align:center; color:#ff4757; margin-top:20px;">حدث خطأ أثناء تحميل السجل.</div>';
     }
 }
-
+// دالة إضافة رد أو تعليق
 window.addStatusComment = async function() {
     let input = document.getElementById('statusCommentInput');
     let txt = input.value.trim();
@@ -1114,6 +1125,7 @@ window.saveBulkStatus = async function() {
                     let oldStatus = oldOrder ? oldOrder.status : 'جديد';
                     batch.update(doc(db, "orders", id), { status: newStatus }); 
                     
+                    // توثيق التغيير في سجل الحالة
                     if (oldStatus !== newStatus) {
                         batch.set(doc(collection(db, "order_history")), {
                             orderId: id,
@@ -1132,12 +1144,135 @@ window.saveBulkStatus = async function() {
             window.filterCloudOrders(); 
             window.closeBulkStatusModal(); 
             window.showSuccessToast(`تم تغيير حالة ${selectedIds.length} طلب إلى (${newStatus}) بنجاح!`); 
-        } catch(e) {} 
+        } catch(e) { console.error(e); alert(window.tr('تعذر تغيير الحالة. تأكد من الصلاحيات وقواعد Firestore.')); } 
         document.body.style.cursor = 'default'; 
     });
 }
 
 window.downloadExcelTemplate = function() { const ws = XLSX.utils.aoa_to_sheet([["تسلسل الزبون", "البيج", "اسم الزبون", "رقم الهاتف الأول", "رقم الهاتف الثاني", "المحافظة", "المنطقة", "الطلب", "العدد", "المبلغ الكلي", "ملاحظات"].map(h => window.tr(h))]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, window.tr("النموذج")); XLSX.writeFile(wb, window.tr("نموذج_رفع_الطلبات.xlsx")); }
+
+
+// =========================================
+// رفع الحالات من Excel (مطابقة بتسلسل الزبون)
+// =========================================
+let pendingStatusUpload = null;
+
+function normSerial(v) {
+    if (v === null || v === undefined) return '';
+    let s = String(v).trim();
+    s = s.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+    if (/^\d+\.0+$/.test(s)) s = s.replace(/\.0+$/, '');
+    return s;
+}
+
+window.openStatusUploadModal = function() {
+    const src = document.getElementById('bulkStatusSelect'), sel = document.getElementById('statusUploadSelect');
+    sel.innerHTML = '';
+    sel.add(new Option('-- اختر الحالة --', ''));
+    Array.from(src.options).forEach(o => sel.add(new Option(o.text, o.value)));
+    pendingStatusUpload = null;
+    const box = document.getElementById('statusUploadResult'); box.style.display = 'none'; box.innerHTML = '';
+    document.getElementById('statusExcelInput').value = '';
+    document.getElementById('statusUploadModal').style.display = 'flex';
+};
+window.closeStatusUploadModal = function() {
+    document.getElementById('statusUploadModal').style.display = 'none';
+    pendingStatusUpload = null; document.getElementById('statusExcelInput').value = '';
+};
+
+window.downloadStatusTemplate = function() {
+    const ws = XLSX.utils.aoa_to_sheet([[window.tr('تسلسل الزبون')]]);
+    ws['!cols'] = [{ wch: 22 }];
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, window.tr('النموذج'));
+    XLSX.writeFile(wb, window.tr('نموذج_رفع_الحالات') + '.xlsx');
+};
+
+window.pickStatusExcelFile = function() {
+    if (!document.getElementById('statusUploadSelect').value) { alert(window.tr('اختر الحالة المراد التغيير لها أولاً')); return; }
+    document.getElementById('statusExcelInput').click();
+};
+
+window.handleStatusExcel = function(event) {
+    const file = event.target.files[0]; if (!file) return;
+    const newStatus = document.getElementById('statusUploadSelect').value;
+    const box = document.getElementById('statusUploadResult');
+    if (!newStatus) { alert(window.tr('اختر الحالة المراد التغيير لها أولاً')); event.target.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        document.body.style.cursor = 'wait';
+        try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: '' });
+            if (!rows.length) { alert(window.tr('الملف فارغ!')); return; }
+            // تحديد عمود التسلسل من العنوان، وإلا نأخذ العمود الأول
+            const isSerialHead = c => { const t = String(c || '').trim(); return t === 'تسلسل الزبون' || t === window.trEn('تسلسل الزبون') || t.includes('تسلسل'); };
+            let col = rows[0].findIndex(isSerialHead), startRow = 1;
+            if (col === -1) { col = 0; startRow = (normSerial(rows[0][0]) === '') ? 1 : 0; }
+            const seen = new Set(); let dupInFile = 0; const serials = [];
+            for (let r = startRow; r < rows.length; r++) {
+                const sv = normSerial(rows[r][col]); if (!sv) continue;
+                if (seen.has(sv)) { dupInFile++; continue; }
+                seen.add(sv); serials.push(sv);
+            }
+            if (!serials.length) { alert(window.tr('لم يتم العثور على أرقام تسلسل في الملف')); return; }
+
+            // 1) مطابقة مع الطلبات المحمّلة محلياً
+            const bySerial = new Map(); // serial -> [{docId, oldStatus}]
+            const addMatch = (sv, docId, st) => { if (!bySerial.has(sv)) bySerial.set(sv, []); const a = bySerial.get(sv); if (!a.some(x => x.docId === docId)) a.push({ docId, oldStatus: st || 'جديد' }); };
+            allCloudOrders.forEach(o => { const sv = normSerial(o.id); if (seen.has(sv)) addMatch(sv, o.id_doc, o.status); });
+            // 2) ما لم يوجد محلياً يُبحث عنه في قاعدة البيانات (طلبات أقدم من 10 أيام)
+            const missing = serials.filter(sv => !bySerial.has(sv));
+            for (let i = 0; i < missing.length; i += 30) {
+                const chunk = missing.slice(i, i + 30);
+                const snap = await getDocs(query(collection(db, 'orders'), where('id', 'in', chunk)));
+                snap.forEach(d => { const dt = d.data(); addMatch(normSerial(dt.id), d.id, dt.status); });
+            }
+            const notFound = serials.filter(sv => !bySerial.has(sv));
+            const items = []; let already = 0, multi = 0;
+            bySerial.forEach(arr => { if (arr.length > 1) multi++; arr.forEach(x => { if (x.oldStatus === newStatus) already++; else items.push(x); }); });
+            pendingStatusUpload = { status: newStatus, items };
+
+            const tt = window.tr;
+            let html = `<div>📄 ${tt('أرقام في الملف')}: <b>${serials.length}</b>${dupInFile ? ` (${tt('مكررة تم تجاهلها')}: ${dupInFile})` : ''}</div>`;
+            html += `<div>✅ ${tt('سيتم تغييرها إلى')} <b>${esc(tt(newStatus))}</b>: <b>${items.length}</b></div>`;
+            if (already) html += `<div>⏭️ ${tt('حالتها نفس الحالة المختارة (تُتجاهل)')}: ${already}</div>`;
+            if (multi) html += `<div style="color:#e67e22;">⚠️ ${multi} ${tt('رقم يطابق أكثر من طلب وسيتغير الجميع')}</div>`;
+            if (notFound.length) html += `<div style="color:#e74c3c;">❌ ${tt('غير موجودة')} (${notFound.length}): ${notFound.slice(0, 30).map(esc).join('، ')}${notFound.length > 30 ? ' ...' : ''}</div>`;
+            if (items.length) html += `<button type="button" class="btn-parse" onclick="applyStatusUpload()" style="width:100%; margin-top:10px;">${tt('تطبيق التغيير')} (${items.length}) 💾</button>`;
+            box.innerHTML = html; box.style.display = 'block';
+        } catch (err) {
+            console.error(err);
+            alert(window.tr('تعذر قراءة الملف أو البحث في قاعدة البيانات'));
+        } finally { document.body.style.cursor = 'default'; event.target.value = ''; }
+    };
+    reader.readAsArrayBuffer(file);
+};
+
+window.applyStatusUpload = async function() {
+    const p = pendingStatusUpload; if (!p || !p.items.length) return;
+    window.showConfirmDialog(`${window.tr('تأكيد تغيير حالة')} (${p.items.length}) ${window.tr('طلب إلى')} (${window.tr(p.status)})؟`, async function() {
+        document.body.style.cursor = 'wait'; let done = 0;
+        try {
+            for (let i = 0; i < p.items.length; i += 200) {
+                const batch = writeBatch(db);
+                p.items.slice(i, i + 200).forEach(x => {
+                    batch.update(doc(db, 'orders', x.docId), { status: p.status });
+                    batch.set(doc(collection(db, 'order_history')), { orderId: x.docId, type: 'status_change', oldStatus: x.oldStatus || 'جديد', newStatus: p.status, addedBy: loggedInUser, timestamp: serverTimestamp() });
+                });
+                await batch.commit(); done = Math.min(i + 200, p.items.length);
+            }
+            const ids = new Set(p.items.map(x => x.docId));
+            allCloudOrders.forEach(o => { if (ids.has(o.id_doc)) o.status = p.status; });
+            window.logActionToCloud('تغيير حالة', `رفع حالات من Excel: ${p.items.length} طلب إلى ${p.status}`);
+            window.filterCloudOrders(); window.closeStatusUploadModal();
+            window.showSuccessToast(`${window.tr('تم تغيير حالة')} ${p.items.length} ${window.tr('طلب بنجاح')}`);
+        } catch (e) {
+            console.error(e);
+            alert(`${window.tr('تعذر إكمال التغيير')} (${done}/${p.items.length}). ${window.tr('تأكد من نشر قواعد Firestore المحدّثة')}`);
+        }
+        document.body.style.cursor = 'default';
+    });
+};
 
 let pendingExcelFile = null, pendingExcelInput = null;
 
@@ -1368,6 +1503,7 @@ window.generateReports = function() {
     const fromVal = document.getElementById('repDateFrom').value, toVal = document.getElementById('repDateTo').value; 
     let fromDate = fromVal ? new Date(fromVal) : null; if(fromDate) fromDate.setHours(0,0,0,0); 
     let toDate = toVal ? new Date(toVal) : null; if(toDate) toDate.setHours(23,59,59,999); 
+    (function(){ const n = document.getElementById('repDataNotice'); if (!n) return; const lf = window.loadedOrdersFrom; if (lf && (!fromDate || fromDate < lf)) { n.textContent = '⚠️ ' + window.tr('البيانات المحمّلة تبدأ من') + ' ' + lf.toLocaleDateString('en-CA') + ' — ' + window.tr('لتقارير أقدم اجلب الأرشيف من شاشة الأرشيف والمتابعة'); n.style.display = 'block'; } else { n.style.display = 'none'; } })();
     let targetOrders = allCloudOrders.filter(o => { if(fromDate || toDate) { if(!o.timestamp?.seconds) return false; const d = new Date(o.timestamp.seconds * 1000); if(fromDate && d < fromDate) return false; if(toDate && d > toDate) return false; } return true; }); 
     
     const selPage = document.getElementById('repPageFilter').value, selPageType = document.getElementById('repPageTypeFilter').value; let pageTargetOrders = targetOrders; if(selPage !== "all") pageTargetOrders = pageTargetOrders.filter(o => o.constant === selPage); if(selPageType !== "all") pageTargetOrders = pageTargetOrders.filter(o => { const its = parseTypeItems(o.type); return selPageType === 'أخرى' ? its.some(it => !configuredOrderTypes.some(t => t.code === it.code)) : its.some(it => it.code === selPageType); }); let totalPageQty = 0, totalPageAmt = 0, pageTbodyHtml = ""; if (pageTargetOrders.length === 0) { pageTbodyHtml = '<tr><td colspan="3" style="text-align:center;">لا توجد بيانات</td></tr>'; } else { pageTargetOrders.forEach(o => { let amt = parseAmount(o.amount), qty = parseInt(o.qty) || 1; totalPageQty += qty; totalPageAmt += amt; let safeType = (o.type || "").split(' + ').map(item => `<span dir="ltr" style="display: inline-block; padding: 0 5px;">${esc(item)}</span>`).join(' + '); pageTbodyHtml += `<tr><td style="font-size: 13px; text-align: center;">${safeType}</td><td>${qty}</td><td>${amt.toLocaleString()}</td></tr>`; }); } document.getElementById('repPageTbody').innerHTML = pageTbodyHtml; document.getElementById('totalPageQty').innerText = totalPageQty; document.getElementById('totalPageAmount').innerText = totalPageAmt.toLocaleString(); 
@@ -1421,34 +1557,10 @@ window.openSettings = function() {
     if (!loggedInUserCanSettings && !isManager) { alert("❌ ليس لديك صلاحية."); return; }
     document.getElementById("main-menu-section").style.display = "none"; document.getElementById("settings-section").style.display = "flex";
     document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; 
-    
-    // إظهار تبويب Zain فقط إذا كان المستخدم هو Zain أو المدير
-    const zainBtn = document.getElementById('zainToolsTabBtn');
-    if (zainBtn) {
-        zainBtn.style.display = (loggedInUser.toLowerCase() === 'zain' || isManager) ? 'inline-block' : 'none';
-    }
-
     window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); window.renderWhCatalogSettings(); 
 }
 
-window.verifySettingsPass = async function() { 
-    const okPass = await verifyAdminPass(document.getElementById('settingsPass').value); 
-    if (okPass) { 
-        document.getElementById('settingsPass').value = ''; document.getElementById('settings-error').style.display = 'none'; 
-        document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; 
-        
-        // إظهار تبويب Zain عند الدخول بكلمة سر المدير
-        const zainBtn = document.getElementById('zainToolsTabBtn');
-        if (zainBtn) {
-            zainBtn.style.display = (loggedInUser.toLowerCase() === 'zain' || isManager) ? 'inline-block' : 'none';
-        }
-
-        window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); window.renderWhCatalogSettings(); 
-    } else { 
-        document.getElementById('settings-error').style.display = 'block'; 
-    } 
-}
-
+window.verifySettingsPass = async function() { const okPass = await verifyAdminPass(document.getElementById('settingsPass').value); if (okPass) { document.getElementById('settingsPass').value = ''; document.getElementById('settings-error').style.display = 'none'; document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); window.renderWhCatalogSettings(); } else { document.getElementById('settings-error').style.display = 'block'; } }
 window.switchTab = function(tabId, btn) { document.querySelectorAll('#settings-section .tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('#settings-section .tab-pane').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); }
 window.addPageType = async function() { const val = document.getElementById('newPageName').value.trim(); if(val && window.addSystemPageToFirebase) { const r = await window.addSystemPageToFirebase({name: val}); configuredPages.push({id: r.id, name: val}); window.renderPagesSettings(); window.updatePagesDropdown(); } }
 window.deletePageType = async function(idx) { window.showConfirmDialog("حذف البيج؟", async function() { await window.deleteSystemPageFromFirebase(configuredPages[idx].id); configuredPages.splice(idx, 1); window.renderPagesSettings(); window.updatePagesDropdown(); }); }
@@ -1616,180 +1728,3 @@ window.addEventListener('load', () => {
         }
     }, 6500);
 });
-
-// =========================================
-// أدوات Zain الخاصة (تحديث إكسل + مسح الكاش)
-// =========================================
-window.openZainExcelModal = function() {
-    if (loggedInUser.toLowerCase() !== 'zain' && !isManager) {
-        alert("❌ هذه الأداة مخصصة لـ Zain فقط.");
-        return;
-    }
-    document.getElementById('bulkStatusExcelModal').style.display = 'flex';
-    document.getElementById('bulkStatusExcelResult').innerText = '';
-    document.getElementById('bulkStatusExcelSelect').value = '';
-}
-
-window.forceClearCacheAndReload = async function() {
-    if (!confirm("هل أنت متأكد من رغبتك في مسح ملفات الكاش وإجبار التطبيق على التحديث؟ (سيتم إعادة تحميل الصفحة)")) {
-        return;
-    }
-
-    document.body.style.cursor = 'wait';
-    try {
-        // 1. إلغاء تسجيل الـ Service Workers القديمة
-        if ('serviceWorker' in navigator) {
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            for (let registration of registrations) {
-                await registration.unregister();
-            }
-        }
-        
-        // 2. مسح ملفات التخزين المؤقت (Cache Storage API)
-        if ('caches' in window) {
-            const keys = await caches.keys();
-            for (let key of keys) {
-                await caches.delete(key);
-            }
-        }
-
-        console.log("تم مسح الكاش بنجاح.");
-        
-        // 3. إعادة تحميل الصفحة بقوة
-        window.location.reload(true);
-        
-    } catch (error) {
-        console.error("خطأ أثناء مسح الكاش:", error);
-        alert("حدث خطأ أثناء مسح الكاش. يرجى التحديث يدوياً.");
-        document.body.style.cursor = 'default';
-    }
-};
-
-window.downloadStatusExcelTemplate = function() {
-    const wsData = [ ["التسلسل"] ];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [{ wch: 20 }]; 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "الطلبات");
-    XLSX.writeFile(wb, "نموذج_تحديث_الحالات.xlsx");
-};
-
-window.triggerStatusExcelUpload = function() {
-    const selectedStatus = document.getElementById('bulkStatusExcelSelect').value;
-    if (!selectedStatus) {
-        alert(window.tr("يرجى اختيار الحالة المراد التغيير إليها أولاً!")); 
-        return;
-    }
-    document.getElementById('fileInputBulkStatus').click();
-};
-
-window.processStatusExcelUpload = function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async function(event) {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const excelRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-        const fileInput = document.getElementById('fileInputBulkStatus');
-        const resultBox = document.getElementById('bulkStatusExcelResult');
-        const targetStatus = document.getElementById('bulkStatusExcelSelect').value;
-
-        if (excelRows.length === 0) {
-            alert(window.tr("الملف المرفوع فارغ!"));
-            fileInput.value = '';
-            return;
-        }
-
-        let successCount = 0;
-        let notFoundCount = 0;
-
-        resultBox.style.color = "var(--primary-blue)";
-        resultBox.innerText = window.tr("جاري تحديث الحالات في السحابة... ⏳");
-        document.body.style.cursor = 'wait';
-
-        try {
-            let currentBatch = writeBatch(db);
-            let batchCount = 0;
-
-            for (let row of excelRows) {
-                let serial = "";
-                for (let key in row) {
-                    if (key.includes("تسلسل")) {
-                        serial = String(row[key]).trim();
-                        break;
-                    }
-                }
-                if (!serial) continue;
-
-                let localOrder = allCloudOrders.find(o => {
-                    let dbSerial = String(o.id || '').trim();
-                    if (dbSerial === serial) return true;
-                    if (!isNaN(dbSerial) && !isNaN(serial) && Number(dbSerial) === Number(serial)) return true;
-                    return false;
-                });
-                
-                if (localOrder) {
-                    let docId = localOrder.id_doc;
-                    let oldStatus = localOrder.status || 'جديد';
-                    
-                    currentBatch.update(doc(db, "orders", docId), { status: targetStatus });
-                    
-                    if (oldStatus !== targetStatus) {
-                        currentBatch.set(doc(collection(db, "order_history")), {
-                            orderId: docId,
-                            type: 'status_change',
-                            oldStatus: oldStatus,
-                            newStatus: targetStatus,
-                            addedBy: loggedInUser,
-                            timestamp: serverTimestamp()
-                        });
-                    }
-
-                    localOrder.status = targetStatus;
-                    successCount++;
-                    batchCount += 2;
-
-                    if (batchCount >= 400) {
-                        await currentBatch.commit();
-                        currentBatch = writeBatch(db);
-                        batchCount = 0;
-                    }
-                } else {
-                    notFoundCount++;
-                }
-            }
-            
-            if (batchCount > 0) {
-                await currentBatch.commit();
-            }
-
-            resultBox.style.color = "#2ecc71";
-            let resultText = `✅ تم تحديث ${successCount} طلب بنجاح.`;
-            if (notFoundCount > 0) {
-                resultText += ` (لم يتم العثور على ${notFoundCount} تسلسل في الأرشيف المفتوح حالياً)`;
-            }
-            resultBox.innerText = window.tr(resultText);
-            
-            if (typeof window.filterCloudOrders === "function") {
-                window.filterCloudOrders(); 
-            }
-            
-            if (successCount > 0 && typeof window.logActionToCloud === "function") {
-                window.logActionToCloud("تغيير حالة", `تغيير حالة ${successCount} طلب إلى ${targetStatus} عبر ملف إكسل`);
-            }
-
-        } catch (error) {
-            console.error("Error:", error);
-            resultBox.style.color = "#e74c3c";
-            resultBox.innerText = "❌ حدث خطأ أثناء التحديث.";
-        }
-
-        document.body.style.cursor = 'default';
-        fileInput.value = '';
-    };
-    reader.readAsArrayBuffer(file);
-};

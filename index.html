@@ -255,23 +255,28 @@
         </div>
     </div>
 
-    <!-- 4. الأرشيف -->
+<!-- 4. الأرشيف -->
     <div class="container no-print" id="archive-section" style="display: none; height: calc(100vh - 80px); height: calc(100dvh - 80px); flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
             <div style="display: flex; align-items: center; gap: 15px; width: 100%;">
                 <div class="brand-logo dash-logo"><img class="logo-img" src="logo.png" alt="Gold Land" width="50" height="50"></div>
                 <h2 style="margin: 0; font-size: 22px; color: var(--text-color);">الأرشيف والمتابعة</h2>
                 
-                <!-- حاوية العدادات -->
+                <!-- حاوية العدادات (مضادة للتشوه) -->
                 <div style="display: flex; gap: 15px; margin-right: auto; padding-right: 20px;">
+                    
+                    <!-- الدائرة الزرقاء: العدد الكلي -->
                     <div title="العدد الكلي للطلبات المعروضة" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
                         <div id="totalCountCircle" style="width: 45px; height: 45px; min-width: 45px; min-height: 45px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 2px solid var(--primary-blue); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; color: var(--primary-blue); background: rgba(64,123,255,0.05); box-shadow: var(--outer-shadow); transition: background 0.3s, color 0.3s;">0</div>
                         <span style="font-size: 11px; color: var(--text-muted); font-weight: bold;">الكلي</span>
                     </div>
+
+                    <!-- الدائرة الذهبية: العدد المحدد -->
                     <div title="عدد الطلبات التي قمت بتحديدها" style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
                         <div id="selectedCountCircle" style="width: 45px; height: 45px; min-width: 45px; min-height: 45px; flex-shrink: 0; box-sizing: border-box; border-radius: 50%; border: 2px solid #b8860b; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; color: #b8860b; background: rgba(184, 134, 11, 0.05); box-shadow: var(--outer-shadow); transition: background 0.3s, color 0.3s;">0</div>
                         <span style="font-size: 11px; color: var(--text-muted); font-weight: bold;">المحدد</span>
                     </div>
+
                 </div>
             </div>
             <div><button class="btn-outline" onclick="backToMainMenuFrom('archive-section')" style="padding: 10px 15px;">🔙 القائمة</button></div>
@@ -280,7 +285,7 @@
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; background: var(--bg-color); padding: 10px; border-radius: 15px; box-shadow: var(--inner-shadow); align-items: center;">
                 <div id="btn-fetch-old" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);"><button class="action-icon-btn btn-blue" onclick="openArchiveFetchModal()" title="جلب الطلبات القديمة" aria-label="جلب الطلبات القديمة">🕰️</button></div>
                 <div id="btn-group-import-export" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);"><button class="action-icon-btn" onclick="downloadExcelTemplate()" title="تحميل قالب Excel" aria-label="تحميل قالب Excel">⬇️</button><label class="action-icon-btn btn-blue" style="cursor: pointer; margin:0;" title="رفع ملف Excel" aria-label="رفع ملف Excel">📤<input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;" onchange="uploadExcelFile(event)"></label><button class="action-icon-btn" onclick="exportCloudToExcel()" style="color:#2ecc71;" title="تصدير Excel" aria-label="تصدير Excel">📊</button><button class="action-icon-btn btn-export" onclick="openAdvancedExportModal()" style="color:#fff;" title="تصدير متقدم" aria-label="تصدير متقدم">📤</button></div>
-                
+                <div id="btn-status-upload" style="display:flex; gap: 10px; align-items: center; padding-left: 10px; border-left: 2px solid var(--shadow-dark);"><button type="button" class="btn-outline" onclick="openStatusUploadModal()" style="padding: 10px 14px; font-weight: bold; white-space: nowrap;">🔁 رفع الحالات</button></div>
                 <div style="display:flex; gap: 10px; align-items: center;"><button class="action-icon-btn" onclick="bulkEditOrder()" id="bulkEditBtn" title="تعديل المحدد" aria-label="تعديل المحدد">✏️</button><button class="action-icon-btn" onclick="showBulkStatusModal()" title="تغيير حالة المحدد" aria-label="تغيير حالة المحدد">🔄</button><button class="action-icon-btn" onclick="bulkPrintOrders()" style="color: #b8860b;" title="طباعة المحدد" aria-label="طباعة المحدد">🖨️</button><button class="action-icon-btn" onclick="bulkExportPDF()" style="color: #2ecc71;" title="تصدير PDF" aria-label="تصدير PDF">📄</button><button class="action-icon-btn btn-danger" onclick="bulkDeleteOrders()" id="bulkDeleteBtn" title="حذف المحدد" aria-label="حذف المحدد">🗑️</button></div>
             </div>
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -326,6 +331,7 @@
                 <div class="date-wrapper"><label>إلى:</label><input type="date" id="repDateTo" dir="ltr"></div>
                 <button class="btn-parse" onclick="generateReports()" style="flex: 1; min-width:100px;">توليد 🔄</button>
             </div>
+            <div id="repDataNotice" class="no-print" style="display:none; margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; background: rgba(226,180,95,0.15); border: 1px solid #e2b45f; font-size: 13px; text-align: start;"></div>
             <div style="flex: 1; overflow-y: auto; padding: 5px;">
                 <div id="repPageTab" class="tab-pane active" style="text-align: start;">
                     <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center; flex-wrap: wrap;"><select id="repPageFilter" onchange="generateReports()" style="flex: 1;"></select><select id="repPageTypeFilter" onchange="generateReports()" style="flex: 1;"></select><button class="btn-export" onclick="exportPageReportPDF()">PDF 📄</button></div>
@@ -401,57 +407,30 @@
                     <button class="tab-btn" onclick="switchTab('usersTab', this)">المستخدمين</button>
                     <button class="tab-btn" onclick="switchTab('deliveryTab', this)">التوصيل</button>
                     <button class="tab-btn" onclick="switchTab('whItemsTab', this)">مواد المخزن</button>
-                    <button class="tab-btn" onclick="switchTab('langTab', this)">🎨 المظهر</button>
-                    <!-- زر تبويب Zain السري -->
-                    <button class="tab-btn" id="zainToolsTabBtn" onclick="switchTab('zainToolsTab', this)" style="display: none; color: #b8860b; font-weight: bold;">👑 أدوات Zain</button>
+<button class="tab-btn" onclick="switchTab('langTab', this)">🎨 المظهر</button>
                 </div>
                 <div class="tab-content">
                     <div id="langTab" class="tab-pane" style="text-align: start;">
-                        <h3 style="margin-top: 0;">🎨 المظهر والعرض</h3>
-                        <p class="setting-desc">هذه الإعدادات تُحفظ على هذا الجهاز فقط.</p>
-                        <label class="setting-label">اللغة</label>
-                        <div class="form-group"><select id="appLangSelect" data-no-i18n onchange="setAppLanguage(this.value)"><option value="ar">العربية</option><option value="en">English</option></select></div>
-                        <label class="setting-label">الوضع</label>
-                        <div class="choice-row">
-                          <button class="choice-btn" id="theme-btn-auto" onclick="applyThemeMode('auto')">تلقائي 🕐</button>
-                          <button class="choice-btn" id="theme-btn-light" onclick="applyThemeMode('light')">نهاري ☀️</button>
-                          <button class="choice-btn" id="theme-btn-dark" onclick="applyThemeMode('dark')">ليلي 🌙</button>
-                        </div>
-                        <label class="setting-label">شكل العرض</label>
-                        <p class="setting-desc">اختيار "كمبيوتر" يوسّع الواجهة ويحوّل القائمة إلى شبكة مناسبة للشاشات الكبيرة. "تلقائي" يختار حسب حجم الشاشة.</p>
-                        <div class="choice-row">
-                          <button class="choice-btn" data-layout-btn="auto" onclick="applyLayoutMode('auto')">تلقائي</button>
-                          <button class="choice-btn" data-layout-btn="mobile" onclick="applyLayoutMode('mobile')">جوال 📱</button>
-                          <button class="choice-btn" data-layout-btn="desktop" onclick="applyLayoutMode('desktop')">كمبيوتر 🖥️</button>
-                        </div>
-                        <p class="setting-desc" style="margin-top:18px;">ملاحظة: الوصولات المطبوعة تبقى بالعربية دائماً.</p>
-                    </div>
-
-                    <!-- محتوى أدوات Zain -->
-                    <div id="zainToolsTab" class="tab-pane" style="text-align: start;">
-                        <h3 style="margin-top: 0; color: var(--primary-blue);">👑 أدوات Zain الخاصة</h3>
-                        <p class="setting-desc">هذا القسم مخصص لإدارة النظام والأدوات المتقدمة.</p>
-                        
-                        <!-- أداة تحديث الحالات عبر إكسل -->
-                        <div style="background: rgba(184, 134, 11, 0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(184, 134, 11, 0.2); text-align: center; margin-bottom: 15px;">
-                            <h4 style="margin-top: 0;">تحديث حالات الطلبات (Excel)</h4>
-                            <button class="btn-parse" style="background: var(--button-gradient); width: 100%; padding: 15px; font-size: 16px;" onclick="window.openZainExcelModal()">
-                                فتح أداة رفع الحالات 📁
-                            </button>
-                        </div>
-
-                        <!-- أداة مسح الكاش العميق للـ PWA -->
-                        <div style="background: rgba(231, 76, 60, 0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(231, 76, 60, 0.2); text-align: center;">
-                            <h4 style="margin-top: 0; color: #e74c3c;">تحديث إجباري للنظام 🔄</h4>
-                            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">استخدم هذا الزر إذا قمت برفع تحديثات على (GitHub) ولم تظهر في التطبيق. سيقوم بمسح الكاش العميق (Service Worker) وإعادة تشغيل التطبيق.</p>
-                            <button class="btn-danger" style="width: 100%; padding: 15px; font-size: 16px; background-color: #e74c3c;" onclick="window.forceClearCacheAndReload()">
-                                مسح الكاش وتحديث التطبيق 🗑️
-                            </button>
-                        </div>
-                    </div>
-                    <!-- ====================== -->
-
-                    <div id="pagesTab" class="tab-pane active" style="text-align: start;"><input type="text" id="newPageName" placeholder="اسم البيج" style="width:100%; margin-bottom:15px;"><button onclick="addPageType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button><ul id="pagesListDisplay"></ul></div>
+<h3 style="margin-top: 0;">🎨 المظهر والعرض</h3>
+<p class="setting-desc">هذه الإعدادات تُحفظ على هذا الجهاز فقط.</p>
+<label class="setting-label">اللغة</label>
+<div class="form-group"><select id="appLangSelect" data-no-i18n onchange="setAppLanguage(this.value)"><option value="ar">العربية</option><option value="en">English</option></select></div>
+<label class="setting-label">الوضع</label>
+<div class="choice-row">
+  <button class="choice-btn" id="theme-btn-auto" onclick="applyThemeMode('auto')">تلقائي 🕐</button>
+  <button class="choice-btn" id="theme-btn-light" onclick="applyThemeMode('light')">نهاري ☀️</button>
+  <button class="choice-btn" id="theme-btn-dark" onclick="applyThemeMode('dark')">ليلي 🌙</button>
+</div>
+<label class="setting-label">شكل العرض</label>
+<p class="setting-desc">اختيار "كمبيوتر" يوسّع الواجهة ويحوّل القائمة إلى شبكة مناسبة للشاشات الكبيرة. "تلقائي" يختار حسب حجم الشاشة.</p>
+<div class="choice-row">
+  <button class="choice-btn" data-layout-btn="auto" onclick="applyLayoutMode('auto')">تلقائي</button>
+  <button class="choice-btn" data-layout-btn="mobile" onclick="applyLayoutMode('mobile')">جوال 📱</button>
+  <button class="choice-btn" data-layout-btn="desktop" onclick="applyLayoutMode('desktop')">كمبيوتر 🖥️</button>
+</div>
+<p class="setting-desc" style="margin-top:18px;">ملاحظة: الوصولات المطبوعة تبقى بالعربية دائماً.</p>
+</div>
+<div id="pagesTab" class="tab-pane active" style="text-align: start;"><input type="text" id="newPageName" placeholder="اسم البيج" style="width:100%; margin-bottom:15px;"><button onclick="addPageType()" style="width: 100%; margin-bottom: 20px;">إضافة للسحابة ☁️</button><ul id="pagesListDisplay"></ul></div>
                     
                     <div id="typesTab" class="tab-pane" style="text-align: start;">
                         <div style="display: flex; gap: 10px; margin-bottom: 20px;"><button id="btn-sec-type-list" onclick="toggleOrderTypeSection('list')" style="flex: 1; padding: 12px; border-radius: 12px; background: var(--button-gradient); color: white;">قائمة الطلبات</button><button id="btn-sec-type-add" onclick="toggleOrderTypeSection('add')" style="flex: 1; padding: 12px; border-radius: 12px; background: transparent; color: var(--text-muted);">إضافة ديكور</button></div>
@@ -553,6 +532,7 @@
         <option value="تم المحاسبة">تم المحاسبة</option>
         <option value="قديم">قديم</option>
     </select></div><div class="form-grid"><div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div><div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div><div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr"></div><div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr"></div><div class="form-group"><label>المحافظة</label><input type="text" id="editGov"></div><div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div></div><div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><button type="button" class="btn-outline" onclick="addEditOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></div><div id="editDynamicRowsWrapper"></div></div><div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount"></div><button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التحديثات 💾</button></div></div>
+    <div class="modal-overlay no-print" id="statusUploadModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 460px; text-align: start;"><span class="close-modal" onclick="closeStatusUploadModal()">&times;</span><h3 style="margin-bottom: 8px; text-align: center; color: var(--primary-blue);">🔁 رفع الحالات من Excel</h3><p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 18px;">حمّل النموذج واكتب فيه أرقام التسلسل فقط، ثم ارفعه لتغيير حالة الطلبات المطابقة.</p><div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px;"><button type="button" class="btn-outline" onclick="downloadStatusTemplate()" style="flex: 1; min-width: 150px; padding: 12px;">⬇️ تحميل نموذج Excel</button><button type="button" class="btn-parse" onclick="pickStatusExcelFile()" style="flex: 1; min-width: 150px; padding: 12px;">📤 رفع ملف Excel</button><input type="file" id="statusExcelInput" accept=".xlsx, .xls" style="display: none;" onchange="handleStatusExcel(event)"></div><div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;"><label>الحالة المراد التغيير لها:</label><select id="statusUploadSelect" style="font-weight: bold; width: 100%;"></select></div><div id="statusUploadResult" style="display: none; margin-top: 15px; padding: 14px; border-radius: 15px; background: var(--bg-color); box-shadow: var(--inner-shadow); font-size: 14px; line-height: 1.9;"></div></div></div>
     <div class="modal-overlay no-print" id="bulkStatusModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 350px; text-align: center;"><span class="close-modal" onclick="closeBulkStatusModal()">&times;</span><h3 style="margin-bottom: 15px;">تغيير حالة الطلبات المحددة</h3><select id="bulkStatusSelect" style="margin-bottom: 25px; width: 100%; padding: 15px; border-radius: 15px;">
         <option value="جديد">جديد</option>
         <option value="قيد التجهيز">قيد التجهيز</option>
@@ -595,53 +575,9 @@
         </div>
     </div>
 
-    <!-- نافذة سجل تفاصيل الحالة للطلب -->
-    <div class="modal-overlay no-print" id="orderHistoryModal" style="z-index: 14000;">
-        <div class="modal-content" style="max-width: 500px; text-align: start;">
-            <span class="close-modal" onclick="closeOrderHistoryModal()">&times;</span>
-            <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">📜 تفاصيل وتاريخ الحالة</h3>
-            <div id="orderHistoryContainer" style="max-height: 350px; overflow-y: auto; background: var(--bg-color); padding: 15px; border-radius: 15px; box-shadow: var(--inner-shadow); display: flex; flex-direction: column; margin-bottom: 15px;">
-                <!-- سيتم وضع تفاصيل التعديلات والتعليقات هنا -->
-            </div>
-            <div class="chat-input-area" style="padding:0; border:none; background:transparent;">
-                <input type="text" id="orderCommentInput" placeholder="اكتب تعليقاً أو رداً على هذه الحالة..." style="box-shadow: var(--outer-shadow);" onkeypress="if(event.key==='Enter') addOrderComment()">
-                <button class="btn-parse send-btn" onclick="addOrderComment()" style="min-width: 80px; padding: 15px 20px;">إرسال</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ======== نافذة تحديث الحالات عبر إكسل (الجديدة والمحدثة) ======== -->
-    <div class="modal-overlay no-print" id="bulkStatusExcelModal" style="z-index: 14500; display: none;">
-        <div class="modal-content" style="max-width: 400px; text-align: start;">
-            <span class="close-modal" onclick="document.getElementById('bulkStatusExcelModal').style.display='none'">&times;</span>
-            <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">تحديث الحالات عبر إكسل 📁</h3>
-
-            <div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;">
-                <label style="color: var(--primary-blue); margin-bottom: 10px; font-weight: bold;">اختر الحالة المراد التغيير إليها:</label>
-                <select id="bulkStatusExcelSelect" style="font-weight: bold; width: 100%;">
-                    <option value="">-- اختر الحالة --</option>
-                    <option value="جديد">جديد</option>
-                    <option value="قيد التجهيز">قيد التجهيز</option>
-                    <option value="مسلم للمندوب">مسلم للمندوب</option>
-                    <option value="تم التوصيل">تم التوصيل</option>
-                    <option value="راجع">راجع</option>
-                    <option value="راجع مخزن">راجع مخزن</option>
-                    <option value="تم المحاسبة">تم المحاسبة</option>
-                    <option value="قديم">قديم</option>
-                </select>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn-outline" style="flex: 1; padding: 12px; font-size: 14px;" onclick="window.downloadStatusExcelTemplate()">تحميل النموذج 📥</button>
-                <input type="file" id="fileInputBulkStatus" accept=".xlsx, .xls" style="display: none;" onchange="window.processStatusExcelUpload(event)" />
-                <button class="btn-parse" style="flex: 1; padding: 12px; font-size: 14px;" onclick="window.triggerStatusExcelUpload()">رفع الإكسل 📤</button>
-            </div>
-            
-            <div id="bulkStatusExcelResult" style="margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center;"></div>
-        </div>
-    </div>
-    <!-- ======================================================= -->
-
+    <noscript><div style="position:fixed;inset:0;z-index:99999;background:#0d0e12;color:#fff;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-family:Arial,sans-serif;">يجب تفعيل JavaScript لتشغيل جولد لاند</div></noscript>
+    <div id="bootFailBanner" class="no-print" style="display:none;position:fixed;inset:0;z-index:99998;background:#0d0e12;color:#fff;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:20px;text-align:center;font-family:Arial,sans-serif;"><div style="font-size:18px;font-weight:bold;">تعذّر تحميل التطبيق</div><div style="font-size:14px;opacity:.85;">تأكد من اتصال الإنترنت ثم أعد المحاولة</div><button type="button" onclick="location.reload()" style="padding:10px 28px;border:none;border-radius:12px;background:#e2b45f;color:#000;font-weight:bold;font-size:15px;cursor:pointer;">إعادة المحاولة</button></div>
+    <script>setTimeout(function(){if(!window.__glBooted){var b=document.getElementById("bootFailBanner");if(b)b.style.display="flex";}},12000);</script>
     <script src="i18n.js"></script>
     <script type="module" src="script.js"></script>
 </body>

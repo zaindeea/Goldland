@@ -9,6 +9,33 @@
     'use strict';
 
     var EN = {
+ "🔁 رفع الحالات": "🔁 Upload statuses",
+ "🔁 رفع الحالات من Excel": "🔁 Upload statuses from Excel",
+ "حمّل النموذج واكتب فيه أرقام التسلسل فقط، ثم ارفعه لتغيير حالة الطلبات المطابقة.": "Download the template, fill in serial numbers only, then upload it to change the status of matching orders.",
+ "⬇️ تحميل نموذج Excel": "⬇️ Download Excel template",
+ "📤 رفع ملف Excel": "📤 Upload Excel file",
+ "الحالة المراد التغيير لها:": "Status to change to:",
+ "-- اختر الحالة --": "-- Select status --",
+ "نموذج_رفع_الحالات": "status_upload_template",
+ "اختر الحالة المراد التغيير لها أولاً": "Select the target status first",
+ "لم يتم العثور على أرقام تسلسل في الملف": "No serial numbers found in the file",
+ "تعذر قراءة الملف أو البحث في قاعدة البيانات": "Could not read the file or search the database",
+ "أرقام في الملف": "Serials in file",
+ "مكررة تم تجاهلها": "duplicates ignored",
+ "سيتم تغييرها إلى": "Will be changed to",
+ "حالتها نفس الحالة المختارة (تُتجاهل)": "Already in the chosen status (skipped)",
+ "رقم يطابق أكثر من طلب وسيتغير الجميع": "serial(s) match more than one order; all will change",
+ "غير موجودة": "Not found",
+ "تطبيق التغيير": "Apply change",
+ "تأكيد تغيير حالة": "Confirm changing status of",
+ "طلب إلى": "orders to",
+ "تم تغيير حالة": "Status changed for",
+ "طلب بنجاح": "orders successfully",
+ "تعذر إكمال التغيير": "Could not complete the change",
+ "تأكد من نشر قواعد Firestore المحدّثة": "Make sure the updated Firestore rules are published",
+ "تعذر تغيير الحالة. تأكد من الصلاحيات وقواعد Firestore.": "Could not change the status. Check permissions and Firestore rules.",
+ "البيانات المحمّلة تبدأ من": "Loaded data starts from",
+ "لتقارير أقدم اجلب الأرشيف من شاشة الأرشيف والمتابعة": "for older reports, fetch the archive from the Archive & Follow-up screen",
 
  // --- المظهر وإعداد المدير (v2) ---
  "🎨 المظهر": "🎨 Appearance",

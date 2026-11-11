@@ -45,6 +45,11 @@ service cloud.firestore {
       allow read, create, update, delete: if signedIn();
     }
 
+    match /order_history/{docId} {
+      allow read, create: if signedIn();
+      allow update, delete: if false;
+    }
+
     match /order_types/{docId} {
       allow read, create, update, delete: if signedIn();
     }
