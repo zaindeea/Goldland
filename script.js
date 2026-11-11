@@ -81,7 +81,7 @@ const firebaseConfig = {
 
 let db, app;
 let cloudOrdersUnsubscribe = null, stockUnsubscribe = null, transactionsUnsubscribe = null;
-window.isShowingOldArchive = false; // متحكم إظهار الحالات المؤرشفة
+window.isShowingOldArchive = false; 
 
 try {
     app = initializeApp(firebaseConfig); db = getFirestore(app);
@@ -99,7 +99,6 @@ try {
     
     window.updateOrderInFirebase = async function(docId, newData) { 
         try { 
-            // تسجيل تفاصيل الحالة إذا تم تغييرها
             if (newData.status) {
                 let oldOrder = allCloudOrders.find(o => o.id_doc === docId);
                 if (oldOrder && oldOrder.status !== newData.status) {
@@ -126,7 +125,7 @@ try {
     window.listenToCloudOrders = function() {
         if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; }
         allCloudOrders = []; 
-        window.isShowingOldArchive = false; // الوضع الافتراضي إخفاء الأرشيف القديم
+        window.isShowingOldArchive = false; 
         const startDate = new Date(); startDate.setDate(startDate.getDate() - 10); startDate.setHours(0,0,0,0);
         const q = query(collection(db, "orders"), where("timestamp", ">=", startDate), limit(1000));
         let isFirstLoad = true;
@@ -204,7 +203,6 @@ window.injectNewStatuses = function() {
     });
 };
 
-// إنشاء قالب نافذة تفاصيل الحالة وإضافته للمستند
 window.injectStatusHistoryModal = function() {
     if (!document.getElementById('statusHistoryModal')) {
         const modalHtml = `
@@ -772,7 +770,7 @@ window.createChatGroup = async function() { const groupName = document.getElemen
 window.loadChatGroups = async function() { try { const snap = await getDocs(query(collection(db, "chat_groups"))); let groupsHtml = ''; let unreadPerChat = {}; allChatMessages.forEach(msg => { if(msg.sender !== loggedInUser && (!msg.readBy || !msg.readBy.includes(loggedInUser))) { unreadPerChat[msg.chatId] = (unreadPerChat[msg.chatId] || 0) + 1; } }); snap.forEach(doc => { const data = doc.data(); if((data.members && data.members.includes(loggedInUser)) || isManager) { const chatId = 'group_' + doc.id; if(data.members && data.members.includes(loggedInUser)) myGroupIds.add(chatId); const unreadCount = unreadPerChat[chatId] || 0; const badgeStyle = unreadCount > 0 ? 'inline-flex' : 'none'; groupsHtml += `<div class="chat-list-item" id="chatItem_${esc(chatId)}" data-chat-id="${esc(chatId)}" data-title="${esc(data.name)}" onclick="window.openChat(this.dataset.chatId, this.dataset.title)"><div class="chat-avatar" style="background: linear-gradient(135deg, #00b09b, #96c93d);">👥</div><div class="chat-info" style="width: 100%; display: flex; justify-content: space-between; align-items: center;"><div><h4>${esc(data.name)}</h4><p>${data.members.length} أعضاء</p></div><span class="chat-unread-badge" id="badge_${esc(chatId)}" style="display:${badgeStyle};">${unreadCount}</span></div></div>`; } }); if(groupsHtml === '') groupsHtml = '<div style="text-align:center; padding: 20px; color: var(--text-muted); font-size:12px;">لا توجد مجموعات بعد</div>'; document.getElementById('groupsListContainer').innerHTML = groupsHtml; } catch(e) {} }
 
 // =========================================
-// الأرشيف والمتابعة (مع فلترة الحالات الجديدة)
+// الأرشيف والمتابعة
 // =========================================
 window.openCloudOrders = function() { 
     document.getElementById("main-menu-section").style.display = "none"; document.getElementById("archive-section").style.display = "flex";
@@ -800,7 +798,7 @@ window.fetchOldOrders = async function() {
         allCloudOrders = []; 
         snap.forEach(doc => { allCloudOrders.push({ id_doc: doc.id, ...doc.data() }); }); 
         
-        window.isShowingOldArchive = true; // السماح بإظهار الحالات (تم المحاسبة) و (قديم)
+        window.isShowingOldArchive = true; 
         window.filterCloudOrders(); 
         window.closeArchiveFetchModal(); 
         window.showSuccessToast(`تم جلب ${snap.size} طلب!`); 
@@ -825,7 +823,6 @@ window.filterCloudOrders = function() {
                (pF === "" || (o.constant||"") === pF) && 
                (sF === "" || (o.status||"جديد") === sF); 
         
-        // إخفاء الحالات المؤرشفة إلا في حال جلب القديم أو إذا تم فلترتها صراحة
         if (!window.isShowingOldArchive && sF === "") {
             if (o.status === 'تم المحاسبة' || o.status === 'قديم') {
                 match = false;
@@ -849,7 +846,7 @@ window.filterCloudOrders = function() {
         if(st === 'قديم') statusColor = '#e84393'; 
         
         if(st === 'قديم') {
-            tr.style.backgroundColor = 'rgba(232, 67, 147, 0.08)'; // خلفية مميزة لحالة قديم
+            tr.style.backgroundColor = 'rgba(232, 67, 147, 0.08)'; 
         }
         
         let allStatusOptions = ['جديد', 'قيد التجهيز', 'مسلم للمندوب', 'تم التوصيل', 'راجع', 'راجع مخزن', 'تم المحاسبة', 'قديم'];
@@ -862,10 +859,10 @@ window.filterCloudOrders = function() {
         tr.innerHTML = `
             <td style="text-align: center;"><input type="checkbox" class="order-cb" value="${esc(o.id_doc)}" style="width: 18px; height: 18px; box-shadow:none; padding:0; cursor:pointer;"></td>
             <td style="cursor: pointer; text-align: center;" onclick="window.openOrderDetailsModal('${esc(o.id_doc)}')">
-    <span style="display:inline-block; padding: 5px 10px; background: rgba(64,123,255,0.1); color:var(--primary-blue); font-weight:bold; border-radius: 8px; text-decoration: underline;" title="اضغط لعرض التفاصيل">
-        ${esc(o.id||'-')}
-    </span>
-</td>
+                <span style="display:inline-block; padding: 5px 10px; background: rgba(64,123,255,0.1); color:var(--primary-blue); font-weight:bold; border-radius: 8px; text-decoration: underline;" title="اضغط لعرض التفاصيل">
+                    ${esc(o.id||'-')}
+                </span>
+            </td>
             <td>${statusSelectHtml}</td>
             <td style="color:var(--primary-blue); font-weight:bold;">${esc(o.constant||'-')}</td>
             <td>${esc(o.name||'-')}</td>
@@ -891,9 +888,7 @@ window.filterCloudOrders = function() {
         window.updateArchiveCounts();
     }
 }
-// =========================================
-// دوال تحديث أرقام الأرشيف (الدوائر)
-// =========================================
+
 window.updateArchiveCounts = function() {
     const displayedRows = document.querySelectorAll('#cloudOrdersTbody tr').length;
     const selectedRows = document.querySelectorAll('.order-cb:checked').length;
@@ -958,7 +953,6 @@ window.openOrderDetailsModal = function(docId) {
         </div>
     </div>`; 
 
-    // إضافة زر "تفاصيل الحالة"
     let actionsHtml = `
     <div style="display:flex; gap:10px; margin-top:15px;" class="no-print">
         <button class="btn-parse" style="flex:1; background: #2ecc71; color: white;" onclick="window.exportOrderDetailsPDF('${esc(order.id || '')}')">📄 PDF</button>
@@ -1001,7 +995,6 @@ window.closeOrderDetailsModal = function() { document.getElementById('orderDetai
 
 window.currentHistoryOrderId = null;
 
-// دالة فتح نافذة تفاصيل الحالة وسجل التعليقات
 window.openOrderStatusHistory = function(docId) {
     window.currentHistoryOrderId = docId;
     window.injectStatusHistoryModal();
@@ -1009,7 +1002,6 @@ window.openOrderStatusHistory = function(docId) {
     window.loadOrderStatusHistory(docId);
 }
 
-// دالة جلب السجل والتغييرات
 window.loadOrderStatusHistory = async function(docId) {
     const container = document.getElementById('statusHistoryContent');
     container.innerHTML = '<div style="text-align:center; color:gray; margin-top:20px;">جاري التحميل... ⏳</div>';
@@ -1065,7 +1057,7 @@ window.loadOrderStatusHistory = async function(docId) {
         container.innerHTML = '<div style="text-align:center; color:#ff4757; margin-top:20px;">حدث خطأ أثناء تحميل السجل.</div>';
     }
 }
-// دالة إضافة رد أو تعليق
+
 window.addStatusComment = async function() {
     let input = document.getElementById('statusCommentInput');
     let txt = input.value.trim();
@@ -1122,7 +1114,6 @@ window.saveBulkStatus = async function() {
                     let oldStatus = oldOrder ? oldOrder.status : 'جديد';
                     batch.update(doc(db, "orders", id), { status: newStatus }); 
                     
-                    // توثيق التغيير في سجل الحالة
                     if (oldStatus !== newStatus) {
                         batch.set(doc(collection(db, "order_history")), {
                             orderId: id,
@@ -1430,10 +1421,34 @@ window.openSettings = function() {
     if (!loggedInUserCanSettings && !isManager) { alert("❌ ليس لديك صلاحية."); return; }
     document.getElementById("main-menu-section").style.display = "none"; document.getElementById("settings-section").style.display = "flex";
     document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; 
+    
+    // إظهار تبويب Zain فقط إذا كان المستخدم هو Zain أو المدير
+    const zainBtn = document.getElementById('zainToolsTabBtn');
+    if (zainBtn) {
+        zainBtn.style.display = (loggedInUser.toLowerCase() === 'zain' || isManager) ? 'inline-block' : 'none';
+    }
+
     window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); window.renderWhCatalogSettings(); 
 }
 
-window.verifySettingsPass = async function() { const okPass = await verifyAdminPass(document.getElementById('settingsPass').value); if (okPass) { document.getElementById('settingsPass').value = ''; document.getElementById('settings-error').style.display = 'none'; document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); window.renderWhCatalogSettings(); } else { document.getElementById('settings-error').style.display = 'block'; } }
+window.verifySettingsPass = async function() { 
+    const okPass = await verifyAdminPass(document.getElementById('settingsPass').value); 
+    if (okPass) { 
+        document.getElementById('settingsPass').value = ''; document.getElementById('settings-error').style.display = 'none'; 
+        document.getElementById('settingsAuthSection').style.display = 'none'; document.getElementById('settingsManagerSection').style.display = 'block'; 
+        
+        // إظهار تبويب Zain عند الدخول بكلمة سر المدير
+        const zainBtn = document.getElementById('zainToolsTabBtn');
+        if (zainBtn) {
+            zainBtn.style.display = (loggedInUser.toLowerCase() === 'zain' || isManager) ? 'inline-block' : 'none';
+        }
+
+        window.renderPagesSettings(); window.renderOrderTypesSettings(); window.renderUsers(); window.renderWhCatalogSettings(); 
+    } else { 
+        document.getElementById('settings-error').style.display = 'block'; 
+    } 
+}
+
 window.switchTab = function(tabId, btn) { document.querySelectorAll('#settings-section .tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('#settings-section .tab-pane').forEach(p => p.classList.remove('active')); btn.classList.add('active'); document.getElementById(tabId).classList.add('active'); }
 window.addPageType = async function() { const val = document.getElementById('newPageName').value.trim(); if(val && window.addSystemPageToFirebase) { const r = await window.addSystemPageToFirebase({name: val}); configuredPages.push({id: r.id, name: val}); window.renderPagesSettings(); window.updatePagesDropdown(); } }
 window.deletePageType = async function(idx) { window.showConfirmDialog("حذف البيج؟", async function() { await window.deleteSystemPageFromFirebase(configuredPages[idx].id); configuredPages.splice(idx, 1); window.renderPagesSettings(); window.updatePagesDropdown(); }); }
@@ -1603,8 +1618,53 @@ window.addEventListener('load', () => {
 });
 
 // =========================================
-// تحديث الحالات عبر الإكسل دفعة واحدة (محدث ومتوافق)
+// أدوات Zain الخاصة (تحديث إكسل + مسح الكاش)
 // =========================================
+window.openZainExcelModal = function() {
+    if (loggedInUser.toLowerCase() !== 'zain' && !isManager) {
+        alert("❌ هذه الأداة مخصصة لـ Zain فقط.");
+        return;
+    }
+    document.getElementById('bulkStatusExcelModal').style.display = 'flex';
+    document.getElementById('bulkStatusExcelResult').innerText = '';
+    document.getElementById('bulkStatusExcelSelect').value = '';
+}
+
+window.forceClearCacheAndReload = async function() {
+    if (!confirm("هل أنت متأكد من رغبتك في مسح ملفات الكاش وإجبار التطبيق على التحديث؟ (سيتم إعادة تحميل الصفحة)")) {
+        return;
+    }
+
+    document.body.style.cursor = 'wait';
+    try {
+        // 1. إلغاء تسجيل الـ Service Workers القديمة
+        if ('serviceWorker' in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (let registration of registrations) {
+                await registration.unregister();
+            }
+        }
+        
+        // 2. مسح ملفات التخزين المؤقت (Cache Storage API)
+        if ('caches' in window) {
+            const keys = await caches.keys();
+            for (let key of keys) {
+                await caches.delete(key);
+            }
+        }
+
+        console.log("تم مسح الكاش بنجاح.");
+        
+        // 3. إعادة تحميل الصفحة بقوة
+        window.location.reload(true);
+        
+    } catch (error) {
+        console.error("خطأ أثناء مسح الكاش:", error);
+        alert("حدث خطأ أثناء مسح الكاش. يرجى التحديث يدوياً.");
+        document.body.style.cursor = 'default';
+    }
+};
+
 window.downloadStatusExcelTemplate = function() {
     const wsData = [ ["التسلسل"] ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
@@ -1656,7 +1716,6 @@ window.processStatusExcelUpload = function(e) {
             let batchCount = 0;
 
             for (let row of excelRows) {
-                // البحث الذكي عن عمود التسلسل لتجنب مشاكل المسافات في الإكسل
                 let serial = "";
                 for (let key in row) {
                     if (key.includes("تسلسل")) {
@@ -1666,7 +1725,6 @@ window.processStatusExcelUpload = function(e) {
                 }
                 if (!serial) continue;
 
-                // مطابقة التسلسل (تعالج مشكلة حذف الأصفار من الإكسل)
                 let localOrder = allCloudOrders.find(o => {
                     let dbSerial = String(o.id || '').trim();
                     if (dbSerial === serial) return true;
