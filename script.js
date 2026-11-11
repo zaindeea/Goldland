@@ -1603,158 +1603,135 @@ window.addEventListener('load', () => {
 });
 
 // =========================================
-// تحديث الحالات عبر الإكسل دفعة واحدة
+// تحديث الحالات عبر الإكسل دفعة واحدة (محدث ومتوافق)
 // =========================================
-const btnBulkStatusUpdate = document.getElementById('btnBulkStatusUpdate');
-const bulkStatusExcelModal = document.getElementById('bulkStatusExcelModal');
-const closeBulkStatusExcelModal = document.getElementById('closeBulkStatusExcelModal');
-const bulkStatusExcelResult = document.getElementById('bulkStatusExcelResult');
-const bulkStatusExcelSelect = document.getElementById('bulkStatusExcelSelect');
-const fileInputBulkStatus = document.getElementById('fileInputBulkStatus');
-const btnUploadStatusExcel = document.getElementById('btnUploadStatusExcel');
-const btnDownloadStatusTemplate = document.getElementById('btnDownloadStatusTemplate');
+window.downloadStatusExcelTemplate = function() {
+    const wsData = [ ["التسلسل"] ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 20 }]; 
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "الطلبات");
+    XLSX.writeFile(wb, "نموذج_تحديث_الحالات.xlsx");
+};
 
-if(btnBulkStatusUpdate) {
-    btnBulkStatusUpdate.addEventListener('click', () => {
-        bulkStatusExcelModal.style.display = 'flex';
-        bulkStatusExcelResult.innerText = '';
-        bulkStatusExcelSelect.value = '';
-    });
-}
+window.triggerStatusExcelUpload = function() {
+    const selectedStatus = document.getElementById('bulkStatusExcelSelect').value;
+    if (!selectedStatus) {
+        alert(window.tr("يرجى اختيار الحالة المراد التغيير إليها أولاً!")); 
+        return;
+    }
+    document.getElementById('fileInputBulkStatus').click();
+};
 
-if(closeBulkStatusExcelModal) {
-    closeBulkStatusExcelModal.addEventListener('click', () => {
-        bulkStatusExcelModal.style.display = 'none';
-    });
-}
+window.processStatusExcelUpload = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-if(btnDownloadStatusTemplate) {
-    btnDownloadStatusTemplate.addEventListener('click', () => {
-        const wsData = [ ["التسلسل"] ];
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        ws['!cols'] = [{ wch: 20 }]; 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "الطلبات");
-        XLSX.writeFile(wb, "نموذج_تحديث_الحالات.xlsx");
-    });
-}
+    const reader = new FileReader();
+    reader.onload = async function(event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const excelRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
-if(btnUploadStatusExcel) {
-    btnUploadStatusExcel.addEventListener('click', () => {
-        const selectedStatus = bulkStatusExcelSelect.value;
-        if (!selectedStatus) {
-            alert(window.tr("يرجى اختيار الحالة المراد التغيير إليها أولاً!")); 
+        const fileInput = document.getElementById('fileInputBulkStatus');
+        const resultBox = document.getElementById('bulkStatusExcelResult');
+        const targetStatus = document.getElementById('bulkStatusExcelSelect').value;
+
+        if (excelRows.length === 0) {
+            alert(window.tr("الملف المرفوع فارغ!"));
+            fileInput.value = '';
             return;
         }
-        fileInputBulkStatus.click();
-    });
-}
 
-if(fileInputBulkStatus) {
-    fileInputBulkStatus.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        let successCount = 0;
+        let notFoundCount = 0;
 
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const excelRows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        resultBox.style.color = "var(--primary-blue)";
+        resultBox.innerText = window.tr("جاري تحديث الحالات في السحابة... ⏳");
+        document.body.style.cursor = 'wait';
 
-            if (excelRows.length === 0) {
-                alert(window.tr("الملف المرفوع فارغ!"));
-                fileInputBulkStatus.value = '';
-                return;
-            }
+        try {
+            let currentBatch = writeBatch(db);
+            let batchCount = 0;
 
-            const targetStatus = bulkStatusExcelSelect.value;
-            let successCount = 0;
-            let notFoundCount = 0;
-
-            bulkStatusExcelResult.style.color = "var(--primary-blue)";
-            bulkStatusExcelResult.innerText = window.tr("جاري تحديث الحالات في السحابة... ⏳");
-            document.body.style.cursor = 'wait';
-
-            try {
-                // تقسيم البيانات إلى حزم (Batches) لتجنب تخطي حدود الفايربيس (500 عملية كحد أقصى للباتش)
-                let currentBatch = writeBatch(db);
-                let batchCount = 0;
-
-                for (let row of excelRows) {
-                    let serial = row["التسلسل"] || row[" التسلسل "] || ""; 
-                    serial = String(serial).trim();
-                    if (!serial) continue;
-
-                    // البحث محلياً أولاً لتسريع العملية وتقليل الاستعلامات
-                    let localOrder = allCloudOrders.find(o => String(o.id || '').trim() === serial);
-                    
-                    if (localOrder) {
-                        let docId = localOrder.id_doc;
-                        let oldStatus = localOrder.status || 'جديد';
-                        
-                        // إضافة التحديث للباتش
-                        currentBatch.update(doc(db, "orders", docId), { status: targetStatus });
-                        
-                        // تسجيل التغيير في الهستوري
-                        if (oldStatus !== targetStatus) {
-                            currentBatch.set(doc(collection(db, "order_history")), {
-                                orderId: docId,
-                                type: 'status_change',
-                                oldStatus: oldStatus,
-                                newStatus: targetStatus,
-                                addedBy: loggedInUser,
-                                timestamp: serverTimestamp()
-                            });
-                        }
-
-                        // تحديث الحالة محلياً لكي ينعكس فوراً على الجدول
-                        localOrder.status = targetStatus;
-                        
-                        successCount++;
-                        batchCount += 2; // تحديث الطلب + إضافة هيستوري = عمليتين
-
-                        // إذا وصل الباتش إلى 400، نقوم بتنفيذه ونفتح باتش جديد
-                        if (batchCount >= 400) {
-                            await currentBatch.commit();
-                            currentBatch = writeBatch(db);
-                            batchCount = 0;
-                        }
-                    } else {
-                        notFoundCount++;
+            for (let row of excelRows) {
+                // البحث الذكي عن عمود التسلسل لتجنب مشاكل المسافات في الإكسل
+                let serial = "";
+                for (let key in row) {
+                    if (key.includes("تسلسل")) {
+                        serial = String(row[key]).trim();
+                        break;
                     }
                 }
-                
-                // تنفيذ ما تبقى في الباتش الأخير
-                if (batchCount > 0) {
-                    await currentBatch.commit();
-                }
+                if (!serial) continue;
 
-                bulkStatusExcelResult.style.color = "#2ecc71";
-                let resultText = `✅ تم تحديث ${successCount} طلب بنجاح.`;
-                if (notFoundCount > 0) {
-                    resultText += ` (لم يتم العثور على ${notFoundCount} تسلسل)`;
-                }
-                bulkStatusExcelResult.innerText = window.tr(resultText);
+                // مطابقة التسلسل (تعالج مشكلة حذف الأصفار من الإكسل)
+                let localOrder = allCloudOrders.find(o => {
+                    let dbSerial = String(o.id || '').trim();
+                    if (dbSerial === serial) return true;
+                    if (!isNaN(dbSerial) && !isNaN(serial) && Number(dbSerial) === Number(serial)) return true;
+                    return false;
+                });
                 
-                // تحديث واجهة المستخدم
-                if (typeof window.filterCloudOrders === "function") {
-                    window.filterCloudOrders(); 
-                }
-                
-                if (successCount > 0) {
-                    window.logActionToCloud("تغيير حالة", `تغيير حالة ${successCount} طلب إلى ${targetStatus} عبر ملف إكسل`);
-                }
+                if (localOrder) {
+                    let docId = localOrder.id_doc;
+                    let oldStatus = localOrder.status || 'جديد';
+                    
+                    currentBatch.update(doc(db, "orders", docId), { status: targetStatus });
+                    
+                    if (oldStatus !== targetStatus) {
+                        currentBatch.set(doc(collection(db, "order_history")), {
+                            orderId: docId,
+                            type: 'status_change',
+                            oldStatus: oldStatus,
+                            newStatus: targetStatus,
+                            addedBy: loggedInUser,
+                            timestamp: serverTimestamp()
+                        });
+                    }
 
-            } catch (error) {
-                console.error("Error bulk updating status via excel:", error);
-                bulkStatusExcelResult.style.color = "#e74c3c";
-                bulkStatusExcelResult.innerText = "❌ حدث خطأ أثناء التحديث.";
+                    localOrder.status = targetStatus;
+                    successCount++;
+                    batchCount += 2;
+
+                    if (batchCount >= 400) {
+                        await currentBatch.commit();
+                        currentBatch = writeBatch(db);
+                        batchCount = 0;
+                    }
+                } else {
+                    notFoundCount++;
+                }
+            }
+            
+            if (batchCount > 0) {
+                await currentBatch.commit();
             }
 
-            document.body.style.cursor = 'default';
-            fileInputBulkStatus.value = '';
-        };
-        reader.readAsArrayBuffer(file);
-    });
-}
+            resultBox.style.color = "#2ecc71";
+            let resultText = `✅ تم تحديث ${successCount} طلب بنجاح.`;
+            if (notFoundCount > 0) {
+                resultText += ` (لم يتم العثور على ${notFoundCount} تسلسل في الأرشيف المفتوح حالياً)`;
+            }
+            resultBox.innerText = window.tr(resultText);
+            
+            if (typeof window.filterCloudOrders === "function") {
+                window.filterCloudOrders(); 
+            }
+            
+            if (successCount > 0 && typeof window.logActionToCloud === "function") {
+                window.logActionToCloud("تغيير حالة", `تغيير حالة ${successCount} طلب إلى ${targetStatus} عبر ملف إكسل`);
+            }
+
+        } catch (error) {
+            console.error("Error:", error);
+            resultBox.style.color = "#e74c3c";
+            resultBox.innerText = "❌ حدث خطأ أثناء التحديث.";
+        }
+
+        document.body.style.cursor = 'default';
+        fileInput.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+};
