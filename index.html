@@ -594,39 +594,37 @@
         </div>
     </div>
 
-    <!-- ======== نافذة تحديث الحالات عبر إكسل (الجديدة) ======== -->
-    <div class="modal-overlay no-print" id="bulkStatusExcelModal" style="z-index: 14500; display: none;">
-        <div class="modal-content" style="max-width: 400px; text-align: start;">
-            <span class="close-modal" id="closeBulkStatusExcelModal">&times;</span>
-            <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">تحديث الحالات عبر إكسل 📁</h3>
+    <!-- ======== نافذة تحديث الحالات عبر إكسل (الجديدة والمحدثة) ======== -->
+<div class="modal-overlay no-print" id="bulkStatusExcelModal" style="z-index: 14500; display: none;">
+    <div class="modal-content" style="max-width: 400px; text-align: start;">
+        <span class="close-modal" onclick="document.getElementById('bulkStatusExcelModal').style.display='none'">&times;</span>
+        <h3 style="margin-bottom: 20px; text-align: center; color: var(--primary-blue);">تحديث الحالات عبر إكسل 📁</h3>
 
-            <div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;">
-                <label style="color: var(--primary-blue); margin-bottom: 10px; font-weight: bold;">اختر الحالة المراد التغيير إليها:</label>
-                <select id="bulkStatusExcelSelect" style="font-weight: bold; width: 100%;">
-                    <option value="">-- اختر الحالة --</option>
-                    <option value="جديد">جديد</option>
-                    <option value="قيد التجهيز">قيد التجهيز</option>
-                    <option value="مسلم للمندوب">مسلم للمندوب</option>
-                    <option value="تم التوصيل">تم التوصيل</option>
-                    <option value="راجع">راجع</option>
-                    <option value="راجع مخزن">راجع مخزن</option>
-                    <option value="تم المحاسبة">تم المحاسبة</option>
-                    <option value="قديم">قديم</option>
-                </select>
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button id="btnDownloadStatusTemplate" class="btn-outline" style="flex: 1; padding: 12px; font-size: 14px;">تحميل النموذج 📥</button>
-                
-                <input type="file" id="fileInputBulkStatus" accept=".xlsx, .xls" style="display: none;" />
-                
-                <button id="btnUploadStatusExcel" class="btn-parse" style="flex: 1; padding: 12px; font-size: 14px;">رفع الإكسل 📤</button>
-            </div>
-            
-            <div id="bulkStatusExcelResult" style="margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center;"></div>
+        <div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;">
+            <label style="color: var(--primary-blue); margin-bottom: 10px; font-weight: bold;">اختر الحالة المراد التغيير إليها:</label>
+            <select id="bulkStatusExcelSelect" style="font-weight: bold; width: 100%;">
+                <option value="">-- اختر الحالة --</option>
+                <option value="جديد">جديد</option>
+                <option value="قيد التجهيز">قيد التجهيز</option>
+                <option value="مسلم للمندوب">مسلم للمندوب</option>
+                <option value="تم التوصيل">تم التوصيل</option>
+                <option value="راجع">راجع</option>
+                <option value="راجع مخزن">راجع مخزن</option>
+                <option value="تم المحاسبة">تم المحاسبة</option>
+                <option value="قديم">قديم</option>
+            </select>
         </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn-outline" style="flex: 1; padding: 12px; font-size: 14px;" onclick="window.downloadStatusExcelTemplate()">تحميل النموذج 📥</button>
+            <input type="file" id="fileInputBulkStatus" accept=".xlsx, .xls" style="display: none;" onchange="window.processStatusExcelUpload(event)" />
+            <button class="btn-parse" style="flex: 1; padding: 12px; font-size: 14px;" onclick="window.triggerStatusExcelUpload()">رفع الإكسل 📤</button>
+        </div>
+        
+        <div id="bulkStatusExcelResult" style="margin-top: 15px; font-weight: bold; font-size: 14px; text-align: center;"></div>
     </div>
-    <!-- ======================================================= -->
+</div>
+<!-- ======================================================= -->
 
     <script src="i18n.js"></script>
     <script type="module" src="script.js"></script>
