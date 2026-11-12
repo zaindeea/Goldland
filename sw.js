@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gold-land-v4.3';
+const CACHE_NAME = 'gold-land-v4.4';
 const NETWORK_TIMEOUT_MS = 4000;
 const urlsToCache = [
   './',
@@ -8,6 +8,7 @@ const urlsToCache = [
   './i18n.js',
   './manifest.json',
   './logo.png',
+  './logo.svg',
   './favicon.ico',
   './favicon-32x32.png',
   './favicon-16x16.png',
