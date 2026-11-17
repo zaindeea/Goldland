@@ -9,6 +9,18 @@
     'use strict';
 
     var EN = {
+ "🖼️ اختر الطلب": "🖼️ Choose an item",
+ "🔍 بحث بالاسم أو الرمز...": "🔍 Search by name or code...",
+ "🖼️ من الصور": "🖼️ From images",
+ "صور الطلب:": "Order images:",
+ "تم ✔": "Done ✔",
+ "لا توجد نتائج": "No results",
+ "كود صورة الطلب (SVG) — اختياري": "Order image code (SVG) — optional",
+ "مسح الصورة": "Clear image",
+ "معاينة الصورة": "Image preview",
+ "كود الـ SVG غير صالح": "Invalid SVG code",
+ "حجم كود الـ SVG كبير (الحد الأقصى 200KB)": "SVG code is too large (max 200KB)",
+ "كود الـ SVG غير صالح، تأكد أنه يبدأ بـ <svg وينتهي بـ </svg>": "Invalid SVG code. Make sure it starts with <svg and ends with </svg>",
  "🔔 سجل الإجراءات": "🔔 Activity log",
  "الإشعارات وسجل الإجراءات": "Notifications & activity log",
  "🔍 بحث في الإجراءات...": "🔍 Search activity...",

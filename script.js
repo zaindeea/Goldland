@@ -508,7 +508,7 @@ window.parseText = function() {
 window.buildOrderItemRow = function(wrapperId, tName = "", tQty = 1, tColor = "") {
     const wr = document.getElementById(wrapperId); if (!wr) return;
     const r = document.createElement('div'); r.className = 'order-item-row';
-    r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 80px;" value="${esc(tColor)}"> <div class="qty-controls" style="flex: 1; min-width: 110px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="${parseInt(tQty) || 1}" min="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 5px; border-radius: 10px; width: 35px; height: 35px; min-width:unset;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`;
+    r.innerHTML = `<div style="display:flex; flex: 2; min-width: 140px; gap:5px;"><select class="orderTypeSelect" style="flex: 1;"></select><input type="text" class="orderTypeCustomInput" placeholder="يدوي..." style="display:none; flex: 1;"><button type="button" class="btn-outline toggle-custom-btn" onclick="window.toggleOrderInput(this)" style="padding: 0 10px;">✍️</button><button type="button" class="btn-outline type-gallery-open-btn" onclick="window.openTypeGallery(this)" style="padding: 0 10px; display:none;" title="اختيار من الصور">🖼️</button></div> <input type="text" class="orderColorInput" placeholder="اللون" style="flex: 1; min-width: 80px;" value="${esc(tColor)}"> <div class="qty-controls" style="flex: 1; min-width: 110px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, 1)">+</button><input type="number" class="orderQtyInput" value="${parseInt(tQty) || 1}" min="1" style="width: 40px; text-align: center; box-shadow:none; padding:5px;"><button type="button" class="qty-btn" onclick="window.changeQty(this, -1)">-</button><button type="button" class="btn-danger" style="padding: 5px; border-radius: 10px; width: 35px; height: 35px; min-width:unset;" onclick="this.closest('.order-item-row').remove()">❌</button></div>`;
     wr.appendChild(r); window.updateOrderTypeSelects();
     const sel = r.querySelector('.orderTypeSelect'), ci = r.querySelector('.orderTypeCustomInput'), tb = r.querySelector('.toggle-custom-btn');
     
@@ -968,6 +968,7 @@ window.openOrderDetailsModal = function(docId) {
         
         <div style="margin-bottom: 10px;"><strong>العنوان:</strong> ${esc(order.gov || '-')} - ${esc(order.area || '-')}</div>
         <div style="margin-bottom: 10px; line-height: 1.6;"><strong>الطلبات:</strong> <span dir="ltr">${esc(orderItemsReadable(order.type) || '-')}</span></div>
+        ${window.orderImagesHtml(order)}
         <div style="margin-bottom: 10px;"><strong>العدد الكلي:</strong> ${esc(order.qty || 1)}</div>
         <div style="margin-bottom: 10px; color: #b8860b; font-size: 16px;"><strong>المبلغ الكلي:</strong> ${amt.toLocaleString()} دينار</div>
         <div style="margin-bottom: 15px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;"><strong>ملاحظات:</strong> ${esc(order.note || 'لا يوجد')}</div>
@@ -990,6 +991,7 @@ window.openOrderDetailsModal = function(docId) {
     container.style.background = 'transparent';
     container.style.boxShadow = 'none';
     container.style.padding = '0';
+    window._detailsRaster = window.rasterizeSvgImages(container);
 
     document.getElementById('orderDetailsModal').style.display = 'flex'; 
 };
@@ -1007,7 +1009,7 @@ window.exportOrderDetailsPDF = function(orderId) {
         jsPDF: { unit: 'mm', format: 'a5', orientation: 'portrait' }
     };
     
-    html2pdf().set(opt).from(element).save().then(() => {
+    Promise.resolve(window._detailsRaster).then(() => html2pdf().set(opt).from(element).save()).then(() => {
         document.body.style.cursor = 'default';
         window.showSuccessToast("تم حفظ الطلب بنجاح! 📄");
     }).catch(err => {
@@ -1584,12 +1586,128 @@ window.deletePageType = async function(idx) { window.showConfirmDialog("حذف �
 window.renderPagesSettings = function() { document.getElementById("pagesListDisplay").innerHTML = configuredPages.map((p, i) => `<li class="settings-list-item"><span class="item-text">${esc(p.name)}</span><button class="btn-danger" onclick="window.deletePageType(${i})">حذف</button></li>`).join(''); }
 window.updatePagesDropdown = function() { const s1 = document.getElementById('constantField'), s2 = document.getElementById('cloudPageFilter'), s3 = document.getElementById('repPageFilter'), s4 = document.getElementById('repFinPageFilter'), s5 = document.getElementById('repChartsPageFilter'); let h1 = '<option value="">-- اختر البيج --</option>' + configuredPages.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join(''), h2 = '<option value="">-- كل البيجات --</option>' + configuredPages.map(p => `<option value="${esc(p.name)}">${esc(p.name)}</option>`).join(''); if(s1) s1.innerHTML = h1; if(s2) s2.innerHTML = h2; if(s3) s3.innerHTML = h2; if(s4) s4.innerHTML = h2; if(s5) s5.innerHTML = h2; }
 
+
+// =========================================
+// صورة الطلب (كود SVG) — تحقق وتنظيف وعرض آمن
+// =========================================
+// يُعرض الـ SVG دائماً عبر <img> (لا ينفّذ سكربتات ولا يحمّل موارد خارجية)،
+// ونُزيل العناصر والخصائص الخطرة قبل الحفظ كطبقة حماية إضافية.
+const SVG_MAX_CHARS = 200 * 1024;
+window.normalizeSvgCode = function(raw) {
+    raw = String(raw || '').trim();
+    if (!raw) return { ok: true, svg: '' };
+    if (raw.length > SVG_MAX_CHARS) return { ok: false, err: 'size' };
+    let doc;
+    try { doc = new DOMParser().parseFromString(raw, 'image/svg+xml'); } catch (e) { return { ok: false, err: 'invalid' }; }
+    const root = doc.documentElement;
+    if (!root || root.nodeName.toLowerCase() !== 'svg' || doc.getElementsByTagName('parsererror').length) return { ok: false, err: 'invalid' };
+    root.querySelectorAll('script, foreignObject, iframe, object, embed, audio, video').forEach(n => n.remove());
+    [root, ...root.querySelectorAll('*')].forEach(n => {
+        Array.from(n.attributes).forEach(a => {
+            const nm = a.name.toLowerCase(), v = String(a.value || '').trim().toLowerCase();
+            if (nm.startsWith('on')) n.removeAttribute(a.name);
+            else if ((nm === 'href' || nm === 'xlink:href') && !v.startsWith('#') && !v.startsWith('data:image/')) n.removeAttribute(a.name);
+        });
+    });
+    if (!root.getAttribute('xmlns')) root.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const out = new XMLSerializer().serializeToString(root);
+    if (out.length > SVG_MAX_CHARS) return { ok: false, err: 'size' };
+    return { ok: true, svg: out };
+};
+window.svgToDataUri = function(svg) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); };
+window.previewTypeSvg = function() {
+    const box = document.getElementById('type-svg-preview'), msg = document.getElementById('type-svg-msg'); if (!box) return;
+    const r = window.normalizeSvgCode(document.getElementById('type-svg').value);
+    if (!r.ok) { box.className = 'type-svg-thumb type-svg-empty'; box.textContent = '⚠️'; msg.style.color = '#e74c3c'; msg.textContent = window.tr(r.err === 'size' ? 'حجم كود الـ SVG كبير (الحد الأقصى 200KB)' : 'كود الـ SVG غير صالح'); return; }
+    msg.style.color = 'var(--text-muted)';
+    if (!r.svg) { box.className = 'type-svg-thumb type-svg-empty'; box.textContent = '🖼️'; msg.textContent = ''; return; }
+    box.className = 'type-svg-thumb'; box.innerHTML = '<img alt="">'; box.firstChild.src = window.svgToDataUri(r.svg); msg.textContent = window.tr('معاينة الصورة');
+};
+window.clearTypeSvg = function() { document.getElementById('type-svg').value = ''; window.previewTypeSvg(); };
+
+
+// =========================================
+// صور الطلبات: تفاصيل الطلب + نافذة اختيار من الصور
+// =========================================
+window.orderTypeByCode = function(codeOrName) { return configuredOrderTypes.find(t => t.code === codeOrName || t.name === codeOrName); };
+window.orderImagesHtml = function(order) {
+    const cards = parseTypeItems(order.type || '').map(it => {
+        const t = window.orderTypeByCode(it.code);
+        if (!t || typeof t.svg !== 'string' || !t.svg) return '';
+        return `<div style="width:86px; text-align:center;"><img class="od-img" data-svg-uri="${window.svgToDataUri(t.svg)}" src="${window.svgToDataUri(t.svg)}" width="74" height="74" alt="" style="width:74px; height:74px; object-fit:contain; border:1px solid #e5e5e5; border-radius:10px; padding:3px; background:#fff; box-sizing:border-box;"><div dir="ltr" style="font-size:12px; font-weight:bold; margin-top:3px;">${esc(t.code)}</div><div style="font-size:11px; color:#555;">× ${it.qty}${it.color ? ' — ' + esc(it.color) : ''}</div></div>`;
+    }).join('');
+    return cards ? `<div style="margin-bottom: 12px;"><div style="margin-bottom: 6px;"><strong>صور الطلب:</strong></div><div style="display:flex; flex-wrap:wrap; gap:10px;">${cards}</div></div>` : '';
+};
+// تحويل صور SVG إلى PNG حتى يظهر في تصدير PDF بشكل مضمون
+window.rasterizeSvgImages = function(root) {
+    const jobs = Array.from(root.querySelectorAll('img[data-svg-uri]')).map(img => new Promise(res => {
+        const probe = new Image();
+        probe.onload = () => {
+            try {
+                const S = 240, c = document.createElement('canvas'); c.width = S; c.height = S;
+                const w = probe.naturalWidth || S, h = probe.naturalHeight || S, k = Math.min(S / w, S / h);
+                c.getContext('2d').drawImage(probe, (S - w * k) / 2, (S - h * k) / 2, w * k, h * k);
+                img.src = c.toDataURL('image/png');
+            } catch (e) {}
+            res();
+        };
+        probe.onerror = () => res();
+        probe.src = img.getAttribute('data-svg-uri');
+    }));
+    return Promise.all(jobs);
+};
+
+let galleryWrapperId = null, galleryRow = null;
+window.openTypeGallery = function(arg) {
+    galleryRow = (arg && arg.closest) ? arg.closest('.order-item-row') : null;
+    galleryWrapperId = galleryRow ? galleryRow.parentElement.id : arg;
+    document.getElementById('typeGallerySearch').value = '';
+    document.getElementById('typeGalleryDone').style.display = galleryRow ? 'none' : 'block';
+    window.renderTypeGallery();
+    document.getElementById('typeGalleryModal').style.display = 'flex';
+};
+window.closeTypeGallery = function() { document.getElementById('typeGalleryModal').style.display = 'none'; galleryRow = null; };
+function galleryCounts() {
+    const m = {};
+    document.querySelectorAll('#' + galleryWrapperId + ' .order-item-row').forEach(r => {
+        const sel = r.querySelector('.orderTypeSelect'); if (!sel || sel.style.display === 'none' || !sel.value) return;
+        m[sel.value] = (m[sel.value] || 0) + (parseInt(r.querySelector('.orderQtyInput').value) || 1);
+    });
+    return m;
+}
+window.renderTypeGallery = function() {
+    const q = document.getElementById('typeGallerySearch').value.trim().toLowerCase(), counts = galleryCounts(), grid = document.getElementById('typeGalleryGrid');
+    const list = configuredOrderTypes.map((t, i) => ({ t, i })).filter(({ t }) => !q || ((t.name || '') + ' ' + (t.code || '')).toLowerCase().includes(q));
+    if (!list.length) { grid.innerHTML = `<div class="notif-empty" style="grid-column:1/-1;">${esc(window.tr('لا توجد نتائج'))}</div>`; return; }
+    grid.innerHTML = list.map(({ t, i }) => {
+        const n = counts[t.name] || 0, img = (typeof t.svg === 'string' && t.svg) ? `<img src="${window.svgToDataUri(t.svg)}" alt="" loading="lazy">` : '🖼️';
+        return `<button type="button" class="type-gal-card${n ? ' sel' : ''}" onclick="pickGalleryType(${i})">${n ? `<span class="type-gal-badge">×${n}</span>` : ''}<div class="type-gal-img${(typeof t.svg === 'string' && t.svg) ? '' : ' type-svg-empty'}">${img}</div><div class="type-gal-code" dir="ltr">${esc(t.code)}</div><div class="type-gal-name">${esc(t.name)}</div></button>`;
+    }).join('');
+};
+window.pickGalleryType = function(i) {
+    const t = configuredOrderTypes[i]; if (!t) return;
+    const setRow = (r) => {
+        const sel = r.querySelector('.orderTypeSelect'), tb = r.querySelector('.toggle-custom-btn');
+        if (sel.style.display === 'none') window.toggleOrderInput(tb);
+        sel.value = t.name;
+    };
+    if (galleryRow) { setRow(galleryRow); window.closeTypeGallery(); return; }
+    const rows = Array.from(document.querySelectorAll('#' + galleryWrapperId + ' .order-item-row'));
+    const same = rows.find(r => { const s = r.querySelector('.orderTypeSelect'); return s && s.style.display !== 'none' && s.value === t.name; });
+    if (same) { const qi = same.querySelector('.orderQtyInput'); qi.value = (parseInt(qi.value) || 1) + 1; }
+    else {
+        const empty = rows.find(r => { const s = r.querySelector('.orderTypeSelect'), c = r.querySelector('.orderTypeCustomInput'); return (s.style.display !== 'none' && !s.value) || (s.style.display === 'none' && !c.value.trim()); });
+        if (empty) setRow(empty); else window.buildOrderItemRow(galleryWrapperId, t.name);
+    }
+    window.renderTypeGallery();
+};
+
 window.toggleOrderTypeSection = function(sec) { document.getElementById('add-ordertype-sec').style.display = (sec === 'add') ? 'block' : 'none'; document.getElementById('list-ordertype-sec').style.display = (sec === 'list') ? 'block' : 'none'; document.getElementById('btn-sec-type-list').style.background = (sec === 'list') ? 'var(--button-gradient)' : 'transparent'; document.getElementById('btn-sec-type-list').style.color = (sec === 'list') ? 'white' : 'var(--text-muted)'; document.getElementById('btn-sec-type-add').style.background = (sec === 'add') ? 'var(--button-gradient)' : 'transparent'; document.getElementById('btn-sec-type-add').style.color = (sec === 'add') ? 'white' : 'var(--text-muted)'; if(sec === 'add' && !document.getElementById('type-edit-id').value) { document.getElementById('type-form-title').innerText = "إضافة ديكور جديد"; document.getElementById('save-type-btn').innerText = "حفظ الديكور ➕"; } }
-window.saveOrderType = async function() { const editId = document.getElementById("type-edit-id").value; const data = { name: document.getElementById("type-name").value.trim(), code: document.getElementById("type-code").value.trim(), price: document.getElementById("type-price").value.trim(), notes: document.getElementById("type-notes").value.trim() }; if(data.name === "" || data.code === "") { alert("يرجى إدخال اسم الطلب والرمز"); return; } if(configuredOrderTypes.some(t => t.code === data.code && t.id !== editId)) { alert("هذا الرمز مستخدم لطلب آخر، اختر رمزاً مختلفاً"); return; } document.body.style.cursor = 'wait'; if(editId) { if(window.updateOrderTypeInFirebase) await window.updateOrderTypeInFirebase(editId, data); const idx = configuredOrderTypes.findIndex(t => t.id === editId); if(idx > -1) configuredOrderTypes[idx] = { id: editId, ...data }; window.showSuccessToast("تم تحديث الديكور بنجاح!"); } else { if(window.addOrderTypeToFirebase) { const r = await window.addOrderTypeToFirebase(data); configuredOrderTypes.push({ id: r.id, ...data }); window.showSuccessToast("تمت إضافة الديكور بنجاح!"); } } document.body.style.cursor = 'default'; ['type-name', 'type-code', 'type-price', 'type-notes', 'type-edit-id'].forEach(id => document.getElementById(id).value = ''); window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); window.toggleOrderTypeSection('list'); }
-window.editOrderType = function(idx) { const t = configuredOrderTypes[idx]; document.getElementById("type-edit-id").value = t.id; document.getElementById("type-name").value = t.name || ''; document.getElementById("type-code").value = t.code || ''; document.getElementById("type-price").value = t.price || ''; document.getElementById("type-notes").value = t.notes || ''; document.getElementById('type-form-title').innerText = "تحديث بيانات الديكور"; document.getElementById('save-type-btn').innerText = "تحديث البيانات 💾"; window.toggleOrderTypeSection('add'); }
+window.saveOrderType = async function() { const editId = document.getElementById("type-edit-id").value; const data = { name: document.getElementById("type-name").value.trim(), code: document.getElementById("type-code").value.trim(), price: document.getElementById("type-price").value.trim(), notes: document.getElementById("type-notes").value.trim() }; if(data.name === "" || data.code === "") { alert("يرجى إدخال اسم الطلب والرمز"); return; } const _sv = window.normalizeSvgCode(document.getElementById("type-svg").value); if(!_sv.ok) { alert(window.tr(_sv.err === "size" ? "حجم كود الـ SVG كبير (الحد الأقصى 200KB)" : "كود الـ SVG غير صالح، تأكد أنه يبدأ بـ <svg وينتهي بـ </svg>")); return; } data.svg = _sv.svg; if(configuredOrderTypes.some(t => t.code === data.code && t.id !== editId)) { alert("هذا الرمز مستخدم لطلب آخر، اختر رمزاً مختلفاً"); return; } document.body.style.cursor = 'wait'; if(editId) { if(window.updateOrderTypeInFirebase) await window.updateOrderTypeInFirebase(editId, data); const idx = configuredOrderTypes.findIndex(t => t.id === editId); if(idx > -1) configuredOrderTypes[idx] = { id: editId, ...data }; window.showSuccessToast("تم تحديث الديكور بنجاح!"); } else { if(window.addOrderTypeToFirebase) { const r = await window.addOrderTypeToFirebase(data); configuredOrderTypes.push({ id: r.id, ...data }); window.showSuccessToast("تمت إضافة الديكور بنجاح!"); } } document.body.style.cursor = 'default'; ['type-name', 'type-code', 'type-price', 'type-notes', 'type-edit-id', 'type-svg'].forEach(id => document.getElementById(id).value = ''); window.previewTypeSvg(); window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); window.toggleOrderTypeSection('list'); }
+window.editOrderType = function(idx) { const t = configuredOrderTypes[idx]; document.getElementById("type-edit-id").value = t.id; document.getElementById("type-name").value = t.name || ''; document.getElementById("type-code").value = t.code || ''; document.getElementById("type-price").value = t.price || ''; document.getElementById("type-notes").value = t.notes || ''; document.getElementById("type-svg").value = (typeof t.svg === "string") ? t.svg : ''; window.previewTypeSvg(); document.getElementById('type-form-title').innerText = "تحديث بيانات الديكور"; document.getElementById('save-type-btn').innerText = "تحديث البيانات 💾"; window.toggleOrderTypeSection('add'); }
 window.deleteOrderType = async function(idx) { window.showConfirmDialog("تأكيد حذف هذا الديكور بشكل نهائي؟", async function() { await window.deleteOrderTypeFromFirebase(configuredOrderTypes[idx].id); configuredOrderTypes.splice(idx, 1); window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); window.showSuccessToast("تم الحذف بنجاح"); }); }
-window.renderOrderTypesSettings = function() { let html = ''; configuredOrderTypes.forEach((t, i) => { html += `<div class="settings-list-item" style="display:flex; justify-content:space-between; align-items:center; padding: 15px; margin-bottom:10px; background:var(--bg-color); border-radius:15px; box-shadow:var(--outer-shadow);"><div style="text-align:start; flex:1;"><div style="font-weight:bold; font-size:15px; color:var(--text-color);">${esc(t.name)} <span style="color:var(--primary-blue); font-size: 13px;">(${esc(t.code)})</span></div><div style="font-size:12px; color:var(--text-muted); margin-top:5px;">${t.price ? window.tr('السعر:') + ' ' + Number(t.price).toLocaleString() + ' ' + window.tr('د.ع') + ' | ' : ''} ${t.notes ? window.tr('ملاحظات:') + ' ' + esc(t.notes) : ''}</div></div><div style="display:flex; gap:10px;"><button class="btn-outline" style="padding: 8px 12px; border-radius: 10px; font-size: 12px; min-width:unset; box-shadow:var(--outer-shadow);" onclick="window.editOrderType(${i})">✏️</button><button class="btn-danger" style="padding: 8px 12px; border-radius: 10px; font-size: 12px; min-width:unset; box-shadow:var(--outer-shadow);" onclick="window.deleteOrderType(${i})">🗑️</button></div></div>`; }); if(html === '') html = '<div style="text-align:center; padding: 30px; color:#ccc;">لا توجد ديكورات مضافة</div>'; document.getElementById("orderTypesCardsContainer").innerHTML = html; }
-window.updateOrderTypeSelects = function() { document.querySelectorAll('.orderTypeSelect').forEach(s => { const v = s.value; s.innerHTML = '<option value="">-- اختر الطلب --</option>' + configuredOrderTypes.map(t => `<option value="${esc(t.name)}">${esc(t.name)} ➡️ (${esc(t.code)})</option>`).join(''); s.value = v; }); }
+window.renderOrderTypesSettings = function() { let html = ''; configuredOrderTypes.forEach((t, i) => { html += `<div class="settings-list-item" style="display:flex; justify-content:space-between; align-items:center; padding: 15px; margin-bottom:10px; background:var(--bg-color); border-radius:15px; box-shadow:var(--outer-shadow);">${(typeof t.svg === "string" && t.svg) ? `<div class="type-svg-thumb" style="margin-inline-end:12px;"><img src="${window.svgToDataUri(t.svg)}" alt="${esc(t.name)}" loading="lazy" decoding="async"></div>` : ""}<div style="text-align:start; flex:1;"><div style="font-weight:bold; font-size:15px; color:var(--text-color);">${esc(t.name)} <span style="color:var(--primary-blue); font-size: 13px;">(${esc(t.code)})</span></div><div style="font-size:12px; color:var(--text-muted); margin-top:5px;">${t.price ? window.tr('السعر:') + ' ' + Number(t.price).toLocaleString() + ' ' + window.tr('د.ع') + ' | ' : ''} ${t.notes ? window.tr('ملاحظات:') + ' ' + esc(t.notes) : ''}</div></div><div style="display:flex; gap:10px;"><button class="btn-outline" style="padding: 8px 12px; border-radius: 10px; font-size: 12px; min-width:unset; box-shadow:var(--outer-shadow);" onclick="window.editOrderType(${i})">✏️</button><button class="btn-danger" style="padding: 8px 12px; border-radius: 10px; font-size: 12px; min-width:unset; box-shadow:var(--outer-shadow);" onclick="window.deleteOrderType(${i})">🗑️</button></div></div>`; }); if(html === '') html = '<div style="text-align:center; padding: 30px; color:#ccc;">لا توجد ديكورات مضافة</div>'; document.getElementById("orderTypesCardsContainer").innerHTML = html; }
+window.updateOrderTypeSelects = function() { document.querySelectorAll('.orderTypeSelect').forEach(s => { const v = s.value; s.innerHTML = '<option value="">-- اختر الطلب --</option>' + configuredOrderTypes.map(t => `<option value="${esc(t.name)}">${esc(t.name)} ➡️ (${esc(t.code)})</option>`).join(''); s.value = v; }); const _hasImg = configuredOrderTypes.some(t => typeof t.svg === 'string' && t.svg); document.querySelectorAll('.type-gallery-open-btn').forEach(b => { b.style.display = _hasImg ? '' : 'none'; }); }
 
 window.toggleWhItemSection = function(sec) { document.getElementById('add-whitem-sec').style.display = (sec === 'add') ? 'block' : 'none'; document.getElementById('list-whitem-sec').style.display = (sec === 'list') ? 'block' : 'none'; document.getElementById('btn-sec-wh-list').style.background = (sec === 'list') ? 'var(--button-gradient)' : 'transparent'; document.getElementById('btn-sec-wh-list').style.color = (sec === 'list') ? 'white' : 'var(--text-muted)'; document.getElementById('btn-sec-wh-add').style.background = (sec === 'add') ? 'var(--button-gradient)' : 'transparent'; document.getElementById('btn-sec-wh-add').style.color = (sec === 'add') ? 'white' : 'var(--text-muted)'; if(sec === 'add' && !document.getElementById('whcat-edit-id').value) { document.getElementById('whcat-form-title').innerText = "تعريف مادة جديدة"; document.getElementById('save-whcat-btn').innerText = "حفظ المادة 💾"; } }
 window.saveWhCatalogItem = async function() {
