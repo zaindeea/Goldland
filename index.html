@@ -18,10 +18,10 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
     <!-- شعار Gold Land (SVG) — يُستخدم عبر <use href="#gl-logo"> -->
@@ -292,7 +292,7 @@
                 <div style="display:flex; gap: 10px; align-items: center;"><button class="action-icon-btn" onclick="bulkEditOrder()" id="bulkEditBtn" title="تعديل المحدد" aria-label="تعديل المحدد">✏️</button><button class="action-icon-btn" onclick="showBulkStatusModal()" title="تغيير حالة المحدد" aria-label="تغيير حالة المحدد">🔄</button><button class="action-icon-btn" onclick="bulkPrintOrders()" style="color: #b8860b;" title="طباعة المحدد" aria-label="طباعة المحدد">🖨️</button><button class="action-icon-btn" onclick="bulkExportPDF()" style="color: #2ecc71;" title="تصدير PDF" aria-label="تصدير PDF">📄</button><button class="action-icon-btn btn-danger" onclick="bulkDeleteOrders()" id="bulkDeleteBtn" title="حذف المحدد" aria-label="حذف المحدد">🗑️</button></div>
             </div>
             <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، التسلسل..." onkeyup="filterCloudOrders()" style="flex: 2; min-width: 150px;">
+                <input type="text" id="cloudSearchInput" placeholder="بحث بالاسم، الهاتف، التسلسل..." oninput="filterCloudOrdersDebounced()" style="flex: 2; min-width: 150px;">
                 <select id="cloudStatusFilter" onchange="filterCloudOrders()" style="flex: 1; min-width: 100px;">
                     <option value="">-- كل الحالات --</option>
                     <option value="جديد">جديد</option>

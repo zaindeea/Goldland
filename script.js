@@ -139,7 +139,7 @@ try {
                 if (change.type === "modified") { const idx = allCloudOrders.findIndex(o => o.id_doc === change.doc.id); if(idx > -1) allCloudOrders[idx] = data; }
                 if (change.type === "removed") { allCloudOrders = allCloudOrders.filter(o => o.id_doc !== change.doc.id); }
             });
-            isFirstLoad = false; if(document.getElementById('archive-section').style.display === 'flex') window.filterCloudOrders();
+            isFirstLoad = false; if(document.getElementById('archive-section').style.display === 'flex') window.filterCloudOrdersDebounced(120);
         });
     };
 
@@ -814,6 +814,10 @@ window.fetchOldOrders = async function() {
 }
 window.reloadCurrentMonth = function() { window.listenToCloudOrders(); window.closeArchiveFetchModal(); window.showSuccessToast("تم العودة لطلبات آخر 10 أيام 📅"); }
 
+const ORDERS_COLLATOR = new Intl.Collator('ar', { numeric: true, sensitivity: 'base' });
+window._ordersRenderToken = 0;
+let _filterTimer = null;
+window.filterCloudOrdersDebounced = function(ms) { clearTimeout(_filterTimer); _filterTimer = setTimeout(() => window.filterCloudOrders(), ms || 220); };
 window.filterCloudOrders = function() {
     const qt = document.getElementById('cloudSearchInput').value.toLowerCase(), 
           pF = document.getElementById('cloudPageFilter').value, 
@@ -823,7 +827,7 @@ window.filterCloudOrders = function() {
     tb.innerHTML = ''; 
     document.getElementById('selectAllCb').checked = false; 
     
-    let sortedOrders = [...allCloudOrders].sort((a, b) => String(a.id || '').localeCompare(String(b.id || ''), 'ar', { numeric: true, sensitivity: 'base' }));
+    let sortedOrders = [...allCloudOrders].sort((a, b) => ORDERS_COLLATOR.compare(String(a.id || ''), String(b.id || '')));
     
     let filtered = sortedOrders.filter(o => { 
         let match = ((o.name||"").toLowerCase().includes(qt) || (o.phone1||"").includes(qt) || String(o.id||"").includes(qt)) && 
@@ -839,7 +843,7 @@ window.filterCloudOrders = function() {
         return match;
     });
     
-    filtered.forEach(o => {
+    const buildRow = (o) => {
         const tr = document.createElement('tr'); 
         const dateStr = o.timestamp ? new Date(o.timestamp.seconds * 1000).toLocaleDateString(window.getLocale()) : '-';
         
@@ -889,12 +893,22 @@ window.filterCloudOrders = function() {
             <td style="font-size:12px; color:var(--text-muted);">${dateStr}</td>
         `;
         
-        tb.appendChild(tr);
-    });
-    
-    if (typeof window.updateArchiveCounts === 'function') {
-        window.updateArchiveCounts();
-    }
+        return tr;
+    };
+
+    // رسم الصفوف على دفعات حتى لا تتجمد الشاشة (خصوصاً على الآيفون)
+    const token = ++window._ordersRenderToken, CHUNK = 60;
+    let idx = 0;
+    const step = () => {
+        if (token !== window._ordersRenderToken) return; // وصل طلب رسم أحدث
+        const frag = document.createDocumentFragment(), end = Math.min(idx + CHUNK, filtered.length);
+        for (; idx < end; idx++) frag.appendChild(buildRow(filtered[idx]));
+        if (document.getElementById('selectAllCb').checked) frag.querySelectorAll('.order-cb').forEach(c => { c.checked = true; });
+        tb.appendChild(frag);
+        if (typeof window.updateArchiveCounts === 'function') window.updateArchiveCounts();
+        if (idx < filtered.length) requestAnimationFrame(step);
+    };
+    step();
 }
 // =========================================
 // دوال تحديث أرقام الأرشيف (الدوائر)
