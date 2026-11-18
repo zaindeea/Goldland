@@ -127,19 +127,23 @@ try {
     
     window.listenToCloudOrders = function() {
         if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; }
-        allCloudOrders = []; 
+        allCloudOrders = []; designPendingOrders = [];
         window.isShowingOldArchive = false; // الوضع الافتراضي إخفاء الأرشيف القديم
         const startDate = new Date(); startDate.setDate(startDate.getDate() - 10); startDate.setHours(0,0,0,0); window.loadedOrdersFrom = startDate;
         const q = query(collection(db, "orders"), where("timestamp", ">=", startDate), limit(1000));
         let isFirstLoad = true;
         cloudOrdersUnsubscribe = onSnapshot(q, (snapshot) => {
+            const upsert = (arr, d) => { const i = arr.findIndex(o => o.id_doc === d.id_doc); if (i > -1) arr[i] = d; else arr.push(d); };
             snapshot.docChanges().forEach((change) => {
-                const data = { id_doc: change.doc.id, ...change.doc.data() };
-                if (change.type === "added") { allCloudOrders.push(data); if(!isFirstLoad && data.addedBy !== loggedInUser) { window.playAudioNotification(); window.showSuccessToast(`طلب جديد أضيف بواسطة ${data.addedBy}`); } }
-                if (change.type === "modified") { const idx = allCloudOrders.findIndex(o => o.id_doc === change.doc.id); if(idx > -1) allCloudOrders[idx] = data; }
-                if (change.type === "removed") { allCloudOrders = allCloudOrders.filter(o => o.id_doc !== change.doc.id); }
+                const id = change.doc.id;
+                if (change.type === "removed") { allCloudOrders = allCloudOrders.filter(o => o.id_doc !== id); designPendingOrders = designPendingOrders.filter(o => o.id_doc !== id); return; }
+                const data = { id_doc: id, ...change.doc.data() };
+                // الطلب الجديد يبقى في «قيد التصميم» ولا يظهر في الأرشيف حتى يُؤكَّد تصميمه
+                if (data.inDesign === true) { if (allCloudOrders.length) allCloudOrders = allCloudOrders.filter(o => o.id_doc !== id); upsert(designPendingOrders, data); }
+                else { if (designPendingOrders.length) designPendingOrders = designPendingOrders.filter(o => o.id_doc !== id); upsert(allCloudOrders, data); }
+                if (change.type === "added" && !isFirstLoad && data.addedBy !== loggedInUser) { window.playAudioNotification(); window.showSuccessToast(`طلب جديد أضيف بواسطة ${data.addedBy}`); }
             });
-            isFirstLoad = false; if(document.getElementById('archive-section').style.display === 'flex') window.filterCloudOrdersDebounced(120);
+            isFirstLoad = false; if(document.getElementById('archive-section').style.display === 'flex') window.filterCloudOrdersDebounced(120); window.refreshDesignQueue();
         });
     };
 
@@ -357,10 +361,11 @@ let additionalUsers = [], configuredOrderTypes = [], configuredPages = [], inven
 let loggedInUser = "";
 let loggedInUserCanDelete = false, loggedInUserCanEdit = false, loggedInUserCanSettings = false, loggedInUserCanReports = false; 
 let loggedInUserCanChat = false, loggedInUserCanAdd = false, loggedInUserCanFetchOld = false, loggedInUserCanImportExport = false;
+let loggedInUserCanDesignView = false, loggedInUserCanDesignDone = false, loggedInUserCanDesignDelete = false;
 let loggedInUserCanEditType = false, loggedInUserCanPurchase = false, loggedInUserCanConsume = false;
 let feeBaghdad = 5000, feeOther = 8000; let currentSessionId = null;
 let currentChatId = null; let allSystemUsersList = []; let allChatMessages = [];
-let allCloudOrders = []; let currentConfirmAction = null; let currentEditDocId = null;
+let allCloudOrders = [], designPendingOrders = []; let currentConfirmAction = null; let currentEditDocId = null;
 let financialChartInstance = null; let itemsPieChartInstance = null; let whStockPieChartInstance = null;
 let statusDonutChartInstance = null; let statusAmountChartInstance = null;
 let inventoryStock = []; let inventoryTransactions = [];
@@ -391,7 +396,7 @@ window.login = async function() {
     const failLogin = (msg) => { errorMsg.innerText = msg; errorMsg.style.display = "block"; restoreBtn(); };
     const completeLogin = () => {
         document.getElementById('globalUserBar').style.display = 'flex'; document.getElementById('globalUserName').innerText = '👤 ' + loggedInUser;
-        window.listenToCloudOrders(); window.initGlobalChatListener(); window.listenToInventory(); window.startSessionTracking(); window.logActionToCloud("تسجيل دخول", "تم تسجيل الدخول إلى النظام"); window.startNotifListener();
+        window.listenToCloudOrders(); window.initGlobalChatListener(); window.listenToInventory(); window.startSessionTracking(); window.logActionToCloud("تسجيل دخول", "تم تسجيل الدخول إلى النظام"); window.startNotifListener(); window.startSerialListener(); window.refreshDesignQueue();
         window.showDashboard(); errorMsg.style.display = "none"; restoreBtn(); window.applyThemeMode(currentThemeMode);
     };
 
@@ -410,7 +415,7 @@ window.login = async function() {
         if (manager) {
             isManager = true; loggedInUser = adminProfile.username;
             loggedInUserCanDelete = loggedInUserCanEdit = loggedInUserCanSettings = loggedInUserCanReports = loggedInUserCanChat = true;
-            loggedInUserCanAdd = loggedInUserCanFetchOld = loggedInUserCanImportExport = loggedInUserCanEditType = loggedInUserCanPurchase = loggedInUserCanConsume = true;
+            loggedInUserCanAdd = loggedInUserCanFetchOld = loggedInUserCanImportExport = loggedInUserCanEditType = loggedInUserCanPurchase = loggedInUserCanConsume = true; loggedInUserCanDesignView = loggedInUserCanDesignDone = loggedInUserCanDesignDelete = true;
             completeLogin(); return;
         }
         const q = query(collection(db, "system_users"), where("username", "==", user), limit(1));
@@ -428,7 +433,7 @@ window.login = async function() {
         loggedInUserCanDelete = userData.canDeleteCloud || false; loggedInUserCanEdit = userData.canEditCloud || false;
         loggedInUserCanSettings = userData.canAccessSettings || false; loggedInUserCanReports = userData.canAccessReports || false;
         loggedInUserCanChat = userData.canAccessChat || false; loggedInUserCanAdd = userData.canAddOrders || false;
-        loggedInUserCanFetchOld = userData.canFetchOld || false; loggedInUserCanImportExport = userData.canImportExport || false;
+        loggedInUserCanFetchOld = userData.canFetchOld || false; loggedInUserCanImportExport = userData.canImportExport || false; loggedInUserCanDesignView = userData.canDesignView !== false; loggedInUserCanDesignDone = userData.canDesignDone || false; loggedInUserCanDesignDelete = userData.canDesignDelete || false;
         loggedInUserCanEditType = userData.canEditOrderType || false; loggedInUserCanPurchase = userData.canPurchase || false;
         loggedInUserCanConsume = userData.canConsume || false;
         completeLogin();
@@ -436,10 +441,10 @@ window.login = async function() {
 }
 
 window.showDashboard = function() { document.getElementById("login-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
-window.openDistribution = function() { if(!loggedInUserCanAdd && !isManager) { alert("❌ ليس لديك صلاحية للدخول إلى إضافة الطلبات"); return; } document.getElementById("main-menu-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "block"; }
+window.openDistribution = function() { window.applyNextSerialToForm(false); if(!loggedInUserCanAdd && !isManager) { alert("❌ ليس لديك صلاحية للدخول إلى إضافة الطلبات"); return; } document.getElementById("main-menu-section").style.display = "none"; document.getElementById("dashboard-section").style.display = "block"; }
 window.backToMainMenuFrom = function(sectionId) { document.getElementById(sectionId).style.display = "none"; document.getElementById("main-menu-section").style.display = "flex"; }
 window.backToMainMenuFromChat = function() { currentChatId = null; window.backToMainMenuFrom('chat-section'); }
-window.logout = function() { window.showConfirmDialog("تأكيد تسجيل الخروج؟", function() { window.logActionToCloud("تسجيل خروج", "تم تسجيل الخروج من النظام"); window.stopNotifListener(); currentSessionId = null; loggedInUser = ""; isManager = false; allCloudOrders = []; inventoryStock = []; inventoryTransactions = []; loggedInUserCanDelete = false; loggedInUserCanEdit = false; loggedInUserCanSettings = false; loggedInUserCanReports = false; loggedInUserCanChat = false; loggedInUserCanAdd = false; loggedInUserCanFetchOld = false; loggedInUserCanImportExport = false; loggedInUserCanEditType = false; loggedInUserCanPurchase = false; loggedInUserCanConsume = false; if(stockUnsubscribe) { stockUnsubscribe(); stockUnsubscribe = null; } if(transactionsUnsubscribe) { transactionsUnsubscribe(); transactionsUnsubscribe = null; } if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; } if(chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; } currentChatId = null; allChatMessages = []; myGroupIds = new Set(); lastLowKey = ''; document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); const _cb = document.getElementById('chatBadge'); if(_cb) _cb.style.display = 'none'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('globalUserBar').style.display = 'none'; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("archive-section").style.display = "none"; document.getElementById("reports-section").style.display = "none"; document.getElementById("settings-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "none"; document.getElementById("chat-section").style.display = "none"; document.getElementById("warehouse-section").style.display = "none"; document.getElementById("login-section").style.display = "flex"; window.clearForm(); }); }
+window.logout = function() { window.showConfirmDialog("تأكيد تسجيل الخروج؟", function() { window.logActionToCloud("تسجيل خروج", "تم تسجيل الخروج من النظام"); window.stopNotifListener(); window.stopSerialListener(); currentSessionId = null; loggedInUser = ""; isManager = false; allCloudOrders = []; inventoryStock = []; inventoryTransactions = []; loggedInUserCanDelete = false; loggedInUserCanEdit = false; loggedInUserCanSettings = false; loggedInUserCanReports = false; loggedInUserCanChat = false; loggedInUserCanAdd = false; loggedInUserCanFetchOld = false; loggedInUserCanImportExport = false; loggedInUserCanDesignView = false; loggedInUserCanDesignDone = false; loggedInUserCanDesignDelete = false; loggedInUserCanEditType = false; loggedInUserCanPurchase = false; loggedInUserCanConsume = false; if(stockUnsubscribe) { stockUnsubscribe(); stockUnsubscribe = null; } if(transactionsUnsubscribe) { transactionsUnsubscribe(); transactionsUnsubscribe = null; } if(cloudOrdersUnsubscribe) { cloudOrdersUnsubscribe(); cloudOrdersUnsubscribe = null; } if(chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; } currentChatId = null; allChatMessages = []; myGroupIds = new Set(); lastLowKey = ''; document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); const _cb = document.getElementById('chatBadge'); if(_cb) _cb.style.display = 'none'; document.getElementById('username').value = ''; document.getElementById('password').value = ''; document.getElementById('globalUserBar').style.display = 'none'; document.getElementById("dashboard-section").style.display = "none"; document.getElementById("archive-section").style.display = "none"; document.getElementById("reports-section").style.display = "none"; document.getElementById("settings-section").style.display = "none"; document.getElementById("main-menu-section").style.display = "none"; document.getElementById("chat-section").style.display = "none"; document.getElementById("warehouse-section").style.display = "none"; document.getElementById("login-section").style.display = "flex"; window.clearForm(); }); }
 window.openProfile = function() {
     let currentUserData = additionalUsers.find(u => u.username === loggedInUser) || {};
     if(isManager) currentUserData = { username: adminProfile.username, jobTitle: 'مدير عام', location: 'المقر الرئيسي', gender: 'ذكر', phone: '-' };
@@ -466,8 +471,10 @@ window.parseText = function() {
     const txt = document.getElementById('pasteArea').value.trim();
     if (!txt) return;
     
-    document.getElementById('custId').value = window.extractValueSmart(txt, 'تسلسل');
-    document.getElementById('custName').value = window.extractValueSmart(txt, 'اسم');
+    const extSerial = window.extractValueSmart(txt, 'تسلسل');
+    // التسلسل الموجود في النص يصبح اسم الزبون، وتسلسل الطلب نفسه يُكتب تلقائياً من النطاق المحدد في الإعدادات
+    document.getElementById('custName').value = extSerial || window.extractValueSmart(txt, 'اسم');
+    if (window.serialActive()) { window.applyNextSerialToForm(true); } else { document.getElementById('custId').value = extSerial; }
     document.getElementById('phone1').value = window.extractValueSmart(txt, 'هاتف1');
     document.getElementById('phone2').value = window.extractValueSmart(txt, 'هاتف2');
     document.getElementById('gov').value = window.extractValueSmart(txt, 'محافظة');
@@ -532,7 +539,7 @@ window.fillOrderRows = function(typeStr, addFn) {
     items.forEach(it => { window[addFn](it.code, it.qty, it.color); });
 };
 window.changeQty = function(btn, d) { let i = btn.parentElement.querySelector('input[type="number"]'), v = parseInt(i.value)||1; v += d; if(v<1) v=1; i.value = v; }
-window.clearForm = function() { ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => document.getElementById(id).value = ''); document.getElementById('dynamicRowsWrapper').innerHTML = ''; window.addOrderItemRow(); document.getElementById('customerHistoryAlert').className = 'hidden'; document.getElementById('customerHistoryAlert').style.display = 'none'; }
+window.clearForm = function() { ['custId','custName','phone1','phone2','gov','area','amount','note'].forEach(id => document.getElementById(id).value = ''); document.getElementById('dynamicRowsWrapper').innerHTML = ''; window.addOrderItemRow(); document.getElementById('customerHistoryAlert').className = 'hidden'; document.getElementById('customerHistoryAlert').style.display = 'none'; window.applyNextSerialToForm(true); }
 window.clearAll = function() { document.getElementById('pasteArea').value = ''; document.getElementById('constantField').value = ''; window.clearForm(); }
 window.addToTable = async function() {
     const pg = document.getElementById('constantField').value;
@@ -545,15 +552,24 @@ window.addToTable = async function() {
         const qv = parseInt(r.querySelector('.orderQtyInput').value) || 1;
         if (tv !== "") { const ft = configuredOrderTypes.find(t => t.name === tv); const cd = (ft ? ft.code : tv).replace(/[\[\]]/g, ''); arr.push(`[${cd} (${qv})${cv ? ' ' + cv : ''}]`); totQty += qv; }
     });
-    const data = { id: document.getElementById('custId').value.trim(), name: document.getElementById('custName').value.trim(), phone1: document.getElementById('phone1').value.trim(), phone2: document.getElementById('phone2').value.trim(), gov: document.getElementById('gov').value.trim(), area: document.getElementById('area').value.trim(), type: arr.join(' + '), qty: totQty, amount: document.getElementById('amount').value.trim(), constant: pg, note: document.getElementById('note').value.trim(), addedBy: loggedInUser, status: 'جديد' };
+    const data = { id: document.getElementById('custId').value.trim(), name: document.getElementById('custName').value.trim(), phone1: document.getElementById('phone1').value.trim(), phone2: document.getElementById('phone2').value.trim(), gov: document.getElementById('gov').value.trim(), area: document.getElementById('area').value.trim(), type: arr.join(' + '), qty: totQty, amount: document.getElementById('amount').value.trim(), constant: pg, note: document.getElementById('note').value.trim(), addedBy: loggedInUser, status: 'جديد', inDesign: true };
+    if (window.serialActive() && window.serialRemaining() <= 0 && !data.id) { alert(window.tr("انتهى نطاق التسلسل! حدّد نطاقاً جديداً من الإعدادات ← التسلسل")); return; }
     if (!data.id && !data.name) { alert("يرجى إدخال تسلسل الزبون أو اسمه على الأقل"); return; }
     if (arr.length === 0) { alert("يرجى إضافة صنف واحد على الأقل"); return; }
     if (!window.saveDataToFirebase) { alert("الاتصال بالسحابة غير جاهز"); return; }
     const btn = document.getElementById("mainSaveBtn"); btn.disabled = true;
     try {
+        const idEl = document.getElementById('custId'); let claimedRemaining = null;
+        if (window.serialActive() && idEl.dataset.auto && idEl.value.trim() === idEl.dataset.auto) {
+            try {
+                const claimed = await window.claimNextSerial(); data.id = String(claimed); claimedRemaining = Number(serialCfg.to) - claimed;
+                if (String(claimed) !== idEl.dataset.auto) window.showSuccessToast(`${window.tr('تغيّر التسلسل إلى')} ${claimed} ${window.tr('لأن مستخدماً آخر حجز الرقم السابق')}`);
+            } catch (e) { alert(window.tr(e.message === 'RANGE_EXHAUSTED' ? 'انتهى نطاق التسلسل! حدّد نطاقاً جديداً من الإعدادات ← التسلسل' : 'تعذّر حجز التسلسل، أعد المحاولة')); return; }
+        }
         const ok = await window.saveDataToFirebase(data);
         if (!ok) return;
-        window.clearForm(); document.getElementById('pasteArea').value = ''; window.showSuccessToast("تمت إضافة الطلب! 🎉");
+        window.clearForm(); document.getElementById('pasteArea').value = ''; window.showSuccessToast(window.tr("تمت إضافة الطلب! 🎉 وظهر في قيد التصميم"));
+        if (claimedRemaining !== null) window.notifyLowSerial(claimedRemaining);
     } finally { btn.disabled = false; }
 }
 
@@ -945,7 +961,7 @@ document.addEventListener('change', function(e) {
 // تفاصيل الطلب وسجل الحالة
 // =========================================
 window.openOrderDetailsModal = function(docId) { 
-    let order = allCloudOrders.find(o => o.id_doc === docId); 
+    let order = allCloudOrders.find(o => o.id_doc === docId) || designPendingOrders.find(o => o.id_doc === docId); 
     if(!order) return; 
     
     const dateStr = order.timestamp ? new Date(order.timestamp.seconds * 1000).toLocaleString(window.getLocale()) : '-'; 
@@ -957,7 +973,7 @@ window.openOrderDetailsModal = function(docId) {
         <p style="text-align: center; margin: 0 0 15px 0; font-size: 11px; border-bottom: 1px dashed #ccc; padding-bottom: 10px;">تفاصيل الطلب المستلم</p>
         
         <div style="margin-bottom: 10px;"><strong>التسلسل:</strong> ${esc(order.id || '-')}</div>
-        <div style="margin-bottom: 10px;"><strong>حالة الطلب:</strong> ${esc(order.status || 'جديد')}</div>
+        <div style="margin-bottom: 10px;"><strong>حالة الطلب:</strong> ${esc(order.status || 'جديد')}${order.inDesign ? ' — 🎨 قيد التصميم' : ''}</div>
         <div style="margin-bottom: 10px;"><strong>البيج:</strong> ${esc(order.constant || '-')}</div>
         <div style="margin-bottom: 10px;"><strong>اسم الزبون:</strong> ${esc(order.name || '-')}</div>
         
@@ -1630,14 +1646,47 @@ window.clearTypeSvg = function() { document.getElementById('type-svg').value = '
 // صور الطلبات: تفاصيل الطلب + نافذة اختيار من الصور
 // =========================================
 window.orderTypeByCode = function(codeOrName) { return configuredOrderTypes.find(t => t.code === codeOrName || t.name === codeOrName); };
-window.orderImagesHtml = function(order) {
-    const cards = parseTypeItems(order.type || '').map(it => {
+window.orderImageList = function(order) {
+    return parseTypeItems(order.type || '').map(it => {
         const t = window.orderTypeByCode(it.code);
-        if (!t || typeof t.svg !== 'string' || !t.svg) return '';
-        return `<div style="width:86px; text-align:center;"><img class="od-img" data-svg-uri="${window.svgToDataUri(t.svg)}" src="${window.svgToDataUri(t.svg)}" width="74" height="74" alt="" style="width:74px; height:74px; object-fit:contain; border:1px solid #e5e5e5; border-radius:10px; padding:3px; background:#fff; box-sizing:border-box;"><div dir="ltr" style="font-size:12px; font-weight:bold; margin-top:3px;">${esc(t.code)}</div><div style="font-size:11px; color:#555;">× ${it.qty}${it.color ? ' — ' + esc(it.color) : ''}</div></div>`;
-    }).join('');
-    return cards ? `<div style="margin-bottom: 12px;"><div style="margin-bottom: 6px;"><strong>صور الطلب:</strong></div><div style="display:flex; flex-wrap:wrap; gap:10px;">${cards}</div></div>` : '';
+        if (!t || typeof t.svg !== 'string' || !t.svg) return null;
+        return { svg: t.svg, uri: window.svgToDataUri(t.svg), code: t.code, name: t.name, qty: it.qty, color: it.color };
+    }).filter(Boolean);
 };
+window.orderImagesHtml = function(order) {
+    const idq = esc(order.id_doc || '');
+    const cards = window.orderImageList(order).map((im, k) => `<div style="width:86px; text-align:center;"><img class="od-img" data-svg-uri="${im.uri}" src="${im.uri}" width="74" height="74" alt="" title="${esc(window.tr('اضغط للتكبير'))}" onclick="window.viewOrderImage('${idq}', ${k})" style="width:74px; height:74px; object-fit:contain; border:1px solid #e5e5e5; border-radius:10px; padding:3px; background:#fff; box-sizing:border-box; cursor:zoom-in;"><div dir="ltr" style="font-size:12px; font-weight:bold; margin-top:3px;">${esc(im.code)}</div><div style="font-size:11px; color:#555;">× ${im.qty}${im.color ? ' — ' + esc(im.color) : ''}</div></div>`).join('');
+    return cards ? `<div style="margin-bottom: 12px;"><div style="margin-bottom: 6px;"><strong>صور الطلب:</strong> <span class="no-print" style="font-size:11px; color:#888;">(${esc(window.tr('اضغط على الصورة للتكبير'))})</span></div><div style="display:flex; flex-wrap:wrap; gap:10px;">${cards}</div></div>` : '';
+};
+// عارض الصورة (الصورة فقط وبحجم كبير)
+let imgViewerList = [], imgViewerIdx = 0;
+window.openImageViewer = function(list, idx) {
+    if (!list || !list.length) return;
+    imgViewerList = list; imgViewerIdx = Math.max(0, Math.min(idx || 0, list.length - 1));
+    window.renderImageViewer();
+    document.getElementById('imgViewerModal').style.display = 'flex';
+};
+window.renderImageViewer = function() {
+    const im = imgViewerList[imgViewerIdx]; if (!im) return;
+    document.getElementById('imgViewerImg').src = im.uri;
+    const dl = document.getElementById('imgViewerDl'); dl.href = im.uri; dl.download = (im.code || 'order') + '.svg';
+    document.getElementById('imgViewerCap').textContent = `${im.code}${im.name ? ' — ' + im.name : ''}${im.qty ? ' × ' + im.qty : ''}${imgViewerList.length > 1 ? `   (${imgViewerIdx + 1}/${imgViewerList.length})` : ''}`;
+    const multi = imgViewerList.length > 1;
+    document.getElementById('imgViewerPrev').style.display = multi ? '' : 'none';
+    document.getElementById('imgViewerNext').style.display = multi ? '' : 'none';
+};
+window.imgViewerStep = function(d) { if (imgViewerList.length < 2) return; imgViewerIdx = (imgViewerIdx + d + imgViewerList.length) % imgViewerList.length; window.renderImageViewer(); };
+window.closeImageViewer = function() { document.getElementById('imgViewerModal').style.display = 'none'; };
+window.viewOrderImage = function(docId, k) {
+    const o = allCloudOrders.find(x => x.id_doc === docId) || designPendingOrders.find(x => x.id_doc === docId); if (!o) return;
+    window.openImageViewer(window.orderImageList(o), k);
+};
+document.addEventListener('keydown', (e) => {
+    const m = document.getElementById('imgViewerModal'); if (!m || m.style.display !== 'flex') return;
+    if (e.key === 'Escape') window.closeImageViewer();
+    else if (e.key === 'ArrowLeft') window.imgViewerStep(1);   // RTL: اليسار = التالي
+    else if (e.key === 'ArrowRight') window.imgViewerStep(-1);
+});
 // تحويل صور SVG إلى PNG حتى يظهر في تصدير PDF بشكل مضمون
 window.rasterizeSvgImages = function(root) {
     const jobs = Array.from(root.querySelectorAll('img[data-svg-uri]')).map(img => new Promise(res => {
@@ -1702,6 +1751,215 @@ window.pickGalleryType = function(i) {
     window.renderTypeGallery();
 };
 
+
+// =========================================
+// 🔢 تسلسل الطلبات (نطاق من — إلى) + تنبيه عند بقاء 500
+// =========================================
+const SERIAL_WARN_AT = 500;
+let serialCfg = null, serialUnsub = null, serialSessionAlerted = false;
+window.serialActive = function() { return !!(serialCfg && serialCfg.active !== false && Number.isFinite(Number(serialCfg.next)) && Number.isFinite(Number(serialCfg.to))); };
+window.serialRemaining = function() { return window.serialActive() ? Number(serialCfg.to) - Number(serialCfg.next) + 1 : Infinity; };
+window.startSerialListener = function() {
+    window.stopSerialListener(); serialSessionAlerted = false;
+    try {
+        serialUnsub = onSnapshot(doc(db, 'system_settings', 'serial_range'), snap => {
+            serialCfg = (snap && snap.exists()) ? snap.data() : null;
+            window.refreshSerialUI();
+            const rem = window.serialRemaining();
+            if (!serialSessionAlerted && window.serialActive() && rem <= SERIAL_WARN_AT && loggedInUser) {
+                serialSessionAlerted = true;
+                alert(`${window.tr('⚠️ تنبيه: بقي')} ${Math.max(rem, 0)} ${window.tr('تسلسل فقط للنهاية! حدّد نطاقاً جديداً من الإعدادات ← التسلسل')}`);
+            }
+        }, err => console.warn('serial listener', err));
+    } catch (e) { console.warn(e); }
+};
+window.stopSerialListener = function() { if (serialUnsub) { try { serialUnsub(); } catch (e) {} serialUnsub = null; } serialCfg = null; window.refreshSerialUI(); };
+window.applyNextSerialToForm = function(force) {
+    const el = document.getElementById('custId'); if (!el) return;
+    if (!window.serialActive() || window.serialRemaining() <= 0) { if (force) el.dataset.auto = ''; return; }
+    const cur = el.value.trim();
+    if (force || !cur || el.dataset.auto === cur) { el.value = String(serialCfg.next); el.dataset.auto = String(serialCfg.next); }
+};
+window.refreshSerialUI = function() {
+    const bn = document.getElementById('serialBanner');
+    if (bn) {
+        if (!window.serialActive()) { bn.style.display = 'none'; }
+        else {
+            const rem = window.serialRemaining(), low = rem <= SERIAL_WARN_AT;
+            bn.style.display = 'block'; bn.className = 'serial-banner' + (low ? ' warn' : '');
+            bn.textContent = rem <= 0 ? window.tr('⛔ انتهى نطاق التسلسل! حدّد نطاقاً جديداً من الإعدادات ← التسلسل')
+                : `🔢 ${window.tr('التسلسل التالي')}: ${serialCfg.next} — ${window.tr('المتبقي')}: ${rem}` + (low ? ` ⚠️ ${window.tr('اقترب النطاق من النهاية')}` : '');
+        }
+    }
+    window.applyNextSerialToForm(false);
+    window.renderSerialSettings();
+};
+window.notifyLowSerial = function(rem) {
+    if (rem > SERIAL_WARN_AT) return;
+    window.showSuccessToast(`⚠️ ${window.tr('تنبيه: بقي')} ${Math.max(rem, 0)} ${window.tr('تسلسل فقط للنهاية!')}`);
+    if ([500, 250, 100, 50, 10, 0].includes(rem)) window.logActionToCloud('تنبيه تسلسل', `بقي ${Math.max(rem, 0)} تسلسل فقط للنهاية (النطاق ${serialCfg.from} — ${serialCfg.to})`);
+};
+window.claimNextSerial = async function() {
+    const ref = doc(db, 'system_settings', 'serial_range');
+    return await runTransaction(db, async tx => {
+        const snap = await tx.get(ref), c = snap.exists() ? snap.data() : null;
+        if (!c || c.active === false || Number(c.next) > Number(c.to)) throw new Error('RANGE_EXHAUSTED');
+        tx.update(ref, { next: Number(c.next) + 1 });
+        return Number(c.next);
+    });
+};
+window.renderSerialSettings = function() {
+    const st = document.getElementById('serialStatus'); if (!st) return;
+    const fi = document.getElementById('serialFromInput'), ti = document.getElementById('serialToInput');
+    if (serialCfg && document.activeElement !== fi && document.activeElement !== ti) { fi.value = serialCfg.from ?? ''; ti.value = serialCfg.to ?? ''; }
+    const tb = document.getElementById('serialToggleBtn');
+    if (!serialCfg) { st.innerHTML = `<div class="setting-desc">${esc(window.tr('لم يُحدَّد نطاق بعد'))}</div>`; if (tb) tb.style.display = 'none'; window.previewSerialRange(); return; }
+    const total = Number(serialCfg.to) - Number(serialCfg.from) + 1, used = Math.max(0, Math.min(total, Number(serialCfg.next) - Number(serialCfg.from))), rem = Math.max(0, total - used), low = rem <= SERIAL_WARN_AT;
+    st.innerHTML = `<div class="serial-card${low ? ' warn' : ''}"><div class="serial-row"><span>${esc(window.tr('النطاق'))}</span><b dir="ltr">${esc(serialCfg.from)} — ${esc(serialCfg.to)}</b></div><div class="serial-row"><span>${esc(window.tr('التسلسل التالي'))}</span><b>${esc(serialCfg.next)}</b></div><div class="serial-row"><span>${esc(window.tr('المتبقي'))}</span><b>${rem}${low ? ' ⚠️' : ''}</b></div><div class="serial-bar"><div style="width:${total ? Math.round(used * 100 / total) : 0}%"></div></div>${serialCfg.active === false ? `<div class="serial-off">${esc(window.tr('التسلسل التلقائي متوقف'))}</div>` : ''}</div>`;
+    if (tb) { tb.style.display = ''; tb.textContent = serialCfg.active === false ? '▶️ ' + window.tr('تشغيل التسلسل التلقائي') : '⏸️ ' + window.tr('إيقاف التسلسل التلقائي'); }
+    window.previewSerialRange();
+};
+window.previewSerialRange = function() {
+    const pv = document.getElementById('serialPreview'); if (!pv) return;
+    const f = parseInt(normSerial(document.getElementById('serialFromInput').value)), t = parseInt(normSerial(document.getElementById('serialToInput').value));
+    if (!Number.isFinite(f) || !Number.isFinite(t)) { pv.textContent = ''; return; }
+    if (t < f) { pv.style.color = '#e74c3c'; pv.textContent = window.tr('«إلى» يجب أن يكون أكبر من أو يساوي «من»'); return; }
+    pv.style.color = ''; pv.textContent = `${window.tr('عدد التسلسلات')}: ${t - f + 1}` + ((t - f + 1) <= SERIAL_WARN_AT ? ` — ⚠️ ${window.tr('النطاق قصير وسيظهر التنبيه فوراً')}` : '');
+};
+window.saveSerialRange = function() {
+    const f = parseInt(normSerial(document.getElementById('serialFromInput').value)), t = parseInt(normSerial(document.getElementById('serialToInput').value));
+    if (!Number.isFinite(f) || !Number.isFinite(t) || f < 0) { alert(window.tr('أدخل رقمي «من» و«إلى» بشكل صحيح')); return; }
+    if (t < f) { alert(window.tr('«إلى» يجب أن يكون أكبر من أو يساوي «من»')); return; }
+    const go = async () => {
+        try {
+            await setDoc(doc(db, 'system_settings', 'serial_range'), { from: f, to: t, next: f, active: true, updatedBy: loggedInUser, updatedAt: serverTimestamp() });
+            window.logActionToCloud('تعديل نطاق التسلسل', `تم تحديد نطاق التسلسل من ${f} إلى ${t}`);
+            window.showSuccessToast(window.tr('تم حفظ نطاق التسلسل'));
+        } catch (e) { console.error(e); alert(window.tr('تعذّر حفظ النطاق')); }
+    };
+    if (window.serialActive()) window.showConfirmDialog(window.tr('يوجد نطاق فعّال حالياً، سيُستبدل بالنطاق الجديد ويبدأ العدّ من جديد. متابعة؟'), go); else go();
+};
+window.toggleSerialActive = async function() {
+    if (!serialCfg) return;
+    try { await updateDoc(doc(db, 'system_settings', 'serial_range'), { active: serialCfg.active === false }); window.logActionToCloud('تعديل نطاق التسلسل', serialCfg.active === false ? 'تم تشغيل التسلسل التلقائي' : 'تم إيقاف التسلسل التلقائي'); } catch (e) { console.error(e); }
+};
+
+// =========================================
+// 🎨 قيد التصميم: الطلبات الجديدة تبقى هنا حتى يُؤكَّد تصميمها ثم تظهر في الأرشيف بحالة «جديد»
+// =========================================
+let designSelected = new Set();
+function designCanSelect() { return loggedInUserCanDesignDone || loggedInUserCanDesignDelete; }
+function designItemsOf(o) { return parseTypeItems(o.type || '').map(it => { const t = window.orderTypeByCode(it.code); return { ...it, t, code: t ? t.code : it.code }; }); }
+function designFiltered() {
+    const q = document.getElementById('designSearch').value.trim().toLowerCase(), ft = document.getElementById('designFilterType').value, fc = document.getElementById('designFilterColor').value,
+        fn = document.getElementById('designFilterNote').value, from = parseInt(normSerial(document.getElementById('designFrom').value)), to = parseInt(normSerial(document.getElementById('designTo').value));
+    return designPendingOrders.filter(o => {
+        const items = designItemsOf(o);
+        if (q && !(String(o.id || '') + ' ' + (o.type || '') + ' ' + (o.note || '')).toLowerCase().includes(q)) return false;
+        if (ft && !items.some(i => i.code === ft)) return false;
+        if (fc && !items.some(i => String(i.color || '').trim().toLowerCase() === fc)) return false;
+        if (fn === 'with' && !o.note) return false;
+        if (fn === 'without' && o.note) return false;
+        if (Number.isFinite(from) || Number.isFinite(to)) { const n = parseInt(normSerial(o.id)); if (!Number.isFinite(n) || (Number.isFinite(from) && n < from) || (Number.isFinite(to) && n > to)) return false; }
+        return true;
+    }).sort((a, b) => ORDERS_COLLATOR.compare(String(a.id || ''), String(b.id || '')));
+}
+function designFillFilters() {
+    const ts = document.getElementById('designFilterType'), cs = document.getElementById('designFilterColor'), ct = ts.value, cc = cs.value;
+    const codes = new Set(), colors = new Set();
+    designPendingOrders.forEach(o => designItemsOf(o).forEach(i => { if (i.code) codes.add(i.code); const c = String(i.color || '').trim().toLowerCase(); if (c) colors.add(c); }));
+    ts.innerHTML = `<option value="">${esc(window.tr('النوع: الكل'))}</option>` + [...codes].sort().map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    cs.innerHTML = `<option value="">${esc(window.tr('اللون: الكل'))}</option>` + [...colors].sort().map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    ts.value = codes.has(ct) ? ct : ''; cs.value = colors.has(cc) ? cc : '';
+}
+window.refreshDesignQueue = function() {
+    const n = designPendingOrders.length, b = document.getElementById('designBadge');
+    if (b) { b.textContent = n > 99 ? '99+' : String(n); b.style.display = n ? 'flex' : 'none'; }
+    const mb = document.getElementById('design-menu-btn'); if (mb) mb.style.display = loggedInUserCanDesignView ? '' : 'none';
+    const sec = document.getElementById('design-section');
+    if (sec && sec.style.display === 'flex') window.renderDesignQueue();
+};
+window.openDesignQueue = function() {
+    if (!loggedInUserCanDesignView) { alert('❌ ليس لديك صلاحية للدخول إلى قيد التصميم'); return; }
+    document.getElementById('main-menu-section').style.display = 'none';
+    document.getElementById('design-section').style.display = 'flex';
+    designSelected = new Set(); window.designClearFilters(true);
+    window.renderDesignQueue();
+};
+window.designClearFilters = function(silent) {
+    ['designSearch', 'designFrom', 'designTo'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('designFilterNote').value = '';
+    designFillFilters(); document.getElementById('designFilterType').value = ''; document.getElementById('designFilterColor').value = '';
+    if (!silent) window.renderDesignQueue();
+};
+window.renderDesignQueue = function() {
+    const box = document.getElementById('designList'); if (!box) return;
+    designFillFilters();
+    const rows = designFiltered(), canSel = designCanSelect();
+    const pendingIds = new Set(designPendingOrders.map(o => o.id_doc)); designSelected.forEach(id => { if (!pendingIds.has(id)) designSelected.delete(id); });
+    document.getElementById('designCount').textContent = rows.length + (rows.length !== designPendingOrders.length ? ' / ' + designPendingOrders.length : '') + ' ' + window.tr('طلب قيد التصميم');
+    const sa = document.getElementById('designSelectAll'), saw = document.getElementById('designSelectAllWrap');
+    saw.style.display = canSel ? '' : 'none'; sa.checked = rows.length > 0 && rows.every(o => designSelected.has(o.id_doc));
+    const sc = designSelected.size, selEl = document.getElementById('designSelCount'); selEl.textContent = canSel && sc ? `${window.tr('المحدد')}: ${sc}` : '';
+    const db_ = document.getElementById('designDoneSelBtn'), dl_ = document.getElementById('designDelSelBtn');
+    db_.style.display = (loggedInUserCanDesignDone && sc) ? '' : 'none'; db_.textContent = `✅ ${window.tr('تم التصميم')} (${sc})`;
+    dl_.style.display = (loggedInUserCanDesignDelete && sc) ? '' : 'none'; dl_.textContent = `🗑️ ${window.tr('حذف')} (${sc})`;
+    if (!rows.length) { box.innerHTML = `<div class="notif-empty">${esc(window.tr('لا توجد طلبات قيد التصميم'))}</div>`; return; }
+    box.innerHTML = rows.map(o => {
+        const idq = esc(o.id_doc);
+        let imgN = 0;
+        const items = designItemsOf(o).map(it => {
+            const t = it.t, hasImg = t && typeof t.svg === 'string' && t.svg;
+            const thumb = hasImg ? `<img src="${window.svgToDataUri(t.svg)}" alt="" loading="lazy">` : '🖼️';
+            const zoom = hasImg ? ` data-zoom="1" title="${esc(window.tr('اضغط للتكبير'))}" onclick="viewOrderImage('${idq}', ${imgN++})"` : '';
+            return `<div class="design-item"><div class="type-svg-thumb${hasImg ? ' zoomable' : ' type-svg-empty'}"${zoom}>${thumb}</div><div class="design-item-body"><div class="design-item-type"><b dir="ltr">${esc(it.code)}</b>${t ? ` <span class="design-item-name">${esc(t.name)}</span>` : ''} <span class="design-item-qty">× ${esc(it.qty)}</span></div>${it.color ? `<div class="design-item-color">🎨 ${esc(window.tr('لون:'))} ${esc(it.color)}</div>` : ''}</div></div>`;
+        }).join('');
+        const cb = canSel ? `<input type="checkbox" class="design-cb" ${designSelected.has(o.id_doc) ? 'checked' : ''} onchange="designToggle('${idq}', this.checked)">` : '';
+        const actions = (loggedInUserCanDesignDone ? `<button type="button" class="btn-outline design-done-btn" onclick="markDesignDone('${idq}')">${esc(window.tr('تم التصميم ✅'))}</button>` : '') + (loggedInUserCanDesignDelete ? `<button type="button" class="btn-outline design-del-btn" title="${esc(window.tr('حذف'))}" onclick="designDeleteOne('${idq}')">🗑️</button>` : '');
+        return `<div class="design-card${designSelected.has(o.id_doc) ? ' selected' : ''}" onclick="designCardClick(event, '${idq}')"><div class="design-card-head"><span class="design-serial">${cb}#${esc(o.id || '-')}</span><span class="design-actions">${actions}</span></div><div class="design-items">${items}</div>${o.note ? `<div class="design-note">⚠️ <b>${esc(window.tr('ملاحظة مهمة:'))}</b> ${esc(o.note)}</div>` : ''}<div class="design-hint">${esc(window.tr('اضغط على الطلب لعرض التفاصيل'))}</div></div>`;
+    }).join('');
+};
+window.designCardClick = function(e, id) { if (e.target.closest('button, input, label, a, [data-zoom]')) return; window.openOrderDetailsModal(id); };
+window.designToggle = function(id, on) { if (on) designSelected.add(id); else designSelected.delete(id); window.renderDesignQueue(); };
+window.designToggleAll = function(on) { designFiltered().forEach(o => { if (on) designSelected.add(o.id_doc); else designSelected.delete(o.id_doc); }); window.renderDesignQueue(); };
+function designLabel(ids) {
+    const sr = ids.map(id => designPendingOrders.find(o => o.id_doc === id)).filter(Boolean).map(o => '#' + (o.id || '-'));
+    return sr.slice(0, 15).join('، ') + (sr.length > 15 ? ` ... (+${sr.length - 15})` : '');
+}
+async function designBatch(ids, fn) {
+    for (let i = 0; i < ids.length; i += 400) { const b = writeBatch(db); ids.slice(i, i + 400).forEach(id => fn(b, doc(db, 'orders', id))); await b.commit(); }
+}
+window.designApplyDone = function(ids) {
+    if (!loggedInUserCanDesignDone) { alert('❌ ليس لديك صلاحية تأكيد التصميم'); return; }
+    ids = ids.filter(id => designPendingOrders.some(o => o.id_doc === id)); if (!ids.length) return;
+    const label = designLabel(ids);
+    window.showConfirmDialog(`${window.tr('تأكيد: تم تصميم')} (${ids.length}) ${window.tr('طلب')}؟ ${window.tr('سيظهرون في الأرشيف بحالة جديد')}`, async function() {
+        try {
+            await designBatch(ids, (b, ref) => b.update(ref, { inDesign: false, designDoneBy: loggedInUser, designDoneAt: serverTimestamp() }));
+            window.logActionToCloud('تم التصميم', `تم تأكيد تصميم ${ids.length} طلب: ${label}`);
+            ids.forEach(id => designSelected.delete(id));
+            window.showSuccessToast(`${window.tr('تم نقل')} ${ids.length} ${window.tr('طلب إلى الأرشيف')}`);
+        } catch (e) { console.error(e); alert(window.tr('تعذّر تنفيذ العملية')); }
+    });
+};
+window.designApplyDelete = function(ids) {
+    if (!loggedInUserCanDesignDelete) { alert('❌ ليس لديك صلاحية الحذف من قيد التصميم'); return; }
+    ids = ids.filter(id => designPendingOrders.some(o => o.id_doc === id)); if (!ids.length) return;
+    const label = designLabel(ids);
+    window.showConfirmDialog(`${window.tr('سيتم حذف')} (${ids.length}) ${window.tr('طلب نهائياً بشكل كامل ولا يمكن التراجع. متابعة؟')}`, async function() {
+        try {
+            await designBatch(ids, (b, ref) => b.delete(ref));
+            window.logActionToCloud('حذف طلب', `حذف ${ids.length} طلب من قيد التصميم: ${label}`);
+            ids.forEach(id => designSelected.delete(id));
+            window.showSuccessToast(`${window.tr('تم حذف')} ${ids.length} ${window.tr('طلب')}`);
+        } catch (e) { console.error(e); alert(window.tr('تعذّر تنفيذ العملية')); }
+    });
+};
+window.markDesignDone = function(id) { window.designApplyDone([id]); };
+window.designDoneSelected = function() { window.designApplyDone([...designSelected]); };
+window.designDeleteOne = function(id) { window.designApplyDelete([id]); };
+window.designDeleteSelected = function() { window.designApplyDelete([...designSelected]); };
+
 window.toggleOrderTypeSection = function(sec) { document.getElementById('add-ordertype-sec').style.display = (sec === 'add') ? 'block' : 'none'; document.getElementById('list-ordertype-sec').style.display = (sec === 'list') ? 'block' : 'none'; document.getElementById('btn-sec-type-list').style.background = (sec === 'list') ? 'var(--button-gradient)' : 'transparent'; document.getElementById('btn-sec-type-list').style.color = (sec === 'list') ? 'white' : 'var(--text-muted)'; document.getElementById('btn-sec-type-add').style.background = (sec === 'add') ? 'var(--button-gradient)' : 'transparent'; document.getElementById('btn-sec-type-add').style.color = (sec === 'add') ? 'white' : 'var(--text-muted)'; if(sec === 'add' && !document.getElementById('type-edit-id').value) { document.getElementById('type-form-title').innerText = "إضافة ديكور جديد"; document.getElementById('save-type-btn').innerText = "حفظ الديكور ➕"; } }
 window.saveOrderType = async function() { const editId = document.getElementById("type-edit-id").value; const data = { name: document.getElementById("type-name").value.trim(), code: document.getElementById("type-code").value.trim(), price: document.getElementById("type-price").value.trim(), notes: document.getElementById("type-notes").value.trim() }; if(data.name === "" || data.code === "") { alert("يرجى إدخال اسم الطلب والرمز"); return; } const _sv = window.normalizeSvgCode(document.getElementById("type-svg").value); if(!_sv.ok) { alert(window.tr(_sv.err === "size" ? "حجم كود الـ SVG كبير (الحد الأقصى 200KB)" : "كود الـ SVG غير صالح، تأكد أنه يبدأ بـ <svg وينتهي بـ </svg>")); return; } data.svg = _sv.svg; if(configuredOrderTypes.some(t => t.code === data.code && t.id !== editId)) { alert("هذا الرمز مستخدم لطلب آخر، اختر رمزاً مختلفاً"); return; } document.body.style.cursor = 'wait'; if(editId) { if(window.updateOrderTypeInFirebase) await window.updateOrderTypeInFirebase(editId, data); const idx = configuredOrderTypes.findIndex(t => t.id === editId); if(idx > -1) configuredOrderTypes[idx] = { id: editId, ...data }; window.showSuccessToast("تم تحديث الديكور بنجاح!"); } else { if(window.addOrderTypeToFirebase) { const r = await window.addOrderTypeToFirebase(data); configuredOrderTypes.push({ id: r.id, ...data }); window.showSuccessToast("تمت إضافة الديكور بنجاح!"); } } document.body.style.cursor = 'default'; ['type-name', 'type-code', 'type-price', 'type-notes', 'type-edit-id', 'type-svg'].forEach(id => document.getElementById(id).value = ''); window.previewTypeSvg(); window.renderOrderTypesSettings(); window.updateOrderTypeSelects(); window.toggleOrderTypeSection('list'); }
 window.editOrderType = function(idx) { const t = configuredOrderTypes[idx]; document.getElementById("type-edit-id").value = t.id; document.getElementById("type-name").value = t.name || ''; document.getElementById("type-code").value = t.code || ''; document.getElementById("type-price").value = t.price || ''; document.getElementById("type-notes").value = t.notes || ''; document.getElementById("type-svg").value = (typeof t.svg === "string") ? t.svg : ''; window.previewTypeSvg(); document.getElementById('type-form-title').innerText = "تحديث بيانات الديكور"; document.getElementById('save-type-btn').innerText = "تحديث البيانات 💾"; window.toggleOrderTypeSection('add'); }
@@ -1762,6 +2020,7 @@ window.saveEmployee = async function() {
         canAccessReports: document.getElementById("emp-can-reports").checked, canAccessChat: document.getElementById("emp-can-chat").checked,
         canAddOrders: document.getElementById("emp-can-add").checked, canFetchOld: document.getElementById("emp-can-fetch-old").checked,
         canImportExport: document.getElementById("emp-can-import-export").checked,
+        canDesignView: document.getElementById("emp-can-design-view").checked, canDesignDone: document.getElementById("emp-can-design-done").checked, canDesignDelete: document.getElementById("emp-can-design-delete").checked,
         canPurchase: document.getElementById("emp-can-purchase").checked, canConsume: document.getElementById("emp-can-consume").checked
     };
     if (!data.username) { alert("يرجى إدخال اسم الموظف"); return; }
@@ -1784,14 +2043,14 @@ window.saveEmployee = async function() {
     } catch (e) { console.error(e); alert("حدث خطأ أثناء حفظ الموظف"); return; }
     finally { document.body.style.cursor = 'default'; }
     ['emp-name', 'emp-phone', 'emp-location', 'emp-job', 'emp-pass', 'emp-edit-id'].forEach(id => document.getElementById(id).value = '');
-    ['emp-can-delete', 'emp-can-edit', 'emp-can-edit-type', 'emp-can-settings', 'emp-can-reports', 'emp-can-chat', 'emp-can-add', 'emp-can-fetch-old', 'emp-can-import-export', 'emp-can-purchase', 'emp-can-consume'].forEach(id => document.getElementById(id).checked = false);
+    ['emp-can-delete', 'emp-can-edit', 'emp-can-edit-type', 'emp-can-settings', 'emp-can-reports', 'emp-can-chat', 'emp-can-add', 'emp-can-fetch-old', 'emp-can-import-export', 'emp-can-design-done', 'emp-can-design-delete', 'emp-can-purchase', 'emp-can-consume'].forEach(id => document.getElementById(id).checked = false); document.getElementById('emp-can-design-view').checked = true;
     window.renderUsers(); window.toggleEmployeeSection('list');
 }
 window.editEmployee = function(idx) {
     const u = additionalUsers[idx];
     document.getElementById("emp-edit-id").value = u.id; document.getElementById("emp-name").value = u.username || ''; document.getElementById("emp-gender").value = u.gender || 'ذكر';
     document.getElementById("emp-phone").value = u.phone || ''; document.getElementById("emp-location").value = u.location || ''; document.getElementById("emp-job").value = u.jobTitle || ''; document.getElementById("emp-pass").value = '';
-    document.getElementById("emp-can-delete").checked = u.canDeleteCloud || false; document.getElementById("emp-can-edit").checked = u.canEditCloud || false; document.getElementById("emp-can-edit-type").checked = u.canEditOrderType || false; document.getElementById("emp-can-settings").checked = u.canAccessSettings || false; document.getElementById("emp-can-reports").checked = u.canAccessReports || false; document.getElementById("emp-can-chat").checked = u.canAccessChat || false; document.getElementById("emp-can-add").checked = u.canAddOrders || false; document.getElementById("emp-can-fetch-old").checked = u.canFetchOld || false; document.getElementById("emp-can-import-export").checked = u.canImportExport || false;
+    document.getElementById("emp-can-delete").checked = u.canDeleteCloud || false; document.getElementById("emp-can-edit").checked = u.canEditCloud || false; document.getElementById("emp-can-edit-type").checked = u.canEditOrderType || false; document.getElementById("emp-can-settings").checked = u.canAccessSettings || false; document.getElementById("emp-can-reports").checked = u.canAccessReports || false; document.getElementById("emp-can-chat").checked = u.canAccessChat || false; document.getElementById("emp-can-add").checked = u.canAddOrders || false; document.getElementById("emp-can-fetch-old").checked = u.canFetchOld || false; document.getElementById("emp-can-import-export").checked = u.canImportExport || false; document.getElementById("emp-can-design-view").checked = u.canDesignView !== false; document.getElementById("emp-can-design-done").checked = u.canDesignDone || false; document.getElementById("emp-can-design-delete").checked = u.canDesignDelete || false;
     document.getElementById("emp-can-purchase").checked = u.canPurchase || false; document.getElementById("emp-can-consume").checked = u.canConsume || false;
     document.getElementById('emp-form-title').innerText = "تحديث بيانات الموظف"; document.getElementById('save-emp-btn').innerText = "تحديث البيانات 💾"; window.toggleEmployeeSection('add');
 }
@@ -1808,7 +2067,7 @@ window.viewEmployeeProfile = function(idx) {
     let waLinkBtn = u.phone ? `<a href="${waUrl(u.phone)}" target="_blank" class="emp-wa-btn">مراسلة عبر واتساب 💬</a>` : `<button class="emp-wa-btn" style="background:#ccc; cursor:not-allowed;">لا يوجد رقم هاتف</button>`;
     document.getElementById('view-emp-wa').innerHTML = waLinkBtn;
     let perms = [];
-    if(u.canDeleteCloud) perms.push('<span class="status-badge active">حذف</span>'); if(u.canEditCloud) perms.push('<span class="status-badge active">تعديل</span>'); if(u.canEditOrderType) perms.push('<span class="status-badge active">تعديل الطلب</span>'); if(u.canAccessSettings) perms.push('<span class="status-badge active">إعدادات</span>'); if(u.canAccessReports) perms.push('<span class="status-badge active">تقارير</span>'); if(u.canAccessChat) perms.push('<span class="status-badge active">دردشة</span>'); if(u.canAddOrders) perms.push('<span class="status-badge active">إضافة</span>'); if(u.canFetchOld) perms.push('<span class="status-badge active">أرشيف</span>'); if(u.canImportExport) perms.push('<span class="status-badge active">تصدير</span>'); if(u.canPurchase) perms.push('<span class="status-badge active">إدخال مخزن</span>'); if(u.canConsume) perms.push('<span class="status-badge active">سحب مخزن</span>');
+    if(u.canDeleteCloud) perms.push('<span class="status-badge active">حذف</span>'); if(u.canEditCloud) perms.push('<span class="status-badge active">تعديل</span>'); if(u.canEditOrderType) perms.push('<span class="status-badge active">تعديل الطلب</span>'); if(u.canAccessSettings) perms.push('<span class="status-badge active">إعدادات</span>'); if(u.canAccessReports) perms.push('<span class="status-badge active">تقارير</span>'); if(u.canAccessChat) perms.push('<span class="status-badge active">دردشة</span>'); if(u.canAddOrders) perms.push('<span class="status-badge active">إضافة</span>'); if(u.canFetchOld) perms.push('<span class="status-badge active">أرشيف</span>'); if(u.canImportExport) perms.push('<span class="status-badge active">تصدير</span>'); if(u.canDesignView !== false) perms.push('<span class="status-badge active">تصميم</span>'); if(u.canDesignDone) perms.push('<span class="status-badge active">تأكيد التصميم</span>'); if(u.canDesignDelete) perms.push('<span class="status-badge active">حذف التصميم</span>'); if(u.canPurchase) perms.push('<span class="status-badge active">إدخال مخزن</span>'); if(u.canConsume) perms.push('<span class="status-badge active">سحب مخزن</span>');
     if(perms.length === 0) perms.push('<span style="font-size:12px; color:#aaa;">لا يملك صلاحيات</span>');
     document.getElementById('view-emp-perms').innerHTML = perms.join('');
     
@@ -1871,6 +2130,8 @@ let notifLogs = [], notifUnsub = null, notifSeen = 0, notifPrevSeen = 0, notifRe
 const NOTIF_ICONS = { 'إضافة طلب': '➕', 'حذف طلب': '🗑️', 'تعديل طلب': '✏️', 'تغيير حالة': '🔁', 'رفع Excel': '📥', 'تصدير': '📤', 'تسجيل دخول': '🔑', 'تسجيل خروج': '🚪', 'مشتريات مخزن': '🛒', 'استهلاك مخزن': '📦', 'جلب أرشيف': '🗄️', 'ملاحظة على طلب': '💬' };
 function notifIcon(a) {
     if (NOTIF_ICONS[a]) return NOTIF_ICONS[a];
+    if (/تصميم/.test(a)) return '🎨';
+    if (/تسلسل/.test(a)) return '🔢';
     if (/موظف|مستخدم/.test(a)) return '👥';
     if (/مخزن|مادة|كتالوج|حد التنبيه/.test(a)) return '📦';
     if (/دردش|مجموعة/.test(a)) return '💬';

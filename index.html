@@ -94,6 +94,7 @@
             <div class="brand-logo main-logo menu-logo"><svg class="logo-img gl-logo" width="120" height="120" role="img" aria-label="Gold Land"><use href="#gl-logo"/></svg></div>
             <div class="menu-items">
                 <button class="menu-btn btn-blue" onclick="openDistribution()"><span class="icon">📄</span> <span>إضافة الطلبات</span></button>
+                <button class="menu-btn" id="design-menu-btn" onclick="openDesignQueue()"><span class="icon" style="position:relative;">🎨<span class="badge" id="designBadge" style="display:none;">0</span></span> <span>قيد التصميم</span></button>
                 <button class="menu-btn" onclick="openChatSection()"><span class="icon" style="position:relative;">💬<span class="badge" id="chatBadge" style="display:none;">0</span></span> <span>الدردشة</span></button>
                 <button class="menu-btn" onclick="openCloudOrders()"><span class="icon">🗃️</span> <span>الأرشيف والمتابعة</span></button>
                 <button class="menu-btn" onclick="openReports()"><span class="icon">📊</span> <span>التقارير والإحصائيات</span></button>
@@ -147,6 +148,7 @@
             <h3 style="text-align: start; margin-bottom: 20px;">تفاصيل الطلب:</h3>
             <div class="form-grid">
                 <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 5px;"><label style="color: #b8860b; font-size: 16px;">📌 اختر البيج (إلزامي):</label><select id="constantField" style="font-weight: bold;"><option value="">-- اختر البيج --</option></select></div>
+                <div id="serialBanner" class="serial-banner" style="display:none; grid-column: 1 / -1;"></div>
                 <div class="form-group"><label>تسلسل الزبون</label><input type="text" id="custId"></div>
                 <div class="form-group"><label>اسم الزبون</label><input type="text" id="custName"></div>
                 <div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="phone1" dir="ltr" style="text-align: right;"></div>
@@ -314,6 +316,33 @@
             </div>
         </div>
     </div>
+    <!-- قيد التصميم -->
+    <div class="container no-print" id="design-section" style="display: none; height: calc(100vh - 80px); height: calc(100dvh - 80px); flex-direction: column;">
+        <div class="header-dash" style="margin-bottom: 15px;">
+            <div style="display: flex; align-items: center; gap: 15px;"><div class="brand-logo dash-logo"><svg class="logo-img gl-logo" width="50" height="50" role="img" aria-label="Gold Land"><use href="#gl-logo"/></svg></div><h2 style="margin: 0; font-size: 22px; color: var(--text-color);">🎨 قيد التصميم</h2></div>
+            <div><button class="btn-outline" onclick="backToMainMenuFrom('design-section')" style="padding: 10px 15px;">🔙 القائمة</button></div>
+        </div>
+        <div class="card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 15px;">
+            <div class="design-filters">
+                <input type="text" id="designSearch" class="notif-search" placeholder="🔍 بحث بالتسلسل أو الرمز أو الملاحظة..." oninput="renderDesignQueue()" autocomplete="off">
+                <select id="designFilterType" onchange="renderDesignQueue()"></select>
+                <select id="designFilterColor" onchange="renderDesignQueue()"></select>
+                <select id="designFilterNote" onchange="renderDesignQueue()"><option value="">الملاحظة: الكل</option><option value="with">مع ملاحظة</option><option value="without">بدون ملاحظة</option></select>
+                <input type="number" id="designFrom" placeholder="من تسلسل" oninput="renderDesignQueue()">
+                <input type="number" id="designTo" placeholder="إلى تسلسل" oninput="renderDesignQueue()">
+                <button type="button" class="btn-outline" onclick="designClearFilters()" style="padding: 8px 12px; font-size: 12px; min-width: unset;">مسح الفلاتر</button>
+            </div>
+            <div class="design-bar">
+                <label id="designSelectAllWrap" class="permission-badge" style="display:none;"><input type="checkbox" id="designSelectAll" onchange="designToggleAll(this.checked)"> تحديد الكل</label>
+                <span id="designCount" class="status-badge active" style="white-space:nowrap;">0</span>
+                <span id="designSelCount" class="design-selcount"></span>
+                <button type="button" id="designDoneSelBtn" class="btn-parse" onclick="designDoneSelected()" style="display:none; padding: 8px 14px; font-size: 13px; min-width: unset;">✅ تم التصميم</button>
+                <button type="button" id="designDelSelBtn" class="btn-outline design-del-btn" onclick="designDeleteSelected()" style="display:none; padding: 8px 14px; font-size: 13px; min-width: unset;">🗑️ حذف</button>
+            </div>
+            <div id="designList" class="design-list"></div>
+        </div>
+    </div>
+
     <!-- 5. التقارير والإحصائيات -->
     <div class="container no-print" id="reports-section" style="display: none; height: calc(100vh - 80px); height: calc(100dvh - 80px); flex-direction: column;">
         <div class="header-dash" style="margin-bottom: 15px;">
@@ -409,6 +438,7 @@
                     <button class="tab-btn" onclick="switchTab('typesTab', this)">الطلبات</button>
                     <button class="tab-btn" onclick="switchTab('usersTab', this)">المستخدمين</button>
                     <button class="tab-btn" onclick="switchTab('deliveryTab', this)">التوصيل</button>
+                    <button class="tab-btn" onclick="switchTab('serialTab', this); renderSerialSettings()">🔢 التسلسل</button>
                     <button class="tab-btn" onclick="switchTab('whItemsTab', this)">مواد المخزن</button>
 <button class="tab-btn" onclick="switchTab('langTab', this)">🎨 المظهر</button>
                 </div>
@@ -489,6 +519,9 @@
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-add"> التوزيع الذكي</label>
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-fetch-old"> الأرشيف القديم</label>
                                 <label class="permission-badge"><input type="checkbox" id="emp-can-import-export"> استيراد/تصدير</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-design-view"> 🎨 قيد التصميم (عرض وفلترة)</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-design-done"> ✅ تأكيد التصميم</label>
+                                <label class="permission-badge"><input type="checkbox" id="emp-can-design-delete"> 🗑️ حذف من قيد التصميم</label>
                             </div>
                             <label>صلاحيات المخزن:</label>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; background: var(--bg-color); padding: 15px; border-radius: 15px;">
@@ -499,7 +532,17 @@
                         </div>
                         <div id="list-employee-sec"><div id="employee-cards-container" style="display: flex; flex-direction: column; gap: 10px;"></div></div>
                     </div>
-                    <div id="deliveryTab" class="tab-pane" style="text-align: start;"><label>توصيل بغداد</label><input type="number" id="feeBaghdadInput" style="margin-bottom:15px;"><label>توصيل المحافظات</label><input type="number" id="feeOtherInput" style="margin-bottom:20px;"><button onclick="saveDeliveryFees()" style="width: 100%;">حفظ 💾</button></div>
+                    <div id="serialTab" class="tab-pane" style="text-align: start;">
+                    <h3 style="margin-top: 0;">🔢 تسلسل الطلبات</h3>
+                    <p class="setting-desc">حدّد نطاق التسلسل (من — إلى) ليُكتب تلقائياً في خانة «تسلسل الزبون» عند إضافة كل طلب، وسيصلك تنبيه عند بقاء 500 تسلسل فقط.</p>
+                    <div id="serialStatus" class="serial-status"></div>
+                    <label>من تسلسل</label><input type="number" id="serialFromInput" min="0" oninput="previewSerialRange()" style="margin-bottom:15px;">
+                    <label>إلى تسلسل</label><input type="number" id="serialToInput" min="0" oninput="previewSerialRange()" style="margin-bottom:10px;">
+                    <div id="serialPreview" class="setting-desc" style="margin-bottom:15px;"></div>
+                    <button onclick="saveSerialRange()" style="width: 100%; margin-bottom: 10px;">حفظ النطاق 💾</button>
+                    <button type="button" id="serialToggleBtn" class="btn-outline" onclick="toggleSerialActive()" style="width: 100%;">⏸️ إيقاف التسلسل التلقائي</button>
+                </div>
+                <div id="deliveryTab" class="tab-pane" style="text-align: start;"><label>توصيل بغداد</label><input type="number" id="feeBaghdadInput" style="margin-bottom:15px;"><label>توصيل المحافظات</label><input type="number" id="feeOtherInput" style="margin-bottom:20px;"><button onclick="saveDeliveryFees()" style="width: 100%;">حفظ 💾</button></div>
                 </div>
             </div>
         </div>
@@ -537,6 +580,7 @@
     </select></div><div class="form-grid"><div class="form-group"><label>اسم البيج</label><input type="text" id="editConstant"></div><div class="form-group"><label>اسم الزبون</label><input type="text" id="editName"></div><div class="form-group"><label>رقم الهاتف الأول</label><input type="text" id="editPhone1" dir="ltr"></div><div class="form-group"><label>رقم الهاتف الثاني</label><input type="text" id="editPhone2" dir="ltr"></div><div class="form-group"><label>المحافظة</label><input type="text" id="editGov"></div><div class="form-group"><label>المنطقة</label><input type="text" id="editArea"></div></div><div class="items-container" style="margin-bottom: 15px; padding: 15px; background: rgba(0,0,0,0.02); border-radius: 15px;"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><label style="margin:0;">📦 الطلبات والعدد</label><span style="display:flex; gap:6px;"><button type="button" class="btn-outline type-gallery-open-btn" onclick="openTypeGallery('editDynamicRowsWrapper')" style="padding: 5px 10px; font-size: 13px; display:none;">🖼️ من الصور</button><button type="button" class="btn-outline" onclick="addEditOrderItemRow()" style="padding: 5px 10px; font-size: 13px;">➕ صنف آخر</button></span></div><div id="editDynamicRowsWrapper"></div></div><div class="form-group"><label>المبلغ الكلي</label><input type="text" id="editAmount"></div><button class="btn-parse" onclick="saveEditedOrder()" style="width: 100%; margin-top: 15px;">حفظ التحديثات 💾</button></div></div>
     <div class="modal-overlay no-print" id="notifModal" style="z-index: 12600;"><div class="modal-content notif-modal" style="max-width: 560px; text-align: start;"><span class="close-modal" onclick="closeNotifCenter()">&times;</span><h3 style="margin-bottom: 14px; text-align: center; color: var(--primary-blue);">🔔 سجل الإجراءات</h3><div class="notif-filters"><select id="notifFilterUser" onchange="renderNotifList()"></select><select id="notifFilterAction" onchange="renderNotifList()"></select></div><input type="text" id="notifSearch" class="notif-search" placeholder="🔍 بحث في الإجراءات..." oninput="renderNotifList()" autocomplete="off"><div id="notifList" class="notif-list"></div><div id="notifFoot" class="notif-foot"></div></div></div>
     <div class="modal-overlay no-print" id="typeGalleryModal" style="z-index: 13000;"><div class="modal-content" style="max-width: 640px; text-align: start;"><span class="close-modal" onclick="closeTypeGallery()">&times;</span><h3 style="margin-bottom: 12px; text-align: center; color: var(--primary-blue);">🖼️ اختر الطلب</h3><input type="text" id="typeGallerySearch" class="notif-search" placeholder="🔍 بحث بالاسم أو الرمز..." oninput="renderTypeGallery()" autocomplete="off"><div id="typeGalleryGrid" class="type-gallery-grid"></div><button type="button" id="typeGalleryDone" class="btn-parse" onclick="closeTypeGallery()" style="width:100%; margin-top:14px;">تم ✔</button></div></div>
+    <div class="modal-overlay no-print img-viewer" id="imgViewerModal" style="z-index: 14500;" onclick="closeImageViewer()"><button type="button" class="img-viewer-close" onclick="closeImageViewer()" aria-label="إغلاق">&times;</button><button type="button" class="img-viewer-nav prev" id="imgViewerPrev" onclick="event.stopPropagation(); imgViewerStep(-1)" aria-label="السابق">&#8250;</button><div class="img-viewer-box" onclick="event.stopPropagation()"><img id="imgViewerImg" alt=""><div id="imgViewerCap" class="img-viewer-cap"></div><a id="imgViewerDl" class="img-viewer-dl" download="order-image.svg">⬇️ تنزيل SVG</a></div><button type="button" class="img-viewer-nav next" id="imgViewerNext" onclick="event.stopPropagation(); imgViewerStep(1)" aria-label="التالي">&#8249;</button></div>
     <div class="modal-overlay no-print" id="statusUploadModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 460px; text-align: start;"><span class="close-modal" onclick="closeStatusUploadModal()">&times;</span><h3 style="margin-bottom: 8px; text-align: center; color: var(--primary-blue);">🔁 رفع الحالات من Excel</h3><p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 18px;">حمّل النموذج واكتب فيه أرقام التسلسل فقط، ثم ارفعه لتغيير حالة الطلبات المطابقة.</p><div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px;"><button type="button" class="btn-outline" onclick="downloadStatusTemplate()" style="flex: 1; min-width: 150px; padding: 12px;">⬇️ تحميل نموذج Excel</button><button type="button" class="btn-parse" onclick="pickStatusExcelFile()" style="flex: 1; min-width: 150px; padding: 12px;">📤 رفع ملف Excel</button><input type="file" id="statusExcelInput" accept=".xlsx, .xls" style="display: none;" onchange="handleStatusExcel(event)"></div><div class="form-group" style="background: rgba(64,123,255,0.05); padding: 15px; border-radius: 15px;"><label>الحالة المراد التغيير لها:</label><select id="statusUploadSelect" style="font-weight: bold; width: 100%;"></select></div><div id="statusUploadResult" style="display: none; margin-top: 15px; padding: 14px; border-radius: 15px; background: var(--bg-color); box-shadow: var(--inner-shadow); font-size: 14px; line-height: 1.9;"></div></div></div>
     <div class="modal-overlay no-print" id="bulkStatusModal" style="z-index: 12500;"><div class="modal-content" style="max-width: 350px; text-align: center;"><span class="close-modal" onclick="closeBulkStatusModal()">&times;</span><h3 style="margin-bottom: 15px;">تغيير حالة الطلبات المحددة</h3><select id="bulkStatusSelect" style="margin-bottom: 25px; width: 100%; padding: 15px; border-radius: 15px;">
         <option value="جديد">جديد</option>
